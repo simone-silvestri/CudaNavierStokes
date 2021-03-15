@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "globals.h"
 #include "display.h"
+#include <chrono>
 
 using namespace std;
 
@@ -90,6 +91,8 @@ void run() {
 
 int main(int argc, char** argv) {
 
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     if(argc>1) gui = 1;
 	 
     if(gui==1) initDisplay(argc, argv);
@@ -143,6 +146,10 @@ int main(int argc, char** argv) {
     for(int i=0; i<mx; i++)
       fprintf(fp,"%lf %lf \n",x[i],phi[i]);
     fclose(fp);
+    
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::seconds>     (end - begin).count() << "[s]" << std::endl;
 
     cout << "Simulation is finished! \n ";
 

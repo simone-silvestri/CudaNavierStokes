@@ -6,10 +6,10 @@
 
 #define stencilSize 4  //the order is double the stencilSize 
 const int L = 1;
-const int mx = 100;
-const int my = 100;
-const int mz = 100;
-const int nsteps = 2950;
+const int mx = 128;
+const int my = 128;
+const int mz = 128;
+const int nsteps = 100;
 const double U = 1.0;
 const double CFL = 1.0;
 const bool periodic = true;
