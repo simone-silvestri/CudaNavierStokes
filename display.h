@@ -34,6 +34,9 @@ int width = 1920;
 int height = 800;
 float aspectRatio = float(height)/float(width);
 
+int jd = 0;
+int kd = 0;
+
 void initDisplay(int argc, char** argv);
 void display();
 void reshape(GLint w, GLint h);
@@ -42,6 +45,14 @@ void key(unsigned char c, int x, int y);
 
 
 void initDisplay(int argc, char** argv)  {
+
+
+        if(argc>1) {
+	  jd=strtol(argv[1], nullptr, 0);
+	}
+	if(argc>2) {
+          kd=strtol(argv[2], nullptr, 0);	
+        }
 
         glutInit(&argc, argv);
         glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
@@ -94,18 +105,14 @@ void reshape(GLint w, GLint h)
 
 void display() {
 
-//	glClearColor(178.0f/255.0f, 178.0f/255.0f, 178.0f/255.0f, 0.0f);
-//
-//	glClear(GL_COLOR_BUFFER_BIT);   // Clear the color buffer with current clearing color
-
         float maxPhi = -1000;
         float minPhi =  1000;
-        float xg[N],phig[N];
-        for (int i=0; i<N; i++) {
-            maxPhi  = MAX(maxPhi,(float)phi[i]);
-            minPhi  = MIN(minPhi,(float)phi[i]);
+        float xg[mx],phig[mx];
+        for (int i=0; i<mx; i++) {
+            maxPhi  = MAX(maxPhi,(float)phi[idx(i,jd,kd)]);
+            minPhi  = MIN(minPhi,(float)phi[idx(i,jd,kd)]);
             xg[i]   = (float) x[i];
-            phig[i] = (float) phi[i]; } 
+            phig[i] = (float) phi[idx(i,jd,kd)]; } 
 
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -115,12 +122,12 @@ void display() {
 	//glLoadIdentity();
 
 	glPushMatrix();
-	glScalef(1.0 / (xg[N-1]-xg[0]), 1.0 / (maxPhi-minPhi), 1.0);
+	glScalef(1.0 / (xg[mx-1]-xg[0]), 1.0 / (maxPhi-minPhi), 1.0);
 	glTranslatef(-xg[0], -minPhi, 0.0);
 	glColor3f(1.0, 1.0, 1.0);
 
         glBegin(GL_LINE_STRIP); 
-          for(int i=0; i<N; i++) {
+          for(int i=0; i<mx; i++) {
                   glVertex2f(xg[i],phig[i]);
           }
         glEnd();

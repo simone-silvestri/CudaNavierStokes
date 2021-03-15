@@ -14,22 +14,26 @@ void higherOrder_FD(double *dydx, double *y, double *g) {
 
     double dx = g[1]-g[0];
  
-    double ybound[N+stencilSize*2+1];
-    for(int i=stencilSize; i<N+stencilSize; i++) 
-     ybound[i] = y[i-stencilSize];
+    double ybound[mx+stencilSize*2+1];
+    for (int k=0; k<mz; k++) {
+    for (int j=0; j<my; j++) {
+      for(int i=stencilSize; i<mx+stencilSize; i++) 
+        ybound[i] = y[idx(i,j,k)-stencilSize];
       
-    if(periodic) {
-      for(int i=0; i<stencilSize; i++) {
-        ybound[i]   = y[N-stencilSize+i];
-        ybound[N+stencilSize+i] = y[i];
+      if(periodic) {
+        for(int i=0; i<stencilSize; i++) {
+          ybound[i]   = y[mx-stencilSize+idx(i,j,k)];
+          ybound[mx+stencilSize+i] = y[idx(i,j,k)];
+        }
+      }
+
+      for (int i = 0; i < mx; i++){
+          dydx[idx(i,j,k)] = 0.0;
+          for (int it = 0; it < stencilSize*2+1; it++){
+              dydx[idx(i,j,k)] = dydx[idx(i,j,k)] + coeff[it]*ybound[i+it]/dx;
+          }
       }
     }
-
-    for (int i = 0; i < N; i++){
-        dydx[i] = 0.0;
-        for (int idx = 0; idx < stencilSize*2+1; idx++){
-            dydx[i] = dydx[i] + coeff[idx]*ybound[i+idx]/dx;
-        }
     }
 }
 
@@ -37,8 +41,10 @@ void higherOrder_FD(double *dydx, double *y, double *g) {
 void RHS(double *rhs, double *var, double *g) {
 
     higherOrder_FD(rhs, var, g);
-    for(int i=0; i<N; i++)  
-	rhs[i] = -rhs[i]*U;
+    for (int k=0; k<mz; k++) {
+    for (int j=0; j<my; j++) {
+    for (int i=0; i<mx; i++) {
+	rhs[idx(i,j,k)] = -rhs[idx(i,j,k)]*U; } } } 
 }
 
 
@@ -46,20 +52,28 @@ void rk4() {
 
     RHS(rhs1, phi,x);
 
-    for(int i=0; i<N; i++)
-      temp[i] = phi[i] + rhs1[i]*dt/2;
+    for (int k=0; k<mz; k++) {
+    for (int j=0; j<my; j++) {
+    for (int i=0; i<mx; i++) {
+      temp[idx(i,j,k)] = phi[idx(i,j,k)] + rhs1[idx(i,j,k)]*dt/2; } } }
     RHS(rhs2,temp,x);
 
-    for(int i=0; i<N; i++)
-      temp[i] = phi[i] + rhs2[i]*dt/2;
+    for (int k=0; k<mz; k++) {
+    for (int j=0; j<my; j++) {
+    for (int i=0; i<mx; i++) {
+      temp[idx(i,j,k)] = phi[idx(i,j,k)] + rhs2[idx(i,j,k)]*dt/2; } } }
     RHS(rhs3,temp,x);
 
-    for(int i=0; i<N; i++)
-      temp[i] = phi[i] + rhs3[i]*dt;
+    for (int k=0; k<mz; k++) {
+    for (int j=0; j<my; j++) {
+    for (int i=0; i<mx; i++) {
+      temp[idx(i,j,k)] = phi[idx(i,j,k)] + rhs3[idx(i,j,k)]*dt; } } }
     RHS(rhs4,temp,x);
 
-    for(int i=0; i<N; i++)
-      phi[i] = phi[i] + dt*(rhs1[i]+2*rhs2[i]+2*rhs3[i]+rhs4[i])/6.0;
+    for (int k=0; k<mz; k++) {
+    for (int j=0; j<my; j++) {
+    for (int i=0; i<mx; i++) {
+      phi[idx(i,j,k)] = phi[idx(i,j,k)] + dt*(rhs1[idx(i,j,k)]+2*rhs2[idx(i,j,k)]+2*rhs3[idx(i,j,k)]+rhs4[idx(i,j,k)])/6.0; } } }
 
 
 }
@@ -80,8 +94,8 @@ int main(int argc, char** argv) {
 	 
     if(gui==1) initDisplay(argc, argv);
 
-    for(int i=0;i<N;i++) {
-     x[i]=(0.5+i*1.0)/(N);  }
+    for(int i=0;i<mx;i++) {
+     x[i]=(0.5+i*1.0)/(mx);  }
 
     dt = CFL*(x[1]-x[0])/abs(U);
 
@@ -94,26 +108,30 @@ int main(int argc, char** argv) {
      coeff[stencilSize*2-i] = -coeffS[i];
     }
 
-    int initialProfile = 1;
+    int initialProfile = 2;
     double fact;
     double sigma;
     double t;
 
     // Initial profile
-    if (initialProfile == 1) {
+    for (int k = 0; k < mz; k++) {
+    for (int j = 0; j < my; j++) {
+    for (int i = 0; i < mx; i++) {
+    if (j<=my/2) {
         fact = 0.02;
-        for (int i = 0; i < N; i++) {
-            phi[i] = tanh((x[i]-0.3*L)/fact) + tanh((0.7*L-x[i])/fact);
-        }
-    } else if (initialProfile == 2) {
+            phi[idx(i,j,k)] = tanh((x[i]-0.3*L)/fact) + tanh((0.7*L-x[i])/fact);
+    } else if (j<=(int)(my/4.0)*3) {
         sigma = 0.1;
-        t = x[0]-0.5;
-        for (int i = 0; i < N; i++) {
-            phi[i] = exp(pow(-((x[i]-0.5)/sigma), 2));
-        }
+        t = x[i]-0.5;
+            phi[idx(i,j,k)] = exp(-pow((t/sigma), 2));
+    } else {
+        sigma = 0.1;
+        t = x[i]-0.5;
+        phi[idx(i,j,k)] = (1-t/sigma*t/sigma)*exp(-pow((t/sigma), 2));
     }
+    } } }
     FILE *fp = fopen("initial.txt","w+");
-    for(int i=0; i<N; i++)
+    for(int i=0; i<mx; i++)
       fprintf(fp,"%lf %lf \n",x[i],phi[i]);
     fclose(fp);
 
@@ -122,7 +140,7 @@ int main(int argc, char** argv) {
     if(gui==1) glutMainLoop();
 
     fp = fopen("final.txt","w+");
-    for(int i=0; i<N; i++)
+    for(int i=0; i<mx; i++)
       fprintf(fp,"%lf %lf \n",x[i],phi[i]);
     fclose(fp);
 

@@ -6,11 +6,16 @@
 
 #define stencilSize 4  //the order is double the stencilSize 
 const int L = 1;
-const int N = 100;
+const int mx = 100;
+const int my = 100;
+const int mz = 100;
 const int nsteps = 2950;
 const double U = 1.0;
 const double CFL = 1.0;
 const bool periodic = true;
+
+#define idx(i,j,k) \
+		({ k*mx*my+j*my+i; }) 
 
 #if stencilSize==1
 const double coeffS[] = {-1.0/2.0};
@@ -25,13 +30,13 @@ const double coeffS[] = {1.0/280.0, -4.0/105.0, 1.0/5.0, -4.0/5.0};
 double *coeff;
 
 double dt;
-double x[N],phi[N];
+double x[mx],phi[mx*my*mz];
 
-double rhs1[N]; 
-double rhs2[N];
-double rhs3[N];
-double rhs4[N];
-double temp[N];
+double rhs1[mx*my*mz]; 
+double rhs2[mx*my*mz];
+double rhs3[mx*my*mz];
+double rhs4[mx*my*mz];
+double temp[mx*my*mz];
 
 
 int colorMap = 0;
