@@ -127,10 +127,12 @@ int main(int argc, char** argv) {
         sigma = 0.1;
         t = x[i]-0.5;
             phi[idx(i,j,k)] = exp(-pow((t/sigma), 2));
-    } else {
+    } else if (j<=my-5) {
         sigma = 0.1;
         t = x[i]-0.5;
         phi[idx(i,j,k)] = (1-t/sigma*t/sigma)*exp(-pow((t/sigma), 2));
+    } else {
+	phi[idx(i,j,k)] = cos(2.0*3.141529*x[i]);
     }
     } } }
     FILE *fp = fopen("initial.txt","w+");
