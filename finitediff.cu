@@ -206,8 +206,8 @@ __global__ void derivative_x(float *f, float *df)
 {  
   __shared__ float s_f[sPencils][mx+8]; // 4-wide halo
 
-  int i   = threadIdx.x;
-  int j   = blockIdx.x*blockDim.y + threadIdx.y;
+  int i  = threadIdx.x;
+  int j  = blockIdx.x*blockDim.y + threadIdx.y;
   int k  = blockIdx.y;
   int si = i + 4;       // local i for shared memory access + halo offset
   int sj = threadIdx.y; // local j for shared memory access
