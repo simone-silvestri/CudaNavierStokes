@@ -7,7 +7,7 @@ to benchmark the speed on CPU:
 - choose parameters in globals.h (nsteps and grid)
 - compile with "make clean; make" (code will run on CPU)
 - output file is in final.txt (1D slice of 3D solution)
-- if the code is run with input "./ns JP KP" a graphic showing the evolution of the function in x direction
+- if the code is run with input "./ns JP KP" a graphic will show the evolution of the function in x direction
   at position j=JP and k=KP (will make the code considerably slower)
 
 
