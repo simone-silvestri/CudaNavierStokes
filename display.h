@@ -1,6 +1,4 @@
 
-
-
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
 
@@ -29,17 +27,18 @@ using namespace std;
 
 #include "globals.h"
 
-
-int width = 1920;
-int height = 800;
+int width  = 3000;
+int height = 3000;
 float aspectRatio = float(height)/float(width);
+
+GLdouble clipAreaXLeft, clipAreaXRight, clipAreaYBottom, clipAreaYTop;
 
 int jd = 0;
 int kd = 0;
 
 void initDisplay(int argc, char** argv);
 void display();
-void reshape(GLint w, GLint h);
+void reshape(GLsizei width, GLsizei height);
 void key(unsigned char c, int x, int y);
 
 
@@ -58,7 +57,7 @@ void initDisplay(int argc, char** argv)  {
         glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
         glutCreateWindow("Graph plotter");
 	glutInitWindowSize(width, height);   			// Set the window's initial width & height - non-square
-	glutInitWindowPosition(50, 50); 			// Position the window's initial top-left corner
+	glutInitWindowPosition(150, 150); 			// Position the window's initial top-left corner
 
         /* Register GLUT callbacks. */
         glutDisplayFunc(display);
@@ -79,28 +78,32 @@ void key(unsigned char c, int x, int y)
 };
 
 
-void reshape(GLint w, GLint h)
-{
-	if (h == 0) height = 1;
-	aspectRatio = (GLfloat)w / (GLfloat)h;
+/* Call back when the windows is re-sized */
+void reshape(GLsizei width, GLsizei height) {
+   // Compute aspect ratio of the new window
+   if (height == 0) height = 1;                // To prevent divide by 0
+   GLfloat aspect = (GLfloat)width / (GLfloat)height;
 
-	// Set the viewport to cover the new window
-	glViewport(0, 0, w, h);
+   // Set the viewport to cover the new window
+   glViewport(0, 0, width, height);
 
-	// Set the aspect ratio of the clipping area to match the viewport
-	glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
-	glLoadIdentity();             // Reset the projection matrix
-
-	gluOrtho2D(-1.0*aspectRatio, 1.0*aspectRatio, -1.0, 1.0);
-
-	width = w;
-	height = h;
-
-
-	glutPostRedisplay();
-
+   // Set the aspect ratio of the clipping area to match the viewport
+   glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
+   glLoadIdentity();             // Reset the projection matrix
+   if (width >= height) {
+      clipAreaXLeft   = -1.0 * aspect;
+      clipAreaXRight  = 1.0 * aspect;
+      clipAreaYBottom = -1.0;
+      clipAreaYTop    = 1.0;
+   } else {
+      clipAreaXLeft   = -1.0;
+      clipAreaXRight  = 1.0;
+      clipAreaYBottom = -1.0 / aspect;
+      clipAreaYTop    = 1.0 / aspect;
+   }
+   gluOrtho2D(clipAreaXLeft, clipAreaXRight, clipAreaYBottom, clipAreaYTop);
+   glutPostRedisplay();
 }
-
 
 
 void display() {
@@ -112,18 +115,16 @@ void display() {
             maxPhi  = MAX(maxPhi,(float)phi[idx(i,jd,kd)]);
             minPhi  = MIN(minPhi,(float)phi[idx(i,jd,kd)]);
             xg[i]   = (float) x[i];
-            phig[i] = (float) phi[idx(i,jd,kd)]; } 
+            phig[i] = (float) phi[idx(i,jd,kd)];
+        } 
 
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
-
 	glMatrixMode(GL_MODELVIEW);
-
-	//glLoadIdentity();
+	glLoadIdentity();
 
 	glPushMatrix();
-	glScalef(1.0 / (xg[mx-1]-xg[0]), 1.0 / (maxPhi-minPhi), 1.0);
-	glTranslatef(-xg[0], -minPhi, 0.0);
+	glTranslatef(-(xg[mx-1]+xg[0])/2.0, -(maxPhi+minPhi)/2.0, 0.0);
 	glColor3f(1.0, 1.0, 1.0);
 
         glBegin(GL_LINE_STRIP); 
@@ -135,7 +136,7 @@ void display() {
 	glPopMatrix();
 	glutSwapBuffers();
 
-	//glFlush();  // Render now
+	glFlush();  // Render now
 }
 
 #endif

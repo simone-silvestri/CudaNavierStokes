@@ -3,11 +3,28 @@
 #include <math.h>
 #include <cmath>
 #include <algorithm>
-#include "globals.h"
-#include "display.h"
 #include <chrono>
+#include "globals.h"
+#if arch==1
+#include "cuda_functions.h"
+#else
+#include "display.h" 
+#endif
 
 using namespace std;
+
+
+double *coeff;
+double dt;
+
+double x[mx],phi[mx*my*mz];
+
+double rhs1[mx*my*mz];
+double rhs2[mx*my*mz];
+double rhs3[mx*my*mz];
+double rhs4[mx*my*mz];
+double temp[mx*my*mz];
+
 
 int gui=0;
 
@@ -15,7 +32,7 @@ void higherOrder_FD(double *dydx, double *y, double *g) {
 
     double dx = g[1]-g[0];
  
-    double ybound[mx+stencilSize*2+1];
+    double ybound[mx+stencilSize*2];
     for (int k=0; k<mz; k++) {
     for (int j=0; j<my; j++) {
       for(int i=stencilSize; i<mx+stencilSize; i++) 
@@ -30,8 +47,8 @@ void higherOrder_FD(double *dydx, double *y, double *g) {
 
       for (int i = 0; i < mx; i++){
           dydx[idx(i,j,k)] = 0.0;
-          for (int it = 0; it < stencilSize*2+1; it++){
-              dydx[idx(i,j,k)] = dydx[idx(i,j,k)] + coeff[it]*ybound[i+it]/dx;
+          for (int it = 0; it < stencilSize; it++){
+              dydx[idx(i,j,k)] += coeffS[it]*(ybound[i+it]-ybound[i+stencilSize*2-it])/dx;
           }
       }
     }
@@ -83,8 +100,10 @@ void run() {
     cout << nsteps << " Time steps total \n ";
     for (int istep=0; istep < nsteps; istep++){
         rk4();
+#if arch==0 
         if(gui==1) display();
-        cout << "Time step  " << istep << "  \n";
+#endif
+        if((istep%10)==0)  cout << "Time step  " << istep << "  \n";
     }
 
 }
@@ -93,25 +112,57 @@ int main(int argc, char** argv) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+#if arch==0 
     if(argc>1) gui = 1;
-	 
     if(gui==1) initDisplay(argc, argv);
-
+#endif
     for(int i=0;i<mx;i++) {
      x[i]=(0.5+i*1.0)/(mx);  }
 
     dt = CFL*(x[1]-x[0])/abs(U);
 
-    coeff=(double*)malloc((stencilSize*2+1)*sizeof(double));
-    for(int i=0; i<(stencilSize*2+1); i++) 
-     coeff[i]=0.0;
+    initProfile();
 
-    for(int i=0; i<stencilSize; i++) {
-     coeff[i] = coeffS[i];
-     coeff[stencilSize*2-i] = -coeffS[i];
-    }
 
-    int initialProfile = 2;
+#if arch==0
+    cout <<"\n"; 
+    cout <<"code is running on -> CPU \n";
+    cout <<"\n"; 
+    run();
+    if(gui==1) glutMainLoop();
+#elif arch==1
+    dim3 grid, block;
+
+    cout <<"\n"; 
+    cout <<"code is running on -> GPU \n";
+    cout <<"\n"; 
+
+    setDerivativeParameters(grid, block);
+
+    copyInit(1,grid,block);
+    runDevice<<<grid,block>>>();
+    cudaDeviceSynchronize();
+
+    copyInit(0,grid,block);
+    cudaDeviceSynchronize();
+#endif
+    FILE *fp = fopen("final.txt","w+");
+    for(int i=0; i<mx; i++)
+      fprintf(fp,"%lf %lf \n",x[i],phi[i]);
+    fclose(fp);
+  
+ 
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::seconds>     (end - begin).count() << "[s]" << std::endl;
+
+    cout << "Simulation is finished! \n";
+
+    return 0;
+}
+
+
+void initProfile() {
     double fact;
     double sigma;
     double t;
@@ -132,28 +183,12 @@ int main(int argc, char** argv) {
         t = x[i]-0.5;
         phi[idx(i,j,k)] = (1-t/sigma*t/sigma)*exp(-pow((t/sigma), 2));
     } else {
-	phi[idx(i,j,k)] = cos(2.0*3.141529*x[i]);
+        phi[idx(i,j,k)] = cos(2.0*3.141529*x[i]);
     }
     } } }
     FILE *fp = fopen("initial.txt","w+");
     for(int i=0; i<mx; i++)
       fprintf(fp,"%lf %lf \n",x[i],phi[i]);
     fclose(fp);
-
-    run();
-
-    if(gui==1) glutMainLoop();
-
-    fp = fopen("final.txt","w+");
-    for(int i=0; i<mx; i++)
-      fprintf(fp,"%lf %lf \n",x[i],phi[i]);
-    fclose(fp);
-    
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::seconds>     (end - begin).count() << "[s]" << std::endl;
-
-    cout << "Simulation is finished! \n ";
-
-    return 0;
 }
+
