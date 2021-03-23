@@ -70,7 +70,7 @@ __device__ void derivative_x_lPencils(myprec *dydx, myprec *y, Indices id)
      for (int it=0; it<stencilSize; it++)  { 
       dftemp += dcoeff[it]*(s_f[sj][si+it-stencilSize]-s_f[sj][si+stencilSize-it])/d_dx;
      }
-     dydx[globalIdx] = -dftemp; 
+     dydx[globalIdx] = dftemp; 
   }
 }
 
@@ -103,7 +103,7 @@ __device__ void derivative_x(myprec *dydx, myprec *y, Indices id)
 
   __syncthreads();
  
-  dydx[id.g] = -dftemp; 
+  dydx[id.g] = dftemp; 
 }
 
 void copyInit(int direction, dim3 grid, dim3 block) {
@@ -174,6 +174,7 @@ __global__ void initDevice(myprec *d_f) {
 __device__ void RHSDevice(myprec *var, myprec *rhs, Indices id) {
   
   derivative_x(var,rhs,id);
+  var[id.g] = -var[id.g]*U;
 }
 
 

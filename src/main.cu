@@ -97,7 +97,6 @@ void rk4() {
 }
 
 void run() {
-    cout << nsteps << " Time steps total \n ";
     for (int istep=0; istep < nsteps; istep++){
         rk4();
 #if arch==0 

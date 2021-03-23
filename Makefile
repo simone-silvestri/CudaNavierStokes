@@ -20,6 +20,9 @@ ifeq ($(ARCH),GPU)
 gpu_usage=1
 endif
 
+SRC=./src/
+OBJ=./obj/
+
 # Define compiler and optimizer's flags
 
 FLAG_GPU = -Darch=$(gpu_usage) 
@@ -45,26 +48,26 @@ TARGET = ns
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = cuda_solver.o
+OBJ_CUDA = $(OBJ)cuda_solver.o
 endif
 
 # List of objects
-OBJ_SRC = main.o
+OBJ_SRC = $(OBJ)main.o
 
-OBJ = $(OBJ_CUDA) $(OBJ_SRC)
+OBJECTS = $(OBJ_CUDA) $(OBJ_SRC)
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ) 
-	$(CC) $(CFLAGS) $(FLAG_GPU) -o $(TARGET) $(OBJ) -lm $(LIBS) 
+$(TARGET): $(OBJECTS) 
+	$(CC) $(CFLAGS) $(FLAG_GPU) -o $(TARGET) $(OBJECTS) -lm $(LIBS) 
 
-main.o: main.cu  
-	$(CC) $(FLAG_GPU) -c main.cu $(CFLAGS) 
+$(OBJ)main.o: $(SRC)main.cu  
+	$(CC) $(FLAG_GPU) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
 
 ifeq ($(ARCH),GPU)
-cuda_solver.o: cuda_solver.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) cuda_solver.cu $(FLAG2) 
+$(OBJ)cuda_solver.o: $(SRC)cuda_solver.cu
+	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_solver.cu $(FLAG2) -o $(OBJ)cuda_solver.o
 endif
 
 clean:
-		rm -rf $(TARGET) *.o 
+		rm -rf $(TARGET) $(OBJ)*.o
