@@ -2,6 +2,8 @@
 
 # cuda-solver for 1D advection equation
 
+The initial function to advance in time can be chosen in initProfile (in main.cu)
+
 to benchmark the speed on CPU:
 
 - choose parameters in globals.h (nsteps and grid)
