@@ -110,12 +110,12 @@ void display() {
 
         float maxPhi = -1000;
         float minPhi =  1000;
-        float xg[mx],phig[mx];
-        for (int i=0; i<mx; i++) {
-            maxPhi  = MAX(maxPhi,(float)phi[idx(i,jd,kd)]);
-            minPhi  = MIN(minPhi,(float)phi[idx(i,jd,kd)]);
-            xg[i]   = (float) x[i];
-            phig[i] = (float) phi[idx(i,jd,kd)];
+        float yg[my],phig[my];
+        for (int i=0; i<my; i++) {
+            maxPhi  = MAX(maxPhi,(float)phi[idx(jd,i,kd)]);
+            minPhi  = MIN(minPhi,(float)phi[idx(jd,i,kd)]);
+            yg[i]   = (float) y[i];
+            phig[i] = (float) phi[idx(jd,i,kd)];
         } 
 
 	glClearColor(0, 0, 0, 0);
@@ -124,12 +124,12 @@ void display() {
 	glLoadIdentity();
 
 	glPushMatrix();
-	glTranslatef(-(xg[mx-1]+xg[0])/2.0, -(maxPhi+minPhi)/2.0, 0.0);
+	glTranslatef(-(yg[my-1]+yg[0])/2.0, -(maxPhi+minPhi)/2.0, 0.0);
 	glColor3f(1.0, 1.0, 1.0);
 
         glBegin(GL_LINE_STRIP); 
-          for(int i=0; i<mx; i++) {
-                  glVertex2f(xg[i],phig[i]);
+          for(int i=0; i<my; i++) {
+                  glVertex2f(yg[i],phig[i]);
           }
         glEnd();
 

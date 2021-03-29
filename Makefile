@@ -37,8 +37,8 @@ FLAG2 = --use_fast_math
 MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include
-LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda #-lcudart 
-NVCC = nvcc $(DBG)
+LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda ## -lcudart 
+NVCC = nvcc $(DBG) -rdc=true
 endif
 
 CFLAGS = -I$(INC_GL) -L$(LIB_GL) -I$(INC) -L$(LIB) 
@@ -48,7 +48,7 @@ TARGET = ns
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_solver.o
+OBJ_CUDA = $(OBJ)cuda_solver.o $(OBJ)cuda_utils.o
 endif
 
 # List of objects
@@ -59,7 +59,7 @@ OBJECTS = $(OBJ_CUDA) $(OBJ_SRC)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) 
-	$(CC) $(CFLAGS) $(FLAG_GPU) -o $(TARGET) $(OBJECTS) -lm $(LIBS) 
+	$(CC) $(CFLAGS) $(FLAG_GPU) -o $(TARGET) $(OBJECTS) -lm $(LIBS) $(FLAG1)
 
 $(OBJ)main.o: $(SRC)main.cu  
 	$(CC) $(FLAG_GPU) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
@@ -67,6 +67,9 @@ $(OBJ)main.o: $(SRC)main.cu
 ifeq ($(ARCH),GPU)
 $(OBJ)cuda_solver.o: $(SRC)cuda_solver.cu
 	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_solver.cu $(FLAG2) -o $(OBJ)cuda_solver.o
+
+$(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
+	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_utils.cu $(FLAG2) -o $(OBJ)cuda_utils.o
 endif
 
 clean:

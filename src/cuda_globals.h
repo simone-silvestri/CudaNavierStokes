@@ -27,7 +27,7 @@ cudaError_t checkCuda(cudaError_t result)
 // lPencils is used for coalescing in y and z where each thread has to 
 //     calculate the derivative at mutiple points
 
-#if mx==1 || my==1 || mz==1
+#if mx==1 || my==1 
 const int sPencils = 1;
 #else
 const int sPencils = 2;  // small # pencils
@@ -38,15 +38,17 @@ const int lPencils = 1;
 const int lPencils = 32;  // large # pencils
 #endif
 
-__constant__ myprec dcoeff[stencilSize];
-__constant__ myprec d_dt, d_dx;
+extern __constant__ myprec dcoeffF[stencilSize];
+extern __constant__ myprec dcoeffS[stencilSize+1];
+extern __constant__ myprec d_dt, d_dx, d_dy, d_dz;
 
-__device__ myprec d_phi[mx*my*mz];
+extern __device__ myprec d_phi[mx*my*mz];
 
-__device__ myprec d_rhs1[mx*my*mz];
-__device__ myprec d_rhs2[mx*my*mz];
-__device__ myprec d_rhs3[mx*my*mz];
-__device__ myprec d_rhs4[mx*my*mz];
-__device__ myprec d_temp[mx*my*mz];
+extern __device__ myprec d_rhs1[mx*my*mz];
+extern __device__ myprec d_rhs2[mx*my*mz];
+extern __device__ myprec d_rhs3[mx*my*mz];
+extern __device__ myprec d_rhs4[mx*my*mz];
+extern __device__ myprec d_temp[mx*my*mz];
+extern __device__ myprec d_tmp[mx*my*mz];
 
 #endif
