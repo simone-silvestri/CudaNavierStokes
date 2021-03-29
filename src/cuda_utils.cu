@@ -43,17 +43,29 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   checkCuda( cudaMemcpyToSymbol(d_dz  , &h_dz  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 
   
-  // X-grid
+  // X-grid spencils
 //  grid  = dim3(my / sPencils, mz, 1);
 //  block = dim3(mx, sPencils, 1);     
 
-  // Y-grid
-  grid  = dim3(mx / sPencils, mz, 1);
-  block = dim3(sPencils, my, 1);     
+  // X-grid lpencils
+//  grid  = dim3(my / lPencils, mz, 1);
+//  block = dim3(mx, sPencils, 1);     
 
-  // Z-grid
-//  grid  = dim3(mx / sPencils, my, 1);
-//  block = dim3(sPencils, mz, 1);     
+  // Y-grid spencils
+//  grid  = dim3(mx / sPencils, mz, 1);
+//  block = dim3(sPencils, my, 1);     
+
+  // Y-grid lpencils
+//  grid  = dim3(mx / lPencils, mz, 1);
+//  block = dim3(lPencils, (my / lPencils) * sPencils, 1);     
+
+  // Z-grid spencils
+  grid  = dim3(mx / sPencils, my, 1);
+  block = dim3(sPencils, mz, 1);     
+
+  // Z-grid lpencils
+//  grid  = dim3(mx / lPencils, my, 1);
+//  block = dim3(lPencils, (mz / lPencils) * sPencils, 1);     
 
 
   delete [] h_coeffF;
@@ -110,6 +122,17 @@ __global__ void getResults(myprec *d_f) {
 
   d_f[globalThreadNum] = d_phi[globalThreadNum];
 
+
+  /* when your grid elements < mx*my*mz
+  int i  = blockIdx.x*blockDim.x + threadIdx.x;
+  int k  = blockIdx.y;
+  int si = threadIdx.x;
+
+  for (int j = threadIdx.y; j < my; j += blockDim.y) {
+    int globalIdx = k * mx * my + j * mx + i;
+     d_f[globalIdx] = d_phi[globalIdx]; 
+  } */
+
 }
 
 __global__ void initDevice(myprec *d_f) {
@@ -121,6 +144,17 @@ __global__ void initDevice(myprec *d_f) {
   int globalThreadNum = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
   d_phi[globalThreadNum] = d_f[globalThreadNum];
+
+
+  /* when your grid elements < mx*my*mz
+  int i  = blockIdx.x*blockDim.x + threadIdx.x;
+  int k  = blockIdx.y;
+  int si = threadIdx.x;
+
+  for (int j = threadIdx.y; j < my; j += blockDim.y) {
+    int globalIdx = k * mx * my + j * mx + i;
+     d_phi[globalIdx] = d_f[globalIdx]; 
+  } */
 
 }
 

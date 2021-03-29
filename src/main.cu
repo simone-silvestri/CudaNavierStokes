@@ -218,9 +218,9 @@ int main(int argc, char** argv) {
     cudaDeviceSynchronize();
 #endif
     FILE *fp = fopen("final.txt","w+");
-    for(int j=0; j<my; j++)
+    for(int k=0; k<mz; k++)
     for(int i=0; i<mx; i++)
-      fprintf(fp,"%lf %lf %lf \n",x[i],y[j],phi[idx(i,j,0)]);
+      fprintf(fp,"%lf %lf %lf \n",x[i],z[k],phi[idx(i,0,k)]);
     fclose(fp);
   
  
@@ -243,8 +243,8 @@ void calcdt() {
     double dz2 = dz*dz;
    
     double Ux = 0.0;
-    double Uy = U;
-    double Uz = 0.0;
+    double Uy = 0.0;
+    double Uz = U;
 
     double viscdt = visc/0.5*(1.0/dx2+1.0/dy2+1.0/dz2);
     double veldt  = abs(Ux)/dx + abs(Uy)/dy + abs(Uz)/dz;
@@ -272,13 +272,13 @@ void initProfile() {
     for (int j = 0; j < my; j++) {
     for (int i = 0; i < mx; i++) {
         fact = 0.02;
-        phi[idx(i,j,k)]  = (tanh((y[j]-0.3*Ly)/fact) + tanh((0.7*Ly-y[j])/fact));
+        phi[idx(i,j,k)]  = (tanh((z[k]-0.3*Lz)/fact) + tanh((0.7*Lz-z[k])/fact));
         phi[idx(i,j,k)] *= (tanh((x[i]-0.3*Lx)/fact) + tanh((0.7*Lx-x[i])/fact));
     } } }
     FILE *fp = fopen("initial.txt","w+");
-    for(int j=0; j<my; j++)
+    for(int k=0; k<mz; k++)
     for(int i=0; i<mx; i++)
-      fprintf(fp,"%lf %lf %lf \n",x[i],y[j],phi[idx(i,j,0)]);
+      fprintf(fp,"%lf %lf %lf \n",x[i],z[k],phi[idx(i,0,k)]);
     fclose(fp);
 }
 
