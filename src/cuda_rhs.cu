@@ -21,7 +21,8 @@ __global__ void RHSDeviceX(myprec *rhsX, myprec *var) {
 	id.mkidX();
 
 	derDev2x(rhsX,var,id);
-	rhsX[id.g] = rhsX[id.g]*visc;
+	derDev1x(d_work,var,id);
+	rhsX[id.g] = rhsX[id.g]*visc - d_work[id.g]*U;
 }
 
 __global__ void RHSDeviceY(myprec *rhsY, myprec *var) {
