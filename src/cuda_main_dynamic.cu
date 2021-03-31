@@ -4,151 +4,103 @@
 
 
 __device__ myprec d_phi[mx*my*mz];
-
-__device__ myprec d_rhs1[mx*my*mz];
-__device__ myprec d_rhs2[mx*my*mz];
-__device__ myprec d_rhs3[mx*my*mz];
-__device__ myprec d_rhs4[mx*my*mz];
 __device__ myprec d_temp[mx*my*mz];
-__device__ myprec d_work[mx*my*mz];
+
+
+__device__ myprec *d_rhs1[3];
+__device__ myprec *d_rhs2[3];
+__device__ myprec *d_rhs3[3];
+__device__ myprec *d_rhs4[3];
 
 __device__ myprec dt2;
 
-__global__ void threadBlockDeviceSynchronize() {
-	__syncthreads();
-}
 
-__global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = b[id.g] + c[id.g]*(*dt);
-}
-
-__global__ void rkfinal(myprec *a, myprec *b, myprec *c, myprec *d, myprec *e, myprec *dt) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = a[id.g] + (*dt)*(b[id.g] + 2*c[id.g] + 2*d[id.g] + e[id.g])/6.;
-}
+__global__ void eulerSum(myprec *a, myprec *b,  myprec *cx, myprec *cy, myprec *cz, myprec *dt);
+__global__ void rk4final(myprec *a, myprec *bx, myprec *cx, myprec *dx, myprec *ex,
+									myprec *by, myprec *cy, myprec *dy, myprec *ey,
+									myprec *bz, myprec *cz, myprec *dz, myprec *ez, myprec *dt);
 
 __global__ void runDevice() {
 
-/*	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-
-//#if parentGrid==0
-//	id.mkidX();
-//	if(id.g==0) {
-//		printf("\n");
-//		printf("Using X-Grid\n");
-//		printf("Grid: {%d %d %d}. Blocks: {%d %d %d}.\n",gridDim.x,gridDim.y,gridDim.z,blockDim.x,blockDim.y,blockDim.z);
-//		printf("\n");
-//	}
-//
-//#elif parentGrid==1
-//	id.mkidY();
-//	if(id.g==0) {
-//		printf("\n");
-//		printf("Using Y-Grid\n");
-//		printf("Grid: {%d %d %d}. Blocks: {%d %d %d}.\n",gridDim.x,gridDim.y,gridDim.z,blockDim.x,blockDim.y,blockDim.z);
-//		printf("\n");
-//	}
-//#else
-//	id.mkidZ();
-//	if(id.g==0) {
-//		printf("\n");
-//		printf("Using Z-Grid\n");
-//		printf("Grid: {%d %d %d}. Blocks: {%d %d %d}.\n",gridDim.x,gridDim.y,gridDim.z,blockDim.x,blockDim.y,blockDim.z);
-//		printf("\n");
-//	}
-#endif */
-
 	dt2 = d_dt/2;
-
 	__syncthreads();
-	for (int istep=0; istep < nsteps; istep++) {
 
-		/* Just running this in the loop works!! (rk separate for separate directions, no way to do cross-derivatives)
-		//		if(id.g==64) {
-		//			 RHSDeviceZ2<<<d_grid[2],d_block[2]>>>(d_rhs1,d_rhs2,d_rhs3,d_rhs4,d_temp,d_phi,&d_dt);
-		//		} */
+	/* We use streams for an additional parallelization
+	 * (X, Y and Z RHs will be calculated on different streams
+	 */
 
-		// WE can stream the RHS for an additional parallelism level!
+	/* allocating temporary arrays and streams */
+	void (*RHSDeviceDir[3])(myprec*, myprec*);
+	RHSDeviceDir[0] = RHSDeviceX;
+	RHSDeviceDir[1] = RHSDeviceY;
+	RHSDeviceDir[2] = RHSDeviceZ;
 
-		RHSDeviceX<<<d_grid[0],d_block[0]>>>(d_rhs1,d_phi);
-//		RHSDeviceY<<<d_grid[1],d_block[1]>>>(d_rhs1,d_temp);
-		RHSDeviceZ<<<d_grid[2],d_block[2]>>>(d_rhs1,d_temp);
-		eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs1,&dt2);
+	cudaStream_t s[3];
+    for (int i=0; i<3; i++) {
+    	checkCudaDev( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhs1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhs2[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhs3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhs4[i],mx*my*mz*sizeof(myprec)) );
+    }
 
-		RHSDeviceX<<<d_grid[0],d_block[0]>>>(d_rhs2,d_temp);
-//		RHSDeviceY<<<d_grid[1],d_block[1]>>>(d_rhs2,d_temp);
-		RHSDeviceZ<<<d_grid[2],d_block[2]>>>(d_rhs2,d_temp);
-		eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs2,&dt2);
+    for (int istep = 0; istep < nsteps; istep++) {
 
-		RHSDeviceX<<<d_grid[0],d_block[0]>>>(d_rhs3,d_temp);
-//		RHSDeviceY<<<d_grid[1],d_block[2]>>>(d_rhs3,d_temp);
-		RHSDeviceZ<<<d_grid[2],d_block[2]>>>(d_rhs3,d_temp);
-		eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs3,&d_dt);
+    	/* rk step 1 */
 
-		RHSDeviceX<<<d_grid[0],d_block[0]>>>(d_rhs4,d_temp);
-//		RHSDeviceY<<<d_grid[1],d_block[1]>>>(d_rhs4,d_temp);
-		RHSDeviceZ<<<d_grid[2],d_block[2]>>>(d_rhs4,d_temp);
-		rkfinal<<<d_grid[0],d_block[0]>>>(d_phi,d_rhs1,d_rhs2,d_rhs3,d_rhs4,&d_dt);
+    	for (int d = 0; d < 3; d++)
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs1[d],d_phi);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs1[0],d_rhs1[1],d_rhs1[2],&dt2);
+
+    	/* rk step 2 */
+
+    	for (int d = 0; d < 3; d++)
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs2[d],d_temp);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs2[0],d_rhs2[1],d_rhs2[2],&dt2);
+
+    	/* rk step 3 */
+
+    	for (int d = 0; d < 3; d++)
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs3[d],d_temp);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs3[0],d_rhs3[1],d_rhs3[2],&d_dt);
+
+    	/* rk step 4 */
+
+    	for (int d = 0; d < 3; d++)
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs4[d],d_temp);
+		cudaDeviceSynchronize();
+		rk4final<<<d_grid[0],d_block[0]>>>(d_phi,d_rhs1[0],d_rhs2[0],d_rhs3[0],d_rhs4[0],
+												 d_rhs1[1],d_rhs2[1],d_rhs3[1],d_rhs4[1],
+												 d_rhs1[2],d_rhs2[2],d_rhs3[2],d_rhs4[2],&d_dt);
+	}
+
+	for (int i=0; i<3; i++) {
+		checkCudaDev( cudaStreamDestroy(s[i]) );
+		checkCudaDev( cudaFree(d_rhs1[i]) );
+		checkCudaDev( cudaFree(d_rhs2[i]) );
+		checkCudaDev( cudaFree(d_rhs3[i]) );
+		checkCudaDev( cudaFree(d_rhs4[i]) );
 	}
 }
 
-
-__global__ void RHSDeviceX(myprec *rhsX, myprec *var) {
-
+__global__ void eulerSum(myprec *a, myprec *b, myprec *cx, myprec *cy, myprec *cz, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
-
-	derDev1x(rhsX,var,id);
-	rhsX[id.g] = -rhsX[id.g]*U;
+	a[id.g] = b[id.g] + ( cx[id.g] + cy[id.g] + cz[id.g] )*(*dt);
 }
 
-__global__ void RHSDeviceY(myprec *rhsY, myprec *var) {
-
+__global__ void rk4final(myprec *a, myprec *bx, myprec *cx, myprec *dx, myprec *ex,
+									myprec *by, myprec *cy, myprec *dy, myprec *ey,
+									myprec *bz, myprec *cz, myprec *dz, myprec *ez, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidY();
-
-	derDev1y(d_work,var,id);
-	rhsY[id.g] = rhsY[id.g] - d_work[id.g]*U;
+	id.mkidX();
+	a[id.g] = a[id.g] + (*dt)*( bx[id.g] + 2*cx[id.g] + 2*dx[id.g] + ex[id.g] +
+								by[id.g] + 2*cy[id.g] + 2*dy[id.g] + ey[id.g] +
+								bz[id.g] + 2*cz[id.g] + 2*dz[id.g] + ez[id.g])/6.;
 }
 
-__global__ void RHSDeviceZ(myprec *rhsZ, myprec *var) {
 
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidZ();
 
-	derDev1z(d_work,var,id);
-	rhsZ[id.g] = rhsZ[id.g] - d_work[id.g]*U;
-}
-
-__global__ void RHSDeviceZ2(myprec *rhs1, myprec *rhs2, myprec *rhs3, myprec *rhs4, myprec *temp, myprec *phi, myprec *dt) {
-
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidZ();
-
-	derDev1z(rhs1,phi,id);
-	rhs1[id.g] = -rhs1[id.g]*U;
-
-	temp[id.g] = (phi[id.g] + rhs1[id.g]*(*dt)/2);
-
-	derDev1z(rhs2,temp,id);
-	rhs2[id.g] = -rhs2[id.g]*U;
-
-	temp[id.g] = (phi[id.g] + rhs2[id.g]*(*dt)/2);
-
-	derDev1z(rhs3,temp,id);
-	rhs3[id.g] = -rhs3[id.g]*U;
-
-	temp[id.g] = (phi[id.g] + rhs3[id.g]*(*dt));
-
-	derDev1z(rhs4,temp,id);
-	rhs4[id.g] = -rhs4[id.g]*U;
-
-	phi[id.g] = phi[id.g] + (*dt)*
-			( rhs1[id.g] +
-					2*rhs2[id.g] +
-					2*rhs3[id.g] +
-					rhs4[id.g])/6.;
-}

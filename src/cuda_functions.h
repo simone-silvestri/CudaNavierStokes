@@ -52,10 +52,11 @@ void copyInit(int direction, dim3 grid, dim3 block);
 
 
 //global functions
-__global__ void RHSDeviceZ2(myprec *rhs1, myprec *rhs2, myprec *rhs3, myprec *rhs4, myprec *temp, myprec *phi, myprec *dt); 
 __global__ void RHSDeviceX(myprec *rhs, myprec *var);
-__global__ void RHSDeviceZ(myprec *rhs, myprec *var);
 __global__ void RHSDeviceY(myprec *rhs, myprec *var);
+__global__ void RHSDeviceZ(myprec *rhs, myprec *var);
+__global__ void RHSDeviceYSum(myprec *rhs, myprec *var); // sums to previous rhs
+__global__ void RHSDeviceZSum(myprec *rhs, myprec *var); // sums to previous rhs
 __global__ void runDevice(); 
 __global__ void getResults(myprec *d_f); 
 __global__ void initDevice(myprec *d_f);
@@ -69,11 +70,17 @@ __device__ void derDev1x(myprec *df , myprec *f, Indices id);
 __device__ void derDev1y(myprec *df , myprec *f, Indices id);
 __device__ void derDev1z(myprec *df , myprec *f, Indices id);
 __device__ void derDev2x(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2y(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2z(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev1xL(myprec *df , myprec *f, Indices id);
 __device__ void derDev1yL(myprec *df , myprec *f, Indices id);
 __device__ void derDev2xL(myprec *d2f, myprec *f, Indices id);
 
+//if dividing the whole rk step in the different directions
+__global__ void rkStepZ(myprec *rhs1, myprec *rhs2, myprec *rhs3, myprec *rhs4, myprec *temp, myprec *phi, myprec *dt);
 
+
+//If running the rk4 on the host side
 void runHost();
 
 #endif

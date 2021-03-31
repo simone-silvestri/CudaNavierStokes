@@ -128,7 +128,7 @@ void deriv2y(double *d2f, double *f, double *g) {
       for (int j = 0; j < my; j++){
           d2f[idx(i,j,k)] = coeffS[stencilSize]*fbound[j+stencilSize]*d2y;
           for (int jt = 0; jt < stencilSize; jt++){
-              d2f[idx(i,j,k)] += coeffS[jt]*(fbound[j+jt]-fbound[j+stencilSize*2-jt])*d2y;
+              d2f[idx(i,j,k)] += coeffS[jt]*(fbound[j+jt]+fbound[j+stencilSize*2-jt])*d2y;
           }
       }
     }
@@ -155,7 +155,7 @@ void deriv2x(double *d2f, double *f, double *g) {
       for (int i = 0; i < mx; i++){
           d2f[idx(i,j,k)] = coeffS[stencilSize]*fbound[i+stencilSize]*d2x;
           for (int it = 0; it < stencilSize; it++){
-              d2f[idx(i,j,k)] += coeffS[it]*(fbound[i+it]-fbound[i+stencilSize*2-it])*d2x;
+              d2f[idx(i,j,k)] += coeffS[it]*(fbound[i+it]+fbound[i+stencilSize*2-it])*d2x;
           }
       }
     }
@@ -240,6 +240,11 @@ int main(int argc, char** argv) {
     setDerivativeParameters(grid, block);
 
     copyInit(1,grid,block);
+
+    /* to allocate 4GB of heap size on the GPU */
+    size_t rsize = 1024ULL*1024ULL*1024ULL*4ULL;  // allocate 4GB
+    cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
+
     runDevice<<<grid,block>>>();
     cudaDeviceSynchronize();
 

@@ -16,7 +16,7 @@
 #define mz       256
 #define nsteps   10000
 #define U        1.f
-#define visc     0.0f
+#define visc     0.001f
 #define CFL      1.f
 
 #define parentGrid  0
