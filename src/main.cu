@@ -28,6 +28,32 @@ double tmp[mx*my*mz];
 
 int gui=0;
 
+void deriv1z(double *df, double *f, double *g) {
+
+    double dz = 1.0/(g[1]-g[0]);
+    double fbound[mz+stencilSize*2];
+    for (int j=0; j<my; j++) {
+    for (int i=0; i<mx; i++) {
+      for(int k=stencilSize; k<mz+stencilSize; k++)
+        fbound[k] = f[idx(i,j,k-stencilSize)];
+
+      if(periodic) {
+        for(int k=0; k<stencilSize; k++) {
+          fbound[k]   = f[idx(i,j,mz-stencilSize+k)];
+          fbound[mz+stencilSize+k] = f[idx(i,j,k)];
+        }
+      }
+
+      for (int k = 0; k < mz; k++){
+          df[idx(i,j,k)] = 0.0;
+          for (int kt = 0; kt < stencilSize; kt++){
+              df[idx(i,j,k)] += coeffF[kt]*(fbound[k+kt]-fbound[k+stencilSize*2-kt])*dz;
+          }
+      }
+    }
+    }
+}
+
 void deriv1y(double *df, double *f, double *g) {
 
     double dy = 1.0/(g[1]-g[0]);
@@ -139,15 +165,19 @@ void deriv2x(double *d2f, double *f, double *g) {
 
 void RHS(double *rhs, double *var, double *gx, double *gy, double *gz) {
 
-    deriv1x(tmp, var, gx);
-    for (int it=0; it<mx*my*mz; it++) 
-	rhs[it] = - tmp[it]*U;  
-//    deriv1y(tmp, var, gy);
-//    for (int it=0; it<mx*my*mz; it++) 
-//	rhs[it] -= tmp[it]*U;  
-    deriv2x(tmp, var, gy);
-    for (int it=0; it<mx*my*mz; it++) 
-	rhs[it] = rhs[it] + tmp[it]*visc; 
+	deriv1x(tmp, var, gx);
+
+#if parentGrid==0
+	deriv1x(tmp,var,gx);
+#elif parentGrid==1
+	deriv1y(tmp,var,gy);
+#else
+	deriv1z(tmp,var,gz);
+#endif
+
+	for (int it=0; it<mx*my*mz; it++)
+		rhs[it] = - tmp[it]*U;
+
 }
 
 
@@ -211,7 +241,6 @@ int main(int argc, char** argv) {
 
     copyInit(1,grid,block);
     runDevice<<<grid,block>>>();
-//    runDevice2();
     cudaDeviceSynchronize();
 
     copyInit(0,grid,block);
@@ -242,10 +271,6 @@ void calcdt() {
     double dy2 = dy*dy;
     double dz2 = dz*dz;
    
-    double Ux = 0.0;
-    double Uy = 0.0;
-    double Uz = U;
-
     double viscdt = visc/0.5*(1.0/dx2+1.0/dy2+1.0/dz2);
     double veldt  = abs(Ux)/dx + abs(Uy)/dy + abs(Uz)/dz;
  

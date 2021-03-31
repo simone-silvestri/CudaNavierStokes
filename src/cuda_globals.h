@@ -2,6 +2,7 @@
 #ifndef CUDA_GLOBALS_H_
 #define CUDA_GLOBALS_H_
 
+#include "globals.h"
 #include <stdio.h>
 #include <assert.h>
 #define myprec float
@@ -42,6 +43,9 @@ extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
 extern __constant__ myprec d_dt, d_dx, d_dy, d_dz;
 
+extern __constant__ dim3 d_grid[3];
+extern __constant__ dim3 d_block[3];
+
 extern __device__ myprec d_phi[mx*my*mz];
 
 extern __device__ myprec d_rhs1[mx*my*mz];
@@ -49,6 +53,8 @@ extern __device__ myprec d_rhs2[mx*my*mz];
 extern __device__ myprec d_rhs3[mx*my*mz];
 extern __device__ myprec d_rhs4[mx*my*mz];
 extern __device__ myprec d_temp[mx*my*mz];
-extern __device__ myprec d_tmp[mx*my*mz];
+
+
+extern dim3 hgrid[3],hblock[3];
 
 #endif

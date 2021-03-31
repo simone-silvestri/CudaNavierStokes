@@ -38,17 +38,17 @@ MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include
 LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda ## -lcudart 
-NVCC = nvcc $(DBG) -rdc=true
+NVCC = nvcc $(DBG) -rdc=true -lineinfo
 endif
 
 CFLAGS = -I$(INC_GL) -L$(LIB_GL) -I$(INC) -L$(LIB) 
 
-TARGET = ns 
+TARGET = ns
 
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_solver.o $(OBJ)cuda_utils.o
+OBJ_CUDA = $(OBJ)cuda_main_dynamic.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o
 endif
 
 # List of objects
@@ -65,11 +65,14 @@ $(OBJ)main.o: $(SRC)main.cu
 	$(CC) $(FLAG_GPU) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
 
 ifeq ($(ARCH),GPU)
-$(OBJ)cuda_solver.o: $(SRC)cuda_solver.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_solver.cu $(FLAG2) -o $(OBJ)cuda_solver.o
+$(OBJ)cuda_main_dynamic.o: $(SRC)cuda_main_dynamic.cu
+	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_main_dynamic.cu $(FLAG2) -o $(OBJ)cuda_main_dynamic.o
 
 $(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
 	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_utils.cu $(FLAG2) -o $(OBJ)cuda_utils.o
+
+$(OBJ)cuda_derivs.o: $(SRC)cuda_derivs.cu
+	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
 endif
 
 clean:

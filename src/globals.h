@@ -10,15 +10,34 @@
 
 #define Lx       1.f
 #define Ly       0.5f
-#define Lz       1.f
-#define mx       256 
+#define Lz       0.5f
+#define mx       128
 #define my       128
-#define mz       128 
-#define nsteps   10000 
+#define mz       256
+#define nsteps   10000
 #define U        1.f
 #define visc     0.0f
 #define CFL      1.f
+
+#define parentGrid  0
+
 const bool periodic = true;
+
+
+#if parentGrid == 0
+const double Ux = U;
+const double Uy = 0.0;
+const double Uz = U; 
+#elif parentGrid == 1
+const double Ux = 0.0; 
+const double Uy = U; 
+const double Uz = 0.0; 
+#else
+const double Ux = U;
+const double Uy = 0.0; 
+const double Uz = U; 
+#endif
+
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 
