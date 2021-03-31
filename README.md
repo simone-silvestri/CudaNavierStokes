@@ -1,6 +1,6 @@
 # CUDA-DNS
 
-# cuda-solver for 1D advection equation
+# cuda-solver for 3D transport equations
 
 The initial function to advance in time can be chosen in initProfile (in main.cu)
 
