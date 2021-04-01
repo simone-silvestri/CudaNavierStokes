@@ -31,9 +31,9 @@ __global__ void runDevice() {
 
 	/* allocating temporary arrays and streams */
 	void (*RHSDeviceDir[3])(myprec*, myprec*);
-	RHSDeviceDir[0] = RHSDeviceX;
+	RHSDeviceDir[0] = RHSDeviceXL;
 	RHSDeviceDir[1] = RHSDeviceY;
-	RHSDeviceDir[2] = RHSDeviceZ;
+	RHSDeviceDir[2] = RHSDeviceZL;
 
 	cudaStream_t s[3];
     for (int i=0; i<3; i++) {
@@ -49,28 +49,28 @@ __global__ void runDevice() {
     	/* rk step 1 */
 
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs1[d],d_phi);
+    		RHSDeviceDir[d]<<<d_gridL[d],d_blockL[d],0,s[d]>>>(d_rhs1[d],d_phi);
     	cudaDeviceSynchronize();
     	eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs1[0],d_rhs1[1],d_rhs1[2],&dt2);
 
     	/* rk step 2 */
 
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs2[d],d_temp);
+    		RHSDeviceDir[d]<<<d_gridL[d],d_blockL[d],0,s[d]>>>(d_rhs2[d],d_temp);
     	cudaDeviceSynchronize();
     	eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs2[0],d_rhs2[1],d_rhs2[2],&dt2);
 
     	/* rk step 3 */
 
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs3[d],d_temp);
+    		RHSDeviceDir[d]<<<d_gridL[d],d_blockL[d],0,s[d]>>>(d_rhs3[d],d_temp);
     	cudaDeviceSynchronize();
     	eulerSum<<<d_grid[0],d_block[0]>>>(d_temp,d_phi,d_rhs3[0],d_rhs3[1],d_rhs3[2],&d_dt);
 
     	/* rk step 4 */
 
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhs4[d],d_temp);
+    		RHSDeviceDir[d]<<<d_gridL[d],d_blockL[d],0,s[d]>>>(d_rhs4[d],d_temp);
 		cudaDeviceSynchronize();
 		rk4final<<<d_grid[0],d_block[0]>>>(d_phi,d_rhs1[0],d_rhs2[0],d_rhs3[0],d_rhs4[0],
 												 d_rhs1[1],d_rhs2[1],d_rhs3[1],d_rhs4[1],

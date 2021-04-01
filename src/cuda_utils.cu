@@ -9,10 +9,10 @@
 __constant__ myprec dcoeffF[stencilSize];
 __constant__ myprec dcoeffS[stencilSize+1];
 __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
-__constant__ dim3 d_block[3];
-__constant__ dim3 d_grid[3];
+__constant__ dim3 d_block[3],d_blockL[3];
+__constant__ dim3 d_grid[3],d_gridL[3];
 
-dim3 hgrid[3],hblock[3];
+dim3 hgrid, hblock;
 
 // host routine to set constant data
 void setDerivativeParameters(dim3 &grid, dim3 &block)
@@ -69,25 +69,43 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   dim3 gridZ  = dim3(mx / sPencils, my, 1);
   dim3 blockZ = dim3(sPencils, mz, 1);     
 
+  hgrid = gridX; hblock = blockX;
+
   h_grid[0]  =  gridX; h_grid[1]  =  gridY; h_grid[2]  =  gridZ;
   h_block[0] = blockX; h_block[1] = blockY; h_block[2] =  blockZ;
 
-  for (int it=0; it<3; it++) {
-	  hgrid[it]  = h_grid[it];
-	  hblock[it] = h_block[it];
-  }
-  
   checkCuda( cudaMemcpyToSymbol(d_grid  , h_grid  , 3*sizeof(dim3), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_block , h_block , 3*sizeof(dim3), 0, cudaMemcpyHostToDevice) );
 
-
+  printf("sPencils configuration:\n");
   printf("Grid 0: {%d, %d, %d} blocks. Blocks 0: {%d, %d, %d} threads.\n",h_grid[0].x, h_grid[0].y, h_grid[0].z, h_block[0].x, h_block[0].y, h_block[0].z);
   printf("Grid 1: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",h_grid[1].x, h_grid[1].y, h_grid[1].z, h_block[1].x, h_block[1].y, h_block[1].z);
   printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",h_grid[2].x, h_grid[2].y, h_grid[2].z, h_block[2].x, h_block[2].y, h_block[2].z);
 
 
-  grid  = 1; //h_grid[parentGrid];
-  block = 1; //h_block[parentGrid];
+  gridX  = dim3(my / lPencils, mz, 1);
+  blockX = dim3(mx, sPencils, 1);
+//
+//  gridY  = dim3(mx / lPencils, mz, 1);
+//  blockY = dim3(lPencils, my * sPencils / lPencils, 1);
+
+  gridZ  = dim3(mx / lPencils, my, 1);
+  blockZ = dim3(lPencils, mz * sPencils / lPencils, 1);
+
+  h_grid[0]  =  gridX; h_grid[1]  =  gridY; h_grid[2]  =  gridZ;
+  h_block[0] = blockX; h_block[1] = blockY; h_block[2] =  blockZ;
+
+  checkCuda( cudaMemcpyToSymbol(d_gridL  , h_grid  , 3*sizeof(dim3), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(d_blockL , h_block , 3*sizeof(dim3), 0, cudaMemcpyHostToDevice) );
+
+
+  printf("lPencils configuration:\n");
+  printf("Grid 0: {%d, %d, %d} blocks. Blocks 0: {%d, %d, %d} threads.\n",h_grid[0].x, h_grid[0].y, h_grid[0].z, h_block[0].x, h_block[0].y, h_block[0].z);
+  printf("Grid 1: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",h_grid[1].x, h_grid[1].y, h_grid[1].z, h_block[1].x, h_block[1].y, h_block[1].z);
+  printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",h_grid[2].x, h_grid[2].y, h_grid[2].z, h_block[2].x, h_block[2].y, h_block[2].z);
+
+  grid  = 1;
+  block = 1;
 
   delete [] h_coeffF;
   delete [] h_coeffS;
@@ -111,7 +129,7 @@ void copyInit(int direction, dim3 grid, dim3 block) {
      // device arrays
      checkCuda( cudaMemcpy(d_f, f , bytes, cudaMemcpyHostToDevice) );  
 
-     initDevice<<<hgrid[0], hblock[0]>>>(d_f);
+     initDevice<<<hgrid, hblock>>>(d_f);
 
      checkCuda( cudaFree(d_f) );
 
@@ -119,7 +137,7 @@ void copyInit(int direction, dim3 grid, dim3 block) {
 
      checkCuda( cudaMemset(d_f, 0, bytes) );
 
-     getResults<<<hgrid[0], hblock[0]>>>(d_f);
+     getResults<<<hgrid, hblock>>>(d_f);
 
      checkCuda( cudaMemcpy(f, d_f, bytes, cudaMemcpyDeviceToHost) );
 
