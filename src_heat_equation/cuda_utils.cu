@@ -83,14 +83,14 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",h_grid[2].x, h_grid[2].y, h_grid[2].z, h_block[2].x, h_block[2].y, h_block[2].z);
 
 
-//  gridX  = dim3(my / lPencils, mz, 1);
-//  blockX = dim3(mx, sPencils, 1);
+  gridX  = dim3(my / lPencils, mz, 1);
+  blockX = dim3(mx, sPencils, 1);
 //
 //  gridY  = dim3(mx / lPencils, mz, 1);
 //  blockY = dim3(lPencils, my * sPencils / lPencils, 1);
-//
-//  gridZ  = dim3(mx / lPencils, my, 1);
-//  blockZ = dim3(lPencils, mz * sPencils / lPencils, 1);
+
+  gridZ  = dim3(mx / lPencils, my, 1);
+  blockZ = dim3(lPencils, mz * sPencils / lPencils, 1);
 
   h_grid[0]  =  gridX; h_grid[1]  =  gridY; h_grid[2]  =  gridZ;
   h_block[0] = blockX; h_block[1] = blockY; h_block[2] =  blockZ;
@@ -116,79 +116,44 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
 
 void copyInit(int direction, dim3 grid, dim3 block) {
 
-  myprec *fr = new myprec[mx*my*mz];
-  myprec *fu = new myprec[mx*my*mz];
-  myprec *fv = new myprec[mx*my*mz];
-  myprec *fw = new myprec[mx*my*mz];
-  myprec *fe = new myprec[mx*my*mz];
-  myprec *d_fr, *d_fu, *d_fv, *d_fw, *d_fe;
+  myprec *f = new myprec[mx*my*mz];
+  myprec *d_f;
   int bytes = mx*my*mz * sizeof(myprec);
-  checkCuda( cudaMalloc((void**)&d_fr, bytes) );
-  checkCuda( cudaMalloc((void**)&d_fu, bytes) );
-  checkCuda( cudaMalloc((void**)&d_fv, bytes) );
-  checkCuda( cudaMalloc((void**)&d_fw, bytes) );
-  checkCuda( cudaMalloc((void**)&d_fe, bytes) );
+  checkCuda( cudaMalloc((void**)&d_f, bytes) );
 
   if(direction == 1) {
 
-     for (int it=0; it<mx*my*mz; it++)  {
-      fr[it] = (myprec) r[it];
-      fu[it] = (myprec) u[it];
-      fv[it] = (myprec) v[it];
-      fw[it] = (myprec) w[it];
-      fe[it] = (myprec) e[it];
-     }
+     for (int it=0; it<mx*my*mz; it++)  
+      f[it] = (myprec) phi[it];
 
      // device arrays
-     checkCuda( cudaMemcpy(d_fr, fr, bytes, cudaMemcpyHostToDevice) );  
-     checkCuda( cudaMemcpy(d_fu, fu, bytes, cudaMemcpyHostToDevice) );  
-     checkCuda( cudaMemcpy(d_fv, fv, bytes, cudaMemcpyHostToDevice) );  
-     checkCuda( cudaMemcpy(d_fw, fw, bytes, cudaMemcpyHostToDevice) );  
-     checkCuda( cudaMemcpy(d_fe, fe, bytes, cudaMemcpyHostToDevice) );  
+     checkCuda( cudaMemcpy(d_f, f , bytes, cudaMemcpyHostToDevice) );  
 
-     initDevice<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe);
+     initDevice<<<hgrid, hblock>>>(d_f);
 
+     checkCuda( cudaFree(d_f) );
 
   } else {
 
-     checkCuda( cudaMemset(d_fr, 0, bytes) );
-     checkCuda( cudaMemset(d_fu, 0, bytes) );
-     checkCuda( cudaMemset(d_fv, 0, bytes) );
-     checkCuda( cudaMemset(d_fw, 0, bytes) );
-     checkCuda( cudaMemset(d_fe, 0, bytes) );
+     checkCuda( cudaMemset(d_f, 0, bytes) );
 
-     getResults<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe);
+     getResults<<<hgrid, hblock>>>(d_f);
 
-     checkCuda( cudaMemcpy(fr, d_fr, bytes, cudaMemcpyDeviceToHost) );
-     checkCuda( cudaMemcpy(fu, d_fu, bytes, cudaMemcpyDeviceToHost) );
-     checkCuda( cudaMemcpy(fv, d_fv, bytes, cudaMemcpyDeviceToHost) );
-     checkCuda( cudaMemcpy(fw, d_fw, bytes, cudaMemcpyDeviceToHost) );
-     checkCuda( cudaMemcpy(fe, d_fe, bytes, cudaMemcpyDeviceToHost) );
+     checkCuda( cudaMemcpy(f, d_f, bytes, cudaMemcpyDeviceToHost) );
 
-     for (int it=0; it<mx*my*mz; it++)  {
-      r[it]   = (double) fr[it];
-      u[it]   = (double) fu[it];
-      v[it]   = (double) fv[it];
-      w[it]   = (double) fw[it];
-      e[it]   = (double) fe[it];
-     }
+     for (int it=0; it<mx*my*mz; it++)  
+      phi[it] = (double) f[it];
+
+     checkCuda( cudaFree(d_f) );
  
   }
   
-  checkCuda( cudaFree(d_fr) );
-  checkCuda( cudaFree(d_fu) );
-  checkCuda( cudaFree(d_fv) );
-  checkCuda( cudaFree(d_fw) );
-  checkCuda( cudaFree(d_fe) );
-  delete []  fr;  
-  delete []  fu;  
-  delete []  fv;  
-  delete []  fw;  
-  delete []  fe;  
+  delete []  f;  
 
 }
 
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe) {
+
+__global__ void getResults(myprec *d_f) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
@@ -196,14 +161,10 @@ __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 
 	int globalThreadNum = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
-	d_r[globalThreadNum]   = d_fr[globalThreadNum];
-	d_u[globalThreadNum]   = d_fu[globalThreadNum];
-	d_v[globalThreadNum]   = d_fv[globalThreadNum];
-	d_w[globalThreadNum]   = d_fw[globalThreadNum];
-	d_e[globalThreadNum]   = d_fe[globalThreadNum];
+	d_f[globalThreadNum] = d_phi[globalThreadNum];
 }
 
-__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe) {
+__global__ void initDevice(myprec *d_f) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
@@ -211,12 +172,7 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 
 	int globalThreadNum = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
-	d_fr[globalThreadNum] = d_r[globalThreadNum];
-	d_fu[globalThreadNum] = d_u[globalThreadNum];
-	d_fv[globalThreadNum] = d_v[globalThreadNum];
-	d_fw[globalThreadNum] = d_w[globalThreadNum];
-	d_fe[globalThreadNum] = d_e[globalThreadNum];
+	d_phi[globalThreadNum] = d_f[globalThreadNum];
 }
-
 
 

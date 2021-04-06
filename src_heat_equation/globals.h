@@ -9,22 +9,35 @@
 #define stencilSize 4  //the order is double the stencilSize 
 
 #define Lx       1.f
-#define Ly       1.f
-#define Lz       1.f
-#define mx       64
+#define Ly       0.5f
+#define Lz       0.5f
+#define mx       128
 #define my       128
 #define mz       256
-#define nsteps   100
+#define nsteps   1000
+#define U        1.f
+#define visc     0.1f
 #define CFL      1.f
 
-#define Re       395.0f
-#define Pr       1.0f
-#define gamma    1.4f
-#define Ma       0.8f
-#define Ec       0.256f           //(gam-1.0)*Ma**2   
-#define Rgas     1.11607143f      //1.0/(gam*Ma**2.0)
+#define parentGrid  0
 
 const bool periodic = true;
+
+
+#if parentGrid == 0
+const double Ux = U;
+const double Uy = 0.0;
+const double Uz = U; 
+#elif parentGrid == 1
+const double Ux = 0.0; 
+const double Uy = U; 
+const double Uz = 0.0; 
+#else
+const double Ux = U;
+const double Uy = 0.0; 
+const double Uz = U; 
+#endif
+
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 
@@ -46,12 +59,6 @@ const double coeffS[] = {-1.0/560.0,  8.0/315.0, -1.0/5.0,  8.0/5.0,  -205.0/72.
 extern double dt;
 
 extern double x[mx],y[my],z[mz],phi[mx*my*mz];
-
-extern double r[mx*my*mz];
-extern double u[mx*my*mz];
-extern double v[mx*my*mz];
-extern double w[mx*my*mz];
-extern double e[mx*my*mz];
 
 extern double rhs1[mx*my*mz]; 
 extern double rhs2[mx*my*mz];

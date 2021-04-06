@@ -52,17 +52,9 @@ void copyInit(int direction, dim3 grid, dim3 block);
 
 
 //global functions
-__global__ void RHSDeviceX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX, 
-						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
-						   myprec *t,  myprec *p);
-__global__ void RHSDeviceY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY, 
-						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
-						   myprec *t,  myprec *p);
-__global__ void RHSDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ, 
-						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
-						   myprec *t,  myprec *p);
-
-
+__global__ void RHSDeviceX(myprec *rhs, myprec *var); // using s-pencil derivatives
+__global__ void RHSDeviceY(myprec *rhs, myprec *var);
+__global__ void RHSDeviceZ(myprec *rhs, myprec *var);
 __global__ void RHSDeviceXL(myprec *rhsX, myprec *var);  // using L-pencil derivatives
 __global__ void RHSDeviceYL(myprec *rhsY, myprec *var);
 __global__ void RHSDeviceZL(myprec *rhsZ, myprec *var);
@@ -70,8 +62,8 @@ __global__ void RHSDeviceZL(myprec *rhsZ, myprec *var);
 __global__ void RHSDeviceYSum(myprec *rhs, myprec *var); // sums to previous rhs
 __global__ void RHSDeviceZSum(myprec *rhs, myprec *var); // sums to previous rhs
 __global__ void runDevice(); 
-__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
+__global__ void getResults(myprec *d_f); 
+__global__ void initDevice(myprec *d_f);
 
 //device functions
 __device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);

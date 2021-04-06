@@ -21,36 +21,195 @@
  *  i.e.: h_gridL[0] instead of h_grid[0]
  */
 
-__device__ myprec d_work[mx*my*mz];
+ __device__ myprec d_work[mx*my*mz];
 
+__device__ myprec d_work1[mx*my*mz];
+__device__ myprec d_work2[mx*my*mz];
 
-__global__ void RHSDeviceX(myprec *rhsX, myprec *var) {
+ 
+__global__ void RHSDeviceX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX, 
+						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
+						   myprec *t,  myprec *p) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 
-	derDev2x(rhsX,var,id);
-	rhsX[id.g] = rhsX[id.g]*visc;
+	// viscous fluxes derivative
+	derDev2x(d_work1,u,id);
+	uX[id.g] = d_work1[id.g]/Re;
+	derDev2x(d_work1,v,id);
+	vX[id.g] = d_work1[id.g]/Re;
+	derDev2x(d_work1,w,id);
+	wX[id.g] = d_work1[id.g]/Re;
+	derDev2x(d_work1,t,id);
+	eX[id.g] = d_work1[id.g]/Re/Pr/Ec;
+
+	// split advection terms 
+	d_work1[id.g] = r[id.g]*u[id.g];
+	__syncthreads();
+	derDev1x(d_work,d_work1,id); // d_work = d (ru) dx
+	rX[id.g] =          - d_work[id.g];
+	uX[id.g] = uX[id.g] - 0.5*(u[id.g]*d_work[id.g]); 
+	vX[id.g] = vX[id.g] - 0.5*(v[id.g]*d_work[id.g]); 
+	wX[id.g] = wX[id.g] - 0.5*(w[id.g]*d_work[id.g]); 
+	eX[id.g] = eX[id.g] - 0.5*(e[id.g]*d_work[id.g]); 
+
+	derDev1x(d_work,u,id); // d_work = d (u) dx
+	uX[id.g] = uX[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1x(d_work,v,id); // d_work = d (v) dx
+	vX[id.g] = vX[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1x(d_work,w,id); // d_work = d (w) dx
+	wX[id.g] = wX[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1x(d_work,e,id); // d_work = d (e) dx
+	eX[id.g] = eX[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	
+	d_work2[id.g] = d_work1[id.g]*u[id.g];
+	__syncthreads();
+	derDev1x(d_work,d_work2,id);  // d_work = d (ruu) dx
+	uX[id.g] = uX[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*v[id.g];
+	__syncthreads();
+	derDev1x(d_work,d_work2,id);  // d_work = d (ruv) dx
+	vX[id.g] = vX[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*w[id.g];
+	__syncthreads();
+	derDev1x(d_work,d_work2,id);  // d_work = d (ruw) dx
+	wX[id.g] = wX[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*e[id.g];
+	__syncthreads();
+	derDev1x(d_work,d_work2,id);  // d_work = d (rue) dx
+	eX[id.g] = eX[id.g] - 0.5*d_work[id.g];	
+
+	// pressure derivatives
+	derDev1x(d_work,p,id);
+	uX[id.g] = uX[id.g] - d_work[id.g];
 }
 
 
-__global__ void RHSDeviceY(myprec *rhsY, myprec *var) {
+__global__ void RHSDeviceY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY, 
+						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
+						   myprec *t,  myprec *p) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidY();
 
-	derDev1y(rhsY,var,id);
-	rhsY[id.g] = - rhsY[id.g]*U;
+	// viscous fluxes derivative
+	derDev2y(d_work1,u,id);
+	uY[id.g] = d_work1[id.g]/Re;
+	derDev2y(d_work1,v,id);
+	vY[id.g] = d_work1[id.g]/Re;
+	derDev2y(d_work1,w,id);
+	wY[id.g] = d_work1[id.g]/Re;
+	derDev2y(d_work1,t,id);
+	eY[id.g] = d_work1[id.g]/Re/Pr/Ec;
+
+	// split advection terms 
+	d_work1[id.g] = r[id.g]*v[id.g];
+	__syncthreads();
+	derDev1y(d_work,d_work1,id); // d_work = d (rv) dy
+	rY[id.g] =          - d_work[id.g];
+	uY[id.g] = uY[id.g] - 0.5*(u[id.g]*d_work[id.g]); 
+	vY[id.g] = vY[id.g] - 0.5*(v[id.g]*d_work[id.g]); 
+	wY[id.g] = wY[id.g] - 0.5*(w[id.g]*d_work[id.g]); 
+	eY[id.g] = eY[id.g] - 0.5*(e[id.g]*d_work[id.g]); 
+
+	derDev1y(d_work,u,id); // d_work = d (u) dy
+	uY[id.g] = uY[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1y(d_work,v,id); // d_work = d (v) dy
+	vY[id.g] = vY[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1y(d_work,w,id); // d_work = d (w) dy
+	wY[id.g] = wY[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1y(d_work,e,id); // d_work = d (e) dy
+	eY[id.g] = eY[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	
+	d_work2[id.g] = d_work1[id.g]*u[id.g];
+	__syncthreads();
+	derDev1y(d_work,d_work2,id);  // d_work = d (ruv) dy
+	uY[id.g] = uY[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*v[id.g];
+	__syncthreads();
+	derDev1y(d_work,d_work2,id);  // d_work = d (rvv) dy
+	vY[id.g] = vY[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*w[id.g];
+	__syncthreads();
+	derDev1y(d_work,d_work2,id);  // d_work = d (rvw) dy
+	wY[id.g] = wY[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*e[id.g];
+	__syncthreads();
+	derDev1y(d_work,d_work2,id);  // d_work = d (rve) dy
+	eY[id.g] = eY[id.g] - 0.5*d_work[id.g];	
+
+	// pressure derivatives
+	derDev1y(d_work,p,id);
+	vY[id.g] = vY[id.g] - d_work[id.g];
 }
 
 
-__global__ void RHSDeviceZ(myprec *rhsZ, myprec *var) {
+__global__ void RHSDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ, 
+						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
+						   myprec *t,  myprec *p) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidZ();
 
-	derDev1z(rhsZ,var,id);
-	rhsZ[id.g] = -rhsZ[id.g]*U;
+	// viscous fluxes derivative
+	derDev2z(d_work1,u,id);
+	uZ[id.g] = d_work1[id.g]/Re;
+	derDev2z(d_work1,v,id);
+	vZ[id.g] = d_work1[id.g]/Re;
+	derDev2z(d_work1,w,id);
+	wZ[id.g] = d_work1[id.g]/Re;
+	derDev2z(d_work1,t,id);
+	eZ[id.g] = d_work1[id.g]/Re/Pr/Ec;
+
+	// split advection terms 
+	d_work1[id.g] = r[id.g]*w[id.g];
+	__syncthreads();
+	derDev1z(d_work,d_work1,id); // d_work = d (rw) dz
+	rZ[id.g] =          - d_work[id.g];
+	uZ[id.g] = uZ[id.g] - 0.5*(u[id.g]*d_work[id.g]); 
+	vZ[id.g] = vZ[id.g] - 0.5*(v[id.g]*d_work[id.g]); 
+	wZ[id.g] = wZ[id.g] - 0.5*(w[id.g]*d_work[id.g]); 
+	eZ[id.g] = eZ[id.g] - 0.5*(e[id.g]*d_work[id.g]); 
+
+	derDev1z(d_work,u,id); // d_work = d (u) dz
+	uZ[id.g] = uZ[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1z(d_work,v,id); // d_work = d (v) dz
+	vZ[id.g] = vZ[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1z(d_work,w,id); // d_work = d (w) dz
+	wZ[id.g] = wZ[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	derDev1z(d_work,e,id); // d_work = d (e) dz
+	eZ[id.g] = eZ[id.g] - 0.5*(d_work1[id.g]*d_work[id.g]); 
+	
+	d_work2[id.g] = d_work1[id.g]*u[id.g];
+	__syncthreads();
+	derDev1z(d_work,d_work2,id);  // d_work = d (ruw) dz
+	uZ[id.g] = uZ[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*v[id.g];
+	__syncthreads();
+	derDev1z(d_work,d_work2,id);  // d_work = d (rvw) dz
+	vZ[id.g] = vZ[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*w[id.g];
+	__syncthreads();
+	derDev1z(d_work,d_work2,id);  // d_work = d (rww) dz
+	wZ[id.g] = wZ[id.g] - 0.5*d_work[id.g];
+
+	d_work2[id.g] = d_work1[id.g]*e[id.g];
+	__syncthreads();
+	derDev1z(d_work,d_work2,id);  // d_work = d (rwe) dz
+	eZ[id.g] = eZ[id.g] - 0.5*d_work[id.g];	
+
+	// pressure derivatives
+	derDev1z(d_work,p,id);
+	vZ[id.g] = vZ[id.g] - d_work[id.g];
 }
 
 
@@ -64,7 +223,7 @@ __global__ void RHSDeviceXL(myprec *rhsX, myprec *var) {
 	int k     = id.biy;
 	for (int sj = id.tiy; sj < lPencils; sj += id.bdy) {
 		int globalIdx = k * mx * my + (jBase + sj) * mx + i;
-		rhsX[globalIdx] = -rhsX[globalIdx]*U;
+		rhsX[globalIdx] = -rhsX[globalIdx];
 	}
 }
 
@@ -79,7 +238,7 @@ __global__ void RHSDeviceYL(myprec *rhsY, myprec *var) {
 	int k  = id.biy;
 	for (int j = id.tiy; j < my; j += id.bdy) {
 		int globalIdx = k * mx * my + j * mx + i;
-		rhsY[globalIdx] = -rhsY[globalIdx]*U;
+		rhsY[globalIdx] = -rhsY[globalIdx];
 	}
 }
 
@@ -93,27 +252,6 @@ __global__ void RHSDeviceZL(myprec *rhsZ, myprec *var) {
 	derDev1zL(rhsZ,var,id);
 	for (int k = id.tiy; k < mz; k += id.bdy) {
 		int globalIdx = k * mx * my + j * mx + i;
-		rhsZ[globalIdx] = -rhsZ[globalIdx]*U;
+		rhsZ[globalIdx] = -rhsZ[globalIdx];
 	}
 }
-
-
-__global__ void RHSDeviceYSum(myprec *rhsY, myprec *var) {
-
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidY();
-
-	derDev1y(d_work,var,id); // do stuff here
-	rhsY[id.g] = rhsY[id.g] - d_work[id.g]*U;
-}
-
-
-__global__ void RHSDeviceZSum(myprec *rhsZ, myprec *var) {
-
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidZ();
-
-	derDev1z(d_work,var,id); // do stuff here
-	rhsZ[id.g] = rhsZ[id.g] - d_work[id.g]*U;
-}
-

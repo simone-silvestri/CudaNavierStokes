@@ -58,10 +58,5 @@ extern __constant__ dim3 d_grid[3],d_gridL[3];
 extern __constant__ dim3 d_block[3],d_blockL[3];
 
 extern __device__ myprec d_phi[mx*my*mz];
-extern __device__ myprec d_r[mx*my*mz];
-extern __device__ myprec d_u[mx*my*mz];
-extern __device__ myprec d_v[mx*my*mz];
-extern __device__ myprec d_w[mx*my*mz];
-extern __device__ myprec d_e[mx*my*mz];
 
 #endif
