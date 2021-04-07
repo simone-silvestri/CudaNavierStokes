@@ -5,7 +5,7 @@
 #include "globals.h"
 #include <stdio.h>
 #include <assert.h>
-#define myprec float
+#define myprec double
 
 
 // Convenience function for checking CUDA runtime API results
@@ -50,18 +50,24 @@ const int lPencils = 1;
 const int lPencils = 32;  // large # pencils
 #endif
 
+#define lPencilx   0
+#define lPencilY   1
+#define lPencilZ   1
+
 extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
 extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
 
-extern __constant__ dim3 d_grid[3],d_gridL[3];
-extern __constant__ dim3 d_block[3],d_blockL[3];
+extern __constant__ dim3 d_grid[3], grid0;
+extern __constant__ dim3 d_block[3], block0;
 
-extern __device__ myprec d_phi[mx*my*mz];
 extern __device__ myprec d_r[mx*my*mz];
 extern __device__ myprec d_u[mx*my*mz];
 extern __device__ myprec d_v[mx*my*mz];
 extern __device__ myprec d_w[mx*my*mz];
 extern __device__ myprec d_e[mx*my*mz];
+extern __device__ myprec d_m[mx*my*mz];
+extern __device__ myprec d_l[mx*my*mz];
+
 
 #endif

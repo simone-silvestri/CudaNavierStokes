@@ -14,8 +14,12 @@ __device__ myprec d_v[mx*my*mz];
 __device__ myprec d_w[mx*my*mz];
 __device__ myprec d_e[mx*my*mz];
 
+__device__ myprec d_h[mx*my*mz];
 __device__ myprec d_t[mx*my*mz];
 __device__ myprec d_p[mx*my*mz];
+
+__device__ myprec d_m[mx*my*mz];
+__device__ myprec d_l[mx*my*mz];
 
 __device__ myprec d_tr[mx*my*mz];
 __device__ myprec d_tu[mx*my*mz];
@@ -57,7 +61,7 @@ __global__ void eulerSum(myprec *a, myprec *b,  myprec *cx, myprec *cy, myprec *
 __global__ void rk4final(myprec *a, myprec *bx, myprec *cx, myprec *dx, myprec *ex,
 									myprec *by, myprec *cy, myprec *dy, myprec *ey,
 									myprec *bz, myprec *cz, myprec *dz, myprec *ez, myprec *dt);
-__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *pre, myprec *tem);
+__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
 
 __global__ void calcTimeStep(myprec *temporary, myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret);
 __device__ void initSolver();

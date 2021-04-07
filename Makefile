@@ -13,8 +13,8 @@ ifeq ($(ARCH),CPU)
 gpu_usage=0
 endif
 ifeq ($(ARCH),)
-ARCH=CPU
-gpu_usage=0
+ARCH=GPU
+gpu_usage=1
 endif
 ifeq ($(ARCH),GPU)
 gpu_usage=1
@@ -30,7 +30,7 @@ FLAG_PREC = -Dprec=float
 
 LIBS = -lGLU -lGL -lglut -lm 
 
-CC = nvcc -O3 $(DBG)  #-Xpreprocessor -fopenmp -O3 -Wno-c++11-extensions $(DBG)  
+CC = nvcc -O3 $(DBG) --ptxas-options=-v  #-Xpreprocessor -fopenmp -O3 -Wno-c++11-extensions $(DBG)  
 
 ifeq ($(ARCH),GPU)
 FLAG2 = --use_fast_math
@@ -38,7 +38,7 @@ MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include
 LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda ## -lcudart 
-NVCC = nvcc $(DBG) -rdc=true -lineinfo
+NVCC = nvcc $(DBG) -lineinfo -rdc=true #--ptxas-options=-v   
 endif
 
 CFLAGS = -I$(INC_GL) -L$(LIB_GL) -I$(INC) -L$(LIB) 

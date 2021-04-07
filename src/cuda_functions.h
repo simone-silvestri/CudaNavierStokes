@@ -53,19 +53,29 @@ void copyInit(int direction, dim3 grid, dim3 block);
 
 //global functions
 __global__ void RHSDeviceX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX, 
-						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
-						   myprec *t,  myprec *p);
+						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+						   myprec *t,  myprec *p, myprec *mu, myprec *lam);
 __global__ void RHSDeviceY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY, 
-						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
-						   myprec *t,  myprec *p);
+						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+						   myprec *t,  myprec *p, myprec *mu, myprec *lam);
 __global__ void RHSDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ, 
-						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *e ,
-						   myprec *t,  myprec *p);
+						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+						   myprec *t,  myprec *p, myprec *mu, myprec *lam);
+__global__ void RHSDeviceZL(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+							myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+							myprec *t,  myprec *p, myprec *mu, myprec *lam);
+__global__ void RHSDeviceYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+							myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+							myprec *t,  myprec *p, myprec *mu, myprec *lam);
+__global__ void RHSDeviceSharedX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+								 myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+								 myprec *t,  myprec *p,  myprec *mu, myprec *lam);
 
+__global__ void RHSDeviceFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+							  myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+							  myprec *t,  myprec *p,  myprec *mu, myprec *lam);
 
 __global__ void RHSDeviceXL(myprec *rhsX, myprec *var);  // using L-pencil derivatives
-__global__ void RHSDeviceYL(myprec *rhsY, myprec *var);
-__global__ void RHSDeviceZL(myprec *rhsZ, myprec *var);
 
 __global__ void RHSDeviceYSum(myprec *rhs, myprec *var); // sums to previous rhs
 __global__ void RHSDeviceZSum(myprec *rhs, myprec *var); // sums to previous rhs
@@ -81,18 +91,17 @@ __device__ void rk4Device(Indices id);
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);
 __device__ void derDev1y(myprec *df , myprec *f, Indices id);
 __device__ void derDev1z(myprec *df , myprec *f, Indices id);
-__device__ void derDev1xL(myprec *df, myprec *f, Indices id);
-__device__ void derDev1yL(myprec *df, myprec *f, Indices id);
-__device__ void derDev1zL(myprec *df, myprec *f, Indices id);
 __device__ void derDev2x(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2y(myprec *d2f, myprec *f, Indices id);
-__device__ void derDev2z(myprec *d2f, myprec *f, Indices id);
-
-//if dividing the whole rk step in the different directions
-__global__ void rkStepZ(myprec *rhs1, myprec *rhs2, myprec *rhs3, myprec *rhs4, myprec *temp, myprec *phi, myprec *dt);
-
-
-//If running the rk4 on the host side
-void runHost();
+__device__ void derDev2z(myprec *d2f , myprec *f, Indices id);
+__device__ void derDev1xL(myprec *df , myprec *f, Indices id);
+__device__ void derDev1yL(myprec *df , myprec *f, Indices id);
+__device__ void derDev1zL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2xL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2yL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2zL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDevShared1x(myprec *df , myprec *s_f, int si);
+__device__ void derDevShared2x(myprec *d2f, myprec *s_f, int si);
+__device__ void fluxCubex(myprec *df, myprec *f, myprec *g, myprec *h, Indices id);
 
 #endif
