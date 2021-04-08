@@ -13,21 +13,19 @@
 #include <cuda.h>
 #include "cuda_functions.h"
 #include "cuda_globals.h"
-/*
-__device__ void fluxCubex(myprec *df, myprec *f, myprec *g, myprec *h, Indices id) {
+
+__device__ void fluxQuadx(myprec *df, myprec *f, myprec *g, Indices id) {
 	int si = id.i + stencilSize;       // local i for shared memory access + halo offset
 	int sj = id.tiy;                   // local j for shared memory access
 
 	__shared__ myprec s_f[sPencils][mx+stencilSize*2]; // 4-wide halo
 	__shared__ myprec s_g[sPencils][mx+stencilSize*2]; // 4-wide halo
-	__shared__ myprec s_h[sPencils][mx+stencilSize*2]; // 4-wide halo
 	__shared__ myprec s_a[sPencils][mx+stencilSize*2][stencilSize]; // 4-wide halo
 	__shared__ myprec flx[sPencils][mx+stencilSize*2]; // 4-wide halo
 
 	s_f[sj][si] = f[id.g];
 	s_g[sj][si] = g[id.g];
-	s_h[sj][si] = h[id.g];
-
+	flx[sj][si] = 0.0;
 	__syncthreads();
 
 	// fill in periodic images in shared memory array
@@ -36,15 +34,16 @@ __device__ void fluxCubex(myprec *df, myprec *f, myprec *g, myprec *h, Indices i
 		s_f[sj][si+mx]           = s_f[sj][si];
 		s_g[sj][si-stencilSize]  = s_g[sj][si+mx-stencilSize];
 		s_g[sj][si+mx]           = s_g[sj][si];
-		s_h[sj][si-stencilSize]  = s_h[sj][si+mx-stencilSize];
-		s_h[sj][si+mx]           = s_h[sj][si];
 		flx[sj][si-stencilSize]  = 0.0;
 		flx[sj][si+mx]  		 = 0.0;
 	}
+	__syncthreads();
 
 	for (int it=0; it<stencilSize; it++) {
-		s_a[sj][si][it] = dcoeffF[it]*(s_f[sj][si] + s_f[sj][si+it])*(s_g[sj][si] + s_g[sj][si+it])*(s_h[sj][si] + s_h[sj][si+it]);
+		s_a[sj][si][it] = - dcoeffF[stencilSize-1-it]*(s_f[sj][si] + s_f[sj][si+it+1])*(s_g[sj][si] + s_g[sj][si+it+1])*d_dx;
 	}
+	__syncthreads();
+
 	if (id.i < stencilSize) {
 		for (int it=0; it<stencilSize; it++) {
 				s_a[sj][si-stencilSize][it] = s_a[sj][si+mx-stencilSize][it];
@@ -60,10 +59,77 @@ __device__ void fluxCubex(myprec *df, myprec *f, myprec *g, myprec *h, Indices i
 
 	__syncthreads();
 
+	if (id.i < stencilSize) {
+		flx[sj][si-stencilSize]  = flx[sj][si+mx-stencilSize];
+		flx[sj][si+mx]           = flx[sj][si];
+
+	}
+	__syncthreads();
+
+	df[id.g] = -0.5*(flx[sj][si] - flx[sj][si-1]);
+
+}
+
+__device__ void fluxCubex(myprec *df, myprec *f, myprec *g, myprec *h, Indices id) {
+	int si = id.i + stencilSize;       // local i for shared memory access + halo offset
+	int sj = id.tiy;                   // local j for shared memory access
+
+	__shared__ myprec s_f[sPencils][mx+stencilSize*2]; // 4-wide halo
+	__shared__ myprec s_g[sPencils][mx+stencilSize*2]; // 4-wide halo
+	__shared__ myprec s_h[sPencils][mx+stencilSize*2]; // 4-wide halo
+	__shared__ myprec s_a[sPencils][mx+stencilSize*2][stencilSize]; // 4-wide halo
+	__shared__ myprec flx[sPencils][mx+stencilSize*2]; // 4-wide halo
+
+	s_f[sj][si] = f[id.g];
+	s_g[sj][si] = g[id.g];
+	s_h[sj][si] = h[id.g];
+	flx[sj][si] = 0.0;
+
+	__syncthreads();
+
+	// fill in periodic images in shared memory array
+	if (id.i < stencilSize) {
+		s_f[sj][si-stencilSize]  = s_f[sj][si+mx-stencilSize];
+		s_f[sj][si+mx]           = s_f[sj][si];
+		s_g[sj][si-stencilSize]  = s_g[sj][si+mx-stencilSize];
+		s_g[sj][si+mx]           = s_g[sj][si];
+		s_h[sj][si-stencilSize]  = s_h[sj][si+mx-stencilSize];
+		s_h[sj][si+mx]           = s_h[sj][si];
+		flx[sj][si-stencilSize]  = 0.0;
+		flx[sj][si+mx]  		 = 0.0;
+	}
+	__syncthreads();
+
+	for (int it=0; it<stencilSize; it++) {
+		s_a[sj][si][it] = - dcoeffF[stencilSize-1-it]*(s_f[sj][si] + s_f[sj][si+it+1])*(s_g[sj][si] + s_g[sj][si+it+1])*(s_h[sj][si] + s_h[sj][si+it+1])*d_dx;
+	}
+	__syncthreads();
+
+	if (id.i < stencilSize) {
+		for (int it=0; it<stencilSize; it++) {
+				s_a[sj][si-stencilSize][it] = s_a[sj][si+mx-stencilSize][it];
+				s_a[sj][si+mx][it]          = s_a[sj][si][it];
+		}
+	}
+
+	__syncthreads();
+
+	for (int it=0; it<stencilSize; it++)
+		for (int lt=0; lt<it; lt++)
+			flx[sj][si] += s_a[sj][si-lt][it];
+
+	__syncthreads();
+
+	if (id.i < stencilSize) {
+		flx[sj][si-stencilSize]  = flx[sj][si+mx-stencilSize];
+		flx[sj][si+mx]           = flx[sj][si];
+
+	}
+	__syncthreads();
+
 	df[id.g] = -0.25*(flx[sj][si] - flx[sj][si-1]);
 
 }
-*/
 
 __device__ void derDev1x(myprec *df, myprec *f, Indices id)
 {

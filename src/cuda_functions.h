@@ -102,6 +102,7 @@ __device__ void derDev2yL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2zL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDevShared1x(myprec *df , myprec *s_f, int si);
 __device__ void derDevShared2x(myprec *d2f, myprec *s_f, int si);
+__device__ void fluxQuadx(myprec *df, myprec *f, myprec *g, Indices id);
 __device__ void fluxCubex(myprec *df, myprec *f, myprec *g, myprec *h, Indices id);
 
 #endif

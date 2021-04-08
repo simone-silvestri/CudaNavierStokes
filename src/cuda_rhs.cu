@@ -33,7 +33,8 @@ __device__ myprec d_workZ2[mx*my*mz];
 
 /* I can load all variables into the shared memory!! and work only on those until I finish everything! */
 /* Additionally, the flux comp cubic can work by just loading in the needed arrays and working on those like derDev */
-/*
+
+
 __global__ void RHSDeviceFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 							  myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 							  myprec *t,  myprec *p,  myprec *mu, myprec *lam) {
@@ -56,19 +57,18 @@ __global__ void RHSDeviceFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, my
 
 	derDev1x(d_workX2,mu,id); //d_work2 = d (mu) dx
 	derDev1x(d_workX,u,id); // d_work = d (u) dx
-	uX[id.g] = uX[id.g] + d_workX[id.g]*(d_workX2[id.g]);
-	rX[id.g] = rX[id.g] - 0.5 * d_workX[id.g]*r[id.g];
-	derDev1x(d_workX,r,id); // d_work = d (r) dx
-	rX[id.g] = rX[id.g] - 0.5 * d_workX[id.g]*u[id.g];
+	uX[id.g] = uX[id.g] + d_workX[id.g]*d_workX2[id.g];
 	derDev1x(d_workX,v,id); // d_work = d (v) dx
-	vX[id.g] = vX[id.g] + d_workX[id.g]*(d_workX2[id.g]);
+	vX[id.g] = vX[id.g] + d_workX[id.g]*d_workX2[id.g];
 	derDev1x(d_workX,w,id); // d_work = d (w) dx
-	wX[id.g] = wX[id.g] + d_workX[id.g]*(d_workX2[id.g]);
+	wX[id.g] = wX[id.g] + d_workX[id.g]*d_workX2[id.g];
 	derDev1x(d_workX2,lam,id); //d_work2 = d (lam) dx
 	derDev1x(d_workX,h,id); // d_work = d (h) dx
-	eX[id.g] = eX[id.g] + d_workX[id.g]*(d_workX2[id.g]);
+	eX[id.g] = eX[id.g] + d_workX[id.g]*d_workX2[id.g];
 
 	//Adding here the terms - d (ru*phi) dx in split flux term;
+	fluxQuadx(d_workX,r,u,id);  // d_work = d (ru) dx
+	rX[id.g] = rX[id.g] + d_workX[id.g];
 
 	fluxCubex(d_workX,r,u,u,id);  // d_work = d (ruu) dx
 	uX[id.g] = uX[id.g] + d_workX[id.g];
@@ -85,7 +85,7 @@ __global__ void RHSDeviceFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, my
 
 }
 
-*/
+
 __global__ void RHSDeviceX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX, 
 						   myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 						   myprec *t,  myprec *p,  myprec *mu, myprec *lam) {

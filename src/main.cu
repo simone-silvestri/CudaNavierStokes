@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 	runDevice<<<grid,block>>>();
 	cudaDeviceSynchronize();
 	copyInit(0,grid,block);
-	writeFields(1);
+	writeFields(2);
 
 	cudaDeviceSynchronize();
 #endif

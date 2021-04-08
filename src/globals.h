@@ -12,11 +12,11 @@
 #define Lx       (2*M_PI)
 #define Ly       (2*M_PI)
 #define Lz       (2*M_PI)
-#define mx       128
-#define my       128
-#define mz       128
-#define nsteps   2000
-#define CFL      0.6f
+#define mx       64
+#define my       64
+#define mz       64
+#define nsteps   100
+#define CFL      0.3f
 
 #define Re       395.f
 #define Pr       1.f
@@ -37,7 +37,7 @@ const double coeffS[] = {1.0, -2.0};
 const double coeffF[] = { 1.0/12.0, -2.0/3.0};
 const double coeffS[] = {-1.0/12.0,  4.0/3.0, -5.0/2.0};
 #elif stencilSize==3
-const double coeffF[] = {-1.0/60.0,  3.0/20.0, -2.0/4.0};
+const double coeffF[] = {-1.0/60.0,  3.0/20.0, -3.0/4.0};
 const double coeffS[] = { 1.0/90.0, -3.0/20.0,  3.0/2.0, -49.0/18.0};
 #elif stencilSize==4
 const double coeffF[] = { 1.0/280.0, -4.0/105.0,  1.0/5.0, -4.0/5.0};
