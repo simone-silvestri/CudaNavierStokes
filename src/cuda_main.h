@@ -20,6 +20,7 @@ __device__ myprec d_p[mx*my*mz];
 
 __device__ myprec d_m[mx*my*mz];
 __device__ myprec d_l[mx*my*mz];
+__device__ myprec d_dil[mx*my*mz];
 
 __device__ myprec d_tr[mx*my*mz];
 __device__ myprec d_tu[mx*my*mz];
@@ -27,30 +28,32 @@ __device__ myprec d_tv[mx*my*mz];
 __device__ myprec d_tw[mx*my*mz];
 __device__ myprec d_te[mx*my*mz];
 
-__device__ myprec *d_rhsr1[3];
-__device__ myprec *d_rhsr2[3];
-__device__ myprec *d_rhsr3[3];
-__device__ myprec *d_rhsr4[3];
+__device__ myprec *d_rhsr1[5];
+__device__ myprec *d_rhsr2[5];
+__device__ myprec *d_rhsr3[5];
+__device__ myprec *d_rhsr4[5];
 
-__device__ myprec *d_rhsu1[3];
-__device__ myprec *d_rhsu2[3];
-__device__ myprec *d_rhsu3[3];
-__device__ myprec *d_rhsu4[3];
+__device__ myprec *d_rhsu1[5];
+__device__ myprec *d_rhsu2[5];
+__device__ myprec *d_rhsu3[5];
+__device__ myprec *d_rhsu4[5];
 
-__device__ myprec *d_rhsv1[3];
-__device__ myprec *d_rhsv2[3];
-__device__ myprec *d_rhsv3[3];
-__device__ myprec *d_rhsv4[3];
+__device__ myprec *d_rhsv1[5];
+__device__ myprec *d_rhsv2[5];
+__device__ myprec *d_rhsv3[5];
+__device__ myprec *d_rhsv4[5];
 
-__device__ myprec *d_rhsw1[3];
-__device__ myprec *d_rhsw2[3];
-__device__ myprec *d_rhsw3[3];
-__device__ myprec *d_rhsw4[3];
+__device__ myprec *d_rhsw1[5];
+__device__ myprec *d_rhsw2[5];
+__device__ myprec *d_rhsw3[5];
+__device__ myprec *d_rhsw4[5];
 
-__device__ myprec *d_rhse1[3];
-__device__ myprec *d_rhse2[3];
-__device__ myprec *d_rhse3[3];
-__device__ myprec *d_rhse4[3];
+__device__ myprec *d_rhse1[5];
+__device__ myprec *d_rhse2[5];
+__device__ myprec *d_rhse3[5];
+__device__ myprec *d_rhse4[5];
+
+__device__ myprec *sij[9];
 
 __device__ myprec dt2,dtC;
 
@@ -63,7 +66,7 @@ __global__ void rk4final(myprec *a, myprec *bx, myprec *cx, myprec *dx, myprec *
 									myprec *bz, myprec *cz, myprec *dz, myprec *ez, myprec *dt);
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
 
-__global__ void calcTimeStep(myprec *temporary, myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret);
+__global__ void calcTimeStep(myprec *temporary, myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *mu);
 __device__ void initSolver();
 __device__ void clearSolver();
 

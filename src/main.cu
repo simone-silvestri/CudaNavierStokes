@@ -46,20 +46,43 @@ int main(int argc, char** argv) {
 
 	setDerivativeParameters(grid, block);
 
+	myprec *dkin, *denst, *dtime;
+	myprec *hkin  = new myprec[nsteps];
+	myprec *henst = new myprec[nsteps];
+	myprec *htime = new myprec[nsteps];
+
+	checkCuda( cudaMalloc((void**)&dkin , nsteps*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&denst, nsteps*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&dtime, nsteps*sizeof(myprec)) );
+    checkCuda( cudaMemset(dkin , 0, nsteps*sizeof(myprec)) );
+    checkCuda( cudaMemset(denst, 0, nsteps*sizeof(myprec)) );
+    checkCuda( cudaMemset(dtime, 0, nsteps*sizeof(myprec)) );
+
 	copyInit(1,grid,block);
 
 	/* to allocate 4GB of heap size on the GPU */
 	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 8GB
 	cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
-	runDevice<<<grid,block>>>();
-	cudaDeviceSynchronize();
-	copyInit(0,grid,block);
-	writeFields(2);
+	for(int file = 1; file<nfiles+1; file++) {
+		runDevice<<<grid,block>>>(dkin,denst,dtime);
+		cudaDeviceSynchronize();
+		copyInit(0,grid,block);
+		writeFields(file);
+	}
+    checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+    checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+    checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+
+	FILE *fp = fopen("solution.txt","w+");
+	for(int t=0; t<nsteps; t++)
+			fprintf(fp,"%lf %lf %lf\n",htime[t],hkin[t],henst[t]);
+	fclose(fp);
+
 
 	cudaDeviceSynchronize();
 #endif
 
-	FILE *fp = fopen("final.txt","w+");
+	fp = fopen("final.txt","w+");
 	for(int k=0; k<mz; k++)
 		for(int i=0; i<mx; i++)
 			fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
@@ -69,6 +92,8 @@ int main(int argc, char** argv) {
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 	cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::seconds>     (end - begin).count() << "[s]" << std::endl;
+
+	cout << "The final time step is: " << dt << "\n";
 
 	cout << "Simulation is finished! \n";
 
@@ -90,7 +115,7 @@ void calcdt() {
 		double sos = pow(gamma*(gamma-1)*ien,0.5);
 
 		dtConvInv =  MAX( dtConvInv, MAX( (abs(u[gt]) + sos)/dx, MAX( (abs(v[gt]) + sos)/dy, (abs(w[gt]) + sos)/dz) ) );
-		dtViscInv =  0.0; //MAX( dtViscInv, MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) ) );
+		dtViscInv =  MAX( dtViscInv, MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) ) );
 	}
 	dt = CFL/MAX(dtConvInv, dtViscInv);
 

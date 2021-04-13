@@ -48,7 +48,7 @@ TARGET = ns
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_main_dynamic.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o
+OBJ_CUDA = $(OBJ)cuda_main_dynamic.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o
 endif
 
 # List of objects
@@ -67,6 +67,9 @@ $(OBJ)main.o: $(SRC)main.cu
 ifeq ($(ARCH),GPU)
 $(OBJ)cuda_main_dynamic.o: $(SRC)cuda_main_dynamic.cu
 	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_main_dynamic.cu $(FLAG2) -o $(OBJ)cuda_main_dynamic.o
+
+$(OBJ)calc_stress.o: $(SRC)calc_stress.cu
+	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)calc_stress.cu $(FLAG2) -o $(OBJ)calc_stress.o
 
 $(OBJ)cuda_rhs.o: $(SRC)cuda_rhs.cu
 	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_rhs.cu $(FLAG2) -o $(OBJ)cuda_rhs.o

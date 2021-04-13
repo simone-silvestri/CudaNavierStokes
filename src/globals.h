@@ -12,18 +12,19 @@
 #define Lx       (2*M_PI)
 #define Ly       (2*M_PI)
 #define Lz       (2*M_PI)
-#define mx       64
-#define my       64
-#define mz       64
-#define nsteps   100
-#define CFL      0.3f
+#define mx       128
+#define my       128
+#define mz       128
+#define nsteps   12000
+#define nfiles   1
+#define CFL      0.6f
 
-#define Re       395.f
+#define Re       1600.f
 #define Pr       1.f
 #define gamma    1.4f
 #define Ma       0.1f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
-#define Rgas     (1.f/(gamma*Ma*Ma))     //1.0/(gam*Ma**2.0)
+#define Rgas     (1.f/(gamma*Ma*Ma))
 
 const bool periodic = true;
 
