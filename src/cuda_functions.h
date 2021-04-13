@@ -149,4 +149,5 @@ __device__ void fluxQuadyL(myprec *df, myprec *f, myprec *g, Indices id);
 __device__ void fluxCubeyL(myprec *df, myprec *f, myprec *g, myprec *h, Indices id);
 __device__ void fluxQuadSharedG(myprec *df, myprec *s_f, myprec *s_g, int si, myprec dg);
 __device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, myprec dg);
+
 #endif

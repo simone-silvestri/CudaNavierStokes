@@ -67,8 +67,8 @@ int main(int argc, char** argv) {
 		runDevice<<<grid,block>>>(dkin,denst,dtime);
 		cudaDeviceSynchronize();
 		copyInit(0,grid,block);
-		writeFields(file);
 	}
+	writeFields(4);
     checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
     checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
     checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );

@@ -11,9 +11,9 @@ x = np.linspace(0,2*np.pi,128)
 y = np.linspace(0,2*np.pi,128)
 z = np.linspace(0,2*np.pi,128)
 
-writexmf("field128.xmf", precision, \
+writexmf("field192.xmf", precision, \
          x, y, z, \
-         np.arange(0,121,1), 1.0, \
+         np.arange(1,3,1), 1.0, \
          ['r',\
           'u',\
 	  'v',\

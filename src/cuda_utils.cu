@@ -24,7 +24,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
     exit(1);
   }
 
-  myprec h_dt = (myprec) 1.693e-03;
+  myprec h_dt = (myprec) 6.e-4; //dt;
   myprec h_dx = (myprec) 1.0/(x[1] - x[0]);
   myprec h_dy = (myprec) 1.0/(y[1] - y[0]);
   myprec h_dz = (myprec) 1.0/(z[1] - z[0]);

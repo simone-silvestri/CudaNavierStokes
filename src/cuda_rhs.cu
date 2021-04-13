@@ -24,9 +24,11 @@
 __device__ myprec d_workX[mx*my*mz];
 __device__ myprec d_workX1[mx*my*mz];
 __device__ myprec d_workX2[mx*my*mz];
+
 __device__ myprec d_workY[mx*my*mz];
 __device__ myprec d_workY1[mx*my*mz];
 __device__ myprec d_workY2[mx*my*mz];
+
 __device__ myprec d_workZ[mx*my*mz];
 __device__ myprec d_workZ1[mx*my*mz];
 __device__ myprec d_workZ2[mx*my*mz];

@@ -47,7 +47,7 @@ const int sPencils = 2;  // small # pencils
 #if mx==1 || my==1 || mz==1
 const int lPencils = 1;  
 #else
-const int lPencils = 32;  // large # pencils
+const int lPencils = 16;  // large # pencils
 #endif
 
 #define lPencilx   0
@@ -66,8 +66,6 @@ extern __device__ myprec d_u[mx*my*mz];
 extern __device__ myprec d_v[mx*my*mz];
 extern __device__ myprec d_w[mx*my*mz];
 extern __device__ myprec d_e[mx*my*mz];
-extern __device__ myprec d_m[mx*my*mz];
-extern __device__ myprec d_l[mx*my*mz];
 
 extern __device__ myprec dt2,dtC;
 

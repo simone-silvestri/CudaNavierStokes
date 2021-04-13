@@ -3,9 +3,6 @@
 #include "cuda_globals.h"
 #include "cuda_main.h"
 
-__global__ void eulerSum2(myprec *a, myprec *b, myprec *c[5], myprec *dt);
-__global__ void rk4final2(myprec *a, myprec *b[5], myprec *c[5], myprec *d[5], myprec *e[5], myprec *dt);
-
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
 	dtC = d_dt;
@@ -52,6 +49,9 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	dt2 = dtC/2.;
 
+    	deviceMul<<<grid0,block0>>>(d_uO,d_r,d_u);
+    	deviceMul<<<grid0,block0>>>(d_vO,d_r,d_v);
+    	deviceMul<<<grid0,block0>>>(d_wO,d_r,d_w);
 
     	/* rk step 1 */
     	cudaDeviceSynchronize();
@@ -71,11 +71,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	for (int d = 0; d < 5; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
-    	eulerSum2<<<grid0,block0>>>(d_tr,d_r,d_rhsr1,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_tu,d_u,d_rhsu1,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_tv,d_v,d_rhsv1,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_tw,d_w,d_rhsw1,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_te,d_e,d_rhse1,&dt2);
+    	eulerSum<<<grid0,block0>>>(d_tr,d_r,d_rhsr1,&dt2);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<grid0,block0>>>(d_te,d_e,d_rhse1,&dt2);
+    	eulerSumR<<<grid0,block0>>>(d_tu,d_uO,d_rhsu1,d_tr,&dt2);
+    	eulerSumR<<<grid0,block0>>>(d_tv,d_vO,d_rhsv1,d_tr,&dt2);
+    	eulerSumR<<<grid0,block0>>>(d_tw,d_wO,d_rhsw1,d_tr,&dt2);
     	cudaDeviceSynchronize();
 
     	//rk step 2
@@ -88,11 +89,21 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	for (int d = 0; d < 5; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_tr,d_tu,d_tv,d_tw,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
-    	eulerSum2<<<grid0,block0>>>(d_tr,d_r,d_rhsr2,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_tu,d_u,d_rhsu2,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_tv,d_v,d_rhsv2,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_tw,d_w,d_rhsw2,&dt2);
-    	eulerSum2<<<grid0,block0>>>(d_te,d_e,d_rhse2,&dt2);
+#if rk==4
+    	eulerSum<<<grid0,block0>>>(d_tr,d_r,d_rhsr2,&dt2);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<grid0,block0>>>(d_te,d_e,d_rhse2,&dt2);
+    	eulerSumR<<<grid0,block0>>>(d_tu,d_uO,d_rhsu2,d_tr,&dt2);
+    	eulerSumR<<<grid0,block0>>>(d_tv,d_vO,d_rhsv2,d_tr,&dt2);
+    	eulerSumR<<<grid0,block0>>>(d_tw,d_wO,d_rhsw2,d_tr,&dt2);
+#elif rk==3
+    	eulerSum3<<<grid0,block0>>>(d_tr,d_r,d_rhsr1,d_rhsr2,&dtC);
+    	cudaDeviceSynchronize();
+    	eulerSum3<<<grid0,block0>>>(d_te,d_e,d_rhse1,d_rhse2,&dtC);
+    	eulerSum3R<<<grid0,block0>>>(d_tu,d_uO,d_rhsu1,d_rhsu2,d_tr,&dtC);
+    	eulerSum3R<<<grid0,block0>>>(d_tv,d_vO,d_rhsv1,d_rhsv2,d_tr,&dtC);
+    	eulerSum3R<<<grid0,block0>>>(d_tw,d_wO,d_rhsw1,d_rhsw2,d_tr,&dtC);
+#endif
     	cudaDeviceSynchronize();
 
 
@@ -106,11 +117,13 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	for (int d = 0; d < 5; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_tr,d_tu,d_tv,d_tw,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
-    	eulerSum2<<<grid0,block0>>>(d_tr,d_r,d_rhsr3,&dtC);
-    	eulerSum2<<<grid0,block0>>>(d_tu,d_u,d_rhsu3,&dtC);
-    	eulerSum2<<<grid0,block0>>>(d_tv,d_v,d_rhsv3,&dtC);
-    	eulerSum2<<<grid0,block0>>>(d_tw,d_w,d_rhsw3,&dtC);
-    	eulerSum2<<<grid0,block0>>>(d_te,d_e,d_rhse3,&dtC);
+#if rk==4
+    	eulerSum<<<grid0,block0>>>(d_tr,d_r,d_rhsr3,&dtC);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<grid0,block0>>>(d_te,d_e,d_rhse3,&dtC);
+    	eulerSumR<<<grid0,block0>>>(d_tu,d_uO,d_rhsu3,d_tr,&dtC);
+    	eulerSumR<<<grid0,block0>>>(d_tv,d_vO,d_rhsv3,d_tr,&dtC);
+    	eulerSumR<<<grid0,block0>>>(d_tw,d_wO,d_rhsw3,d_tr,&dtC);
     	cudaDeviceSynchronize();
 
     	//rk step 4
@@ -123,11 +136,20 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	for (int d = 0; d < 5; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_tr,d_tu,d_tv,d_tw,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
-    	rk4final2<<<grid0,block0>>>(d_r,d_rhsr1,d_rhsr2,d_rhsr3,d_rhsr4,&dtC);
-    	rk4final2<<<grid0,block0>>>(d_u,d_rhsu1,d_rhsu2,d_rhsu3,d_rhsu4,&dtC);
-    	rk4final2<<<grid0,block0>>>(d_v,d_rhsv1,d_rhsv2,d_rhsv3,d_rhsv4,&dtC);
-    	rk4final2<<<grid0,block0>>>(d_w,d_rhsw1,d_rhsw2,d_rhsw3,d_rhsw4,&dtC);
-    	rk4final2<<<grid0,block0>>>(d_e,d_rhse1,d_rhse2,d_rhse3,d_rhse4,&dtC);
+    	rk4final<<<grid0,block0>>>(d_r,d_rhsr1,d_rhsr2,d_rhsr3,d_rhsr4,&dtC);
+    	cudaDeviceSynchronize();
+    	rk4final<<<grid0,block0>>>(d_e,d_rhse1,d_rhse2,d_rhse3,d_rhse4,&dtC);
+    	rk4finalR<<<grid0,block0>>>(d_u,d_uO,d_rhsu1,d_rhsu2,d_rhsu3,d_rhsu4,d_r,&dtC);
+    	rk4finalR<<<grid0,block0>>>(d_v,d_vO,d_rhsv1,d_rhsv2,d_rhsv3,d_rhsv4,d_r,&dtC);
+    	rk4finalR<<<grid0,block0>>>(d_w,d_wO,d_rhsw1,d_rhsw2,d_rhsw3,d_rhsw4,d_r,&dtC);
+#elif rk==3
+    	rk3final<<<grid0,block0>>>(d_r,d_rhsr1,d_rhsr2,d_rhsr3,&dtC);
+    	cudaDeviceSynchronize();
+    	rk3final<<<grid0,block0>>>(d_e,d_rhse1,d_rhse2,d_rhse3,&dtC);
+    	rk3finalR<<<grid0,block0>>>(d_u,d_uO,d_rhsu1,d_rhsu2,d_rhsu3,d_r,&dtC);
+    	rk3finalR<<<grid0,block0>>>(d_v,d_vO,d_rhsv1,d_rhsv2,d_rhsv3,d_r,&dtC);
+    	rk3finalR<<<grid0,block0>>>(d_w,d_wO,d_rhsw1,d_rhsw2,d_rhsw3,d_r,&dtC);
+#endif
     	cudaDeviceSynchronize();
 
 	}
@@ -141,31 +163,60 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
 }
 
-__global__ void eulerSum(myprec *a, myprec *b, myprec *cx, myprec *cy, myprec *cz, myprec *dt) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = b[id.g] + ( cx[id.g] + cy[id.g] + cz[id.g] )*(*dt);
-}
-
-__global__ void eulerSum2(myprec *a, myprec *b, myprec *c[5], myprec *dt) {
+__global__ void eulerSum(myprec *a, myprec *b, myprec *c[5], myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 	a[id.g] = b[id.g] + ( c[0][id.g] + c[1][id.g] + c[2][id.g] + c[3][id.g] + c[4][id.g] )*(*dt);
 }
 
-__global__ void rk4final2(myprec *a, myprec *b[5], myprec *c[5], myprec *d[5], myprec *e[5], myprec *dt) {
+__global__ void eulerSumR(myprec *a, myprec *b, myprec *c[5], myprec *r, myprec *dt) {
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidX();
+	a[id.g] =  ( b[id.g] +  ( c[0][id.g] + c[1][id.g] + c[2][id.g] + c[3][id.g] + c[4][id.g] ) *(*dt) ) /r[id.g];
+}
+
+__global__ void eulerSum3(myprec *a, myprec *b, myprec *c1[5], myprec *c2[5], myprec *dt) {
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidX();
+	a[id.g] = b[id.g] -     ( c1[0][id.g] + c1[1][id.g] + c1[2][id.g] + c1[3][id.g] + c1[4][id.g] )*(*dt)
+					  + 2 * ( c2[0][id.g] + c2[1][id.g] + c2[2][id.g] + c2[3][id.g] + c2[4][id.g] )*(*dt);
+}
+
+__global__ void eulerSum3R(myprec *a, myprec *b, myprec *c1[5], myprec *c2[5], myprec *r, myprec *dt) {
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidX();
+	a[id.g] = ( b[id.g] -     ( c1[0][id.g] + c1[1][id.g] + c1[2][id.g] + c1[3][id.g] + c1[4][id.g] )*(*dt)
+					    + 2 * ( c2[0][id.g] + c2[1][id.g] + c2[2][id.g] + c2[3][id.g] + c2[4][id.g] )*(*dt) )/ r[id.g];
+}
+
+__global__ void rk4final(myprec *a, myprec *b[5], myprec *c[5], myprec *d[5], myprec *e[5], myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 	for (int it=0; it<5; it++)
-	a[id.g] = a[id.g] + (*dt)*( b[it][id.g] + 2*c[it][id.g] + 2*d[it][id.g] + e[it][id.g])/6.;
+		a[id.g] = a[id.g] + (*dt)*( b[it][id.g] + 2*c[it][id.g] + 2*d[it][id.g] + e[it][id.g])/6.;
 }
 
-__global__ void rk4final(myprec *a, myprec *bx, myprec *cx, myprec *dx, myprec *ex,	myprec *by, myprec *cy, myprec *dy, myprec *ey,	myprec *bz, myprec *cz, myprec *dz, myprec *ez, myprec *dt) {
+__global__ void rk4finalR(myprec *a1, myprec *a2, myprec *b[5], myprec *c[5], myprec *d[5], myprec *e[5], myprec *r, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
-	a[id.g] = a[id.g] + (*dt)*( bx[id.g] + 2*cx[id.g] + 2*dx[id.g] + ex[id.g] +
-								by[id.g] + 2*cy[id.g] + 2*dy[id.g] + ey[id.g] +
-								bz[id.g] + 2*cz[id.g] + 2*dz[id.g] + ez[id.g])/6.;
+	a1[id.g] =  a2[id.g]/r[id.g];
+	for (int it=0; it<5; it++)
+		a1[id.g] +=  (*dt)*( b[it][id.g] + 2*c[it][id.g] + 2*d[it][id.g] + e[it][id.g])/6./ r[id.g];
+}
+
+__global__ void rk3final(myprec *a, myprec *b[5], myprec *c[5], myprec *d[5], myprec *dt) {
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidX();
+	for (int it=0; it<5; it++)
+		a[id.g] = a[id.g] + (*dt)*( b[it][id.g] + 4*c[it][id.g] + d[it][id.g])/6.;
+}
+
+__global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b[5], myprec *c[5], myprec *d[5], myprec *r, myprec *dt) {
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidX();
+	a1[id.g] = a2[id.g]/r[id.g];
+	for (int it=0; it<5; it++)
+		a1[id.g] += (*dt)*( b[it][id.g] + 4*c[it][id.g] + d[it][id.g])/6. / r[id.g];
 }
 
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam) {
@@ -228,28 +279,50 @@ __device__ void initSolver() {
 
     for (int i=0; i<5; i++) {
     	checkCudaDev( cudaMalloc((void**)&d_rhsr1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsu1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsv1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsw1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhse1[i],mx*my*mz*sizeof(myprec)) );
+
     	checkCudaDev( cudaMalloc((void**)&d_rhsr2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsr3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsr4[i],mx*my*mz*sizeof(myprec)) );
-		checkCudaDev( cudaMalloc((void**)&d_rhsu1[i],mx*my*mz*sizeof(myprec)) );
-		checkCudaDev( cudaMalloc((void**)&d_rhsu2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsu3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsu4[i],mx*my*mz*sizeof(myprec)) );
-		checkCudaDev( cudaMalloc((void**)&d_rhsv1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsu2[i],mx*my*mz*sizeof(myprec)) );
     	checkCudaDev( cudaMalloc((void**)&d_rhsv2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsv3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsv4[i],mx*my*mz*sizeof(myprec)) );
-		checkCudaDev( cudaMalloc((void**)&d_rhsw1[i],mx*my*mz*sizeof(myprec)) );
     	checkCudaDev( cudaMalloc((void**)&d_rhsw2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsw3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhsw4[i],mx*my*mz*sizeof(myprec)) );
-		checkCudaDev( cudaMalloc((void**)&d_rhse1[i],mx*my*mz*sizeof(myprec)) );
     	checkCudaDev( cudaMalloc((void**)&d_rhse2[i],mx*my*mz*sizeof(myprec)) );
+
+    	checkCudaDev( cudaMalloc((void**)&d_rhsr3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsu3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsv3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&d_rhsw3[i],mx*my*mz*sizeof(myprec)) );
     	checkCudaDev( cudaMalloc((void**)&d_rhse3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCudaDev( cudaMalloc((void**)&d_rhse4[i],mx*my*mz*sizeof(myprec)) );
+#if rk == 4
+    	checkCudaDev( cudaMalloc((void**)&d_rhsr4[i],mx*my*mz*sizeof(myprec)) );
+		checkCudaDev( cudaMalloc((void**)&d_rhsu4[i],mx*my*mz*sizeof(myprec)) );
+		checkCudaDev( cudaMalloc((void**)&d_rhsv4[i],mx*my*mz*sizeof(myprec)) );
+		checkCudaDev( cudaMalloc((void**)&d_rhsw4[i],mx*my*mz*sizeof(myprec)) );
+		checkCudaDev( cudaMalloc((void**)&d_rhse4[i],mx*my*mz*sizeof(myprec)) );
+#endif
     }
-	checkCudaDev( cudaMalloc((void**)&dttemp,block0.x*block0.y*sizeof(myprec)) );
-    for (int i=0; i<9; i++)
+	checkCudaDev( cudaMalloc((void**)&d_tr,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_tu,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_tv,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_tw,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_te,mx*my*mz*sizeof(myprec)) );
+
+	checkCudaDev( cudaMalloc((void**)&d_h,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_t,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_p,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_m,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_l,mx*my*mz*sizeof(myprec)) );
+
+	checkCudaDev( cudaMalloc((void**)&d_uO,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_vO,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_wO,mx*my*mz*sizeof(myprec)) );
+
+//	checkCudaDev( cudaMalloc((void**)&dttemp,block0.x*block0.y*sizeof(myprec)) );
+
+	checkCudaDev( cudaMalloc((void**)&d_dil,mx*my*mz*sizeof(myprec)) );
+	for (int i=0; i<9; i++)
     	checkCudaDev( cudaMalloc((void**)&sij[i],mx*my*mz*sizeof(myprec)) );
 
 }
@@ -258,28 +331,48 @@ __device__ void clearSolver() {
 
 	for (int i=0; i<5; i++) {
 		checkCudaDev( cudaFree(d_rhsr1[i]) );
-		checkCudaDev( cudaFree(d_rhsr2[i]) );
-		checkCudaDev( cudaFree(d_rhsr3[i]) );
-		checkCudaDev( cudaFree(d_rhsr4[i]) );
 		checkCudaDev( cudaFree(d_rhsu1[i]) );
-		checkCudaDev( cudaFree(d_rhsu2[i]) );
-		checkCudaDev( cudaFree(d_rhsu3[i]) );
-		checkCudaDev( cudaFree(d_rhsu4[i]) );
 		checkCudaDev( cudaFree(d_rhsv1[i]) );
-		checkCudaDev( cudaFree(d_rhsv2[i]) );
-		checkCudaDev( cudaFree(d_rhsv3[i]) );
-		checkCudaDev( cudaFree(d_rhsv4[i]) );
 		checkCudaDev( cudaFree(d_rhsw1[i]) );
-		checkCudaDev( cudaFree(d_rhsw2[i]) );
-		checkCudaDev( cudaFree(d_rhsw3[i]) );
-		checkCudaDev( cudaFree(d_rhsw4[i]) );
 		checkCudaDev( cudaFree(d_rhse1[i]) );
+		checkCudaDev( cudaFree(d_rhsr2[i]) );
+		checkCudaDev( cudaFree(d_rhsu2[i]) );
+		checkCudaDev( cudaFree(d_rhsv2[i]) );
+		checkCudaDev( cudaFree(d_rhsw2[i]) );
 		checkCudaDev( cudaFree(d_rhse2[i]) );
+		checkCudaDev( cudaFree(d_rhsr3[i]) );
+		checkCudaDev( cudaFree(d_rhsu3[i]) );
+		checkCudaDev( cudaFree(d_rhsv3[i]) );
+		checkCudaDev( cudaFree(d_rhsw3[i]) );
 		checkCudaDev( cudaFree(d_rhse3[i]) );
+#if rk==4
+		checkCudaDev( cudaFree(d_rhsr4[i]) );
+		checkCudaDev( cudaFree(d_rhsu4[i]) );
+		checkCudaDev( cudaFree(d_rhsv4[i]) );
+		checkCudaDev( cudaFree(d_rhsw4[i]) );
 		checkCudaDev( cudaFree(d_rhse4[i]) );
+#endif
 	}
-	checkCudaDev( cudaFree(dttemp) );
-    for (int i=0; i<9; i++)
+	checkCudaDev( cudaFree(d_tr) );
+	checkCudaDev( cudaFree(d_tu) );
+	checkCudaDev( cudaFree(d_tv) );
+	checkCudaDev( cudaFree(d_tw) );
+	checkCudaDev( cudaFree(d_te) );
+
+	checkCudaDev( cudaFree(d_h) );
+	checkCudaDev( cudaFree(d_t) );
+	checkCudaDev( cudaFree(d_p) );
+	checkCudaDev( cudaFree(d_m) );
+	checkCudaDev( cudaFree(d_l) );
+
+	checkCudaDev( cudaFree(d_uO) );
+	checkCudaDev( cudaFree(d_vO) );
+	checkCudaDev( cudaFree(d_wO) );
+
+	//	checkCudaDev( cudaFree(dttemp) );
+
+	checkCudaDev( cudaFree(d_dil) );
+	for (int i=0; i<9; i++)
     	checkCudaDev( cudaFree(sij[i]) );
 
 }
