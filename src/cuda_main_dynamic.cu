@@ -60,9 +60,9 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	cudaDeviceSynchronize();
 
     	/* Only if you want a bulk solution changing in time!!! */
-    	if(istep%250==0) {
-    		calcIntegrals<<<1,1>>>(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
-    	}
+//    	if(istep%250==0) {
+//    		calcIntegrals<<<1,1>>>(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+//    	}
     	if(istep > 0) 	time[istep] = time[istep-1] + dtC;
     	/* This will take some time to execute so take it away if not needed!! */
 

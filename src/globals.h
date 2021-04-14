@@ -12,13 +12,13 @@
 #define Lx       (2*M_PI)
 #define Ly       (2*M_PI)
 #define Lz       (2*M_PI)
-#define mx       192
-#define my       192
-#define mz       192
-#define nsteps   26000
+#define mx       128
+#define my       128
+#define mz       128
+#define nsteps   12000
 #define nfiles   1
 #define CFL      0.6f
-#define rk       4             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
+#define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
 #define Re       1600.f
 #define Pr       1.f
@@ -55,11 +55,5 @@ extern double u[mx*my*mz];
 extern double v[mx*my*mz];
 extern double w[mx*my*mz];
 extern double e[mx*my*mz];
-
-extern double rhs1[mx*my*mz]; 
-extern double rhs2[mx*my*mz];
-extern double rhs3[mx*my*mz];
-extern double rhs4[mx*my*mz];
-extern double temp[mx*my*mz];
 
 #endif
