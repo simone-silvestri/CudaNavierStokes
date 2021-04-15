@@ -231,27 +231,3 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 
 	*ddt = dtC;
 }
-
-__global__ void deviceSum(myprec *a, myprec *b, myprec *c) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = b[id.g] + c[id.g];
-}
-
-__global__ void deviceSub(myprec *a, myprec *b, myprec *c) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = b[id.g] - c[id.g];
-}
-
-__global__ void deviceSca(myprec *a, myprec *bx, myprec *by, myprec *bz, myprec *cx, myprec *cy, myprec *cz) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = bx[id.g]*cx[id.g] + by[id.g]*cy[id.g] + bz[id.g]*cz[id.g];
-}
-
-__global__ void deviceMul(myprec *a, myprec *b, myprec *c) {
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-	a[id.g] = b[id.g]*c[id.g];
-}

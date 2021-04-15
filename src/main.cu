@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 	copyInit(1,grid,block);
 
 	/* to allocate 4GB of heap size on the GPU */
-	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 8GB
+	size_t rsize = 1024ULL*1024ULL*1024ULL*10ULL;  // allocate 10GB
 	cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
 	for(int file = 1; file<nfiles+1; file++) {
 		runDevice<<<grid,block>>>(dkin,denst,dtime);

@@ -11,6 +11,7 @@
 
 #include "globals.h"
 #include "cuda_functions.h"
+#include "cuda_math.h"
 
 
 /*
@@ -21,17 +22,15 @@
  *  i.e.: h_gridL[0] instead of h_grid[0]
  */
 
-__device__ myprec d_workX[mx*my*mz];
-__device__ myprec d_workX1[mx*my*mz];
-__device__ myprec d_workX2[mx*my*mz];
+__device__ myprec *d_workY;
+__device__ myprec *d_workY1;
+__device__ myprec *d_workY2;
 
-__device__ myprec d_workY[mx*my*mz];
-__device__ myprec d_workY1[mx*my*mz];
-__device__ myprec d_workY2[mx*my*mz];
+__device__ myprec *d_workZ;
+__device__ myprec *d_workZ1;
+__device__ myprec *d_workZ2;
 
-__device__ myprec d_workZ[mx*my*mz];
-__device__ myprec d_workZ1[mx*my*mz];
-__device__ myprec d_workZ2[mx*my*mz];
+__device__ myprec *integral;
 
 /* The whole RHS in the X direction is calculated in RHSDeviceSharedFlxX thanks to the beneficial memory layout that allows to use small pencils */
 /* For the Y and Z direction, fluxes require a small pencil discretization while the rest of the RHS can be calculated on large pencils which speed
@@ -543,3 +542,51 @@ __global__ void FLXDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	eZ[id.g] = wrk1;
 	__syncthreads();
 }
+
+
+__device__ void initRHS() {
+	checkCudaDev( cudaMalloc((void**)&d_workY ,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_workY1,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_workY2,mx*my*mz*sizeof(myprec)) );
+
+	checkCudaDev( cudaMalloc((void**)&d_workZ ,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_workZ1,mx*my*mz*sizeof(myprec)) );
+	checkCudaDev( cudaMalloc((void**)&d_workZ2,mx*my*mz*sizeof(myprec)) );
+
+	checkCudaDev( cudaMalloc((void**)&integral,sizeof(myprec)) );
+}
+
+
+__device__ void clearRHS() {
+	checkCudaDev( cudaFree(d_workY ) );
+	checkCudaDev( cudaFree(d_workY1) );
+	checkCudaDev( cudaFree(d_workY2) );
+
+	checkCudaDev( cudaFree(d_workZ ) );
+	checkCudaDev( cudaFree(d_workZ1) );
+	checkCudaDev( cudaFree(d_workZ2) );
+
+	checkCudaDev( cudaFree(integral) );
+}
+
+//
+//__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst) {
+//
+//	*kin  = 0;
+//	*enst = 0;
+//
+//	myprec dV = 1.0/d_dx/d_dy/d_dz;
+//
+//	deviceSca<<<grid0,block0>>>(d_workY1,u,v,w,u,v,w);
+//	reduceToOne<<<1,1>>>(integral,d_workY1);
+//	*kin = (*integral)*dV/2.0/Lx/Ly/Lz;
+//
+//	deviceSub<<<grid0,block0>>>(d_workY1,stress[5],stress[7]);
+//	deviceSub<<<grid0,block0>>>(d_workY,stress[6],stress[2]);
+//	deviceSub<<<grid0,block0>>>(d_workZ,stress[1],stress[3]);
+//
+//	deviceSca<<<grid0,block0>>>(d_workY1,d_workY1,d_workY,d_workZ,d_workY1,d_workY,d_workZ);
+//	deviceMul<<<grid0,block0>>>(d_workY1,r,d_workY1);
+//	reduceToOne<<<1,1>>>(integral,d_workY1);
+//	*enst = (*integral)*dV/Lx/Ly/Lz/Re;
+//}

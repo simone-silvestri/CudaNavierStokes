@@ -47,7 +47,7 @@ const int sPencils = 2;  // small # pencils
 #if mx==1 || my==1 || mz==1
 const int lPencils = 1;  
 #else
-const int lPencils = 16;  // large # pencils
+const int lPencils = 32;  // large # pencils
 #endif
 
 #define lPencilx   0

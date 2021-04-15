@@ -4,12 +4,7 @@
 #include <cuda.h>
 #include "cuda_functions.h"
 #include "cuda_globals.h"
-
-__device__ myprec d_workSX[mx*my*mz];
-__device__ myprec d_workSY[mx*my*mz];
-__device__ myprec d_workSZ[mx*my*mz];
-
-__device__ float integral;
+#include "cuda_math.h"
 
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]) {
 
@@ -47,28 +42,4 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 
 	dil[id.g] = stress[0][id.g] + stress[4][id.g] + stress[8][id.g];
 
-}
-
-__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst) {
-
-	*kin  = 0;
-	*enst = 0;
-
-	myprec dV = 1.0/d_dx/d_dy/d_dz;
-
-	deviceSca<<<grid0,block0>>>(d_workSX,u,v,w,u,v,w);
-	for (int it=0; it<mx*my*mz; it++) 	{
-		*kin += d_workSX[it];
-	}
-	*kin *= dV/2.0/Lx/Ly/Lz;
-	deviceSub<<<grid0,block0>>>(d_workSX,stress[5],stress[7]);
-	deviceSub<<<grid0,block0>>>(d_workSY,stress[6],stress[2]);
-	deviceSub<<<grid0,block0>>>(d_workSZ,stress[1],stress[3]);
-
-	deviceSca<<<grid0,block0>>>(d_workSX,d_workSX,d_workSY,d_workSZ,d_workSX,d_workSY,d_workSZ);
-	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
-	for (int it=0; it<mx*my*mz; it++) 	{
-		*enst += d_workSX[it];
-	}
-	*enst *= dV/Lx/Ly/Lz/Re;
 }

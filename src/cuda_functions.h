@@ -113,11 +113,6 @@ __global__ void FLXDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *ddt);
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
-__global__ void deviceSum(myprec *a, myprec *b, myprec *c);
-__global__ void deviceSub(myprec *a, myprec *b, myprec *c);
-__global__ void deviceMul(myprec *a, myprec *b, myprec *c);
-__global__ void deviceSca(myprec *a, myprec *bx, myprec *by, myprec *bz, myprec *cx, myprec *cy, myprec *cz);
-
 __global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
@@ -127,6 +122,8 @@ __global__ void calcDil(myprec *stress[9], myprec *dil);
 //device functions
 __device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);
 __device__ void rk4Device(Indices id);
+__device__ void initRHS();
+__device__ void clearRHS();
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);
