@@ -1,0 +1,6 @@
+*.bin
+*.txt
+*.o
+logfile
+*.png
+*.xmf

@@ -47,7 +47,13 @@ const int sPencils = 2;  // small # pencils
 #if mx==1 || my==1 || mz==1
 const int lPencils = 1;  
 #else
+#if mz > 256 || my > 256
+const int lPencils = 8;  // large # pencils
+#elif mz > 128 || my > 128
+const int lPencils = 16;  // large # pencils
+#else
 const int lPencils = 32;  // large # pencils
+#endif
 #endif
 
 #define lPencilx   0
@@ -56,6 +62,8 @@ const int lPencils = 32;  // large # pencils
 
 extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
+extern __constant__ myprec dcoeffVF[stencilSize];
+extern __constant__ myprec dcoeffVS[stencilSize+1];
 extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
 
 extern __constant__ dim3 d_grid[5], grid0;

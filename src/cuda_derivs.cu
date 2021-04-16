@@ -56,6 +56,21 @@ __device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 	__syncthreads();
 }
 
+__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
+{
+	__shared__ myprec flx[my+1];
+
+	flx[id.tix] = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+		}
+
+	__syncthreads();
+}
+
 __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
 

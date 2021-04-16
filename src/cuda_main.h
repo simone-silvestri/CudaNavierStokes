@@ -58,8 +58,6 @@ __device__ myprec *sij[9];
 
 __device__ myprec dt2,dtC;
 
-__device__ myprec *dttemp;
-
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c[5], myprec *dt);
 __global__ void eulerSumR(myprec *a, myprec *b, myprec *c[5], myprec *r, myprec *dt);
 
@@ -74,7 +72,6 @@ __global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b[5], myprec *c[5], my
 
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
 
-__global__ void calcTimeStep(myprec *temporary, myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *mu);
 __device__ void initSolver();
 __device__ void clearSolver();
 

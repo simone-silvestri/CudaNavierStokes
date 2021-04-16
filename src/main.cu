@@ -13,7 +13,6 @@
 
 using namespace std;
 
-
 double dt;
 
 double x[mx],y[my],z[mz];
@@ -54,32 +53,32 @@ int main(int argc, char** argv) {
 	checkCuda( cudaMalloc((void**)&dkin , nsteps*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&denst, nsteps*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&dtime, nsteps*sizeof(myprec)) );
-    checkCuda( cudaMemset(dkin , 0, nsteps*sizeof(myprec)) );
-    checkCuda( cudaMemset(denst, 0, nsteps*sizeof(myprec)) );
-    checkCuda( cudaMemset(dtime, 0, nsteps*sizeof(myprec)) );
 
-	copyInit(1,grid,block);
-
-	/* to allocate 4GB of heap size on the GPU */
-	size_t rsize = 1024ULL*1024ULL*1024ULL*10ULL;  // allocate 10GB
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
-	for(int file = 1; file<nfiles+1; file++) {
-		runDevice<<<grid,block>>>(dkin,denst,dtime);
-		cudaDeviceSynchronize();
-		copyInit(0,grid,block);
-	}
-	writeFields(4);
-    checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
-    checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
-    checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+	copyInit(1);
 
 	FILE *fp = fopen("solution.txt","w+");
-	for(int t=0; t<nsteps; t++)
-			fprintf(fp,"%lf %lf %lf\n",htime[t],hkin[t],henst[t]);
+	/* to allocate 8GB of heap size on the GPU */
+	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
+	for(int file = 1; file<nfiles+1; file++) {
+	    checkCuda( cudaMemset(dkin , 0, nsteps*sizeof(myprec)) );
+	    checkCuda( cudaMemset(denst, 0, nsteps*sizeof(myprec)) );
+		runDevice<<<grid,block>>>(dkin,denst,dtime);
+		copyInit(0);
+		writeFields(file);
+		cudaDeviceSynchronize();
+	    checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+	    checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+	    checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+	    checkGpuMem();
+	    printf("step: %d\t time: %lf\tkin: %lf\t enstr: %lf\n",file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
+		for(int t=0; t<nsteps; t++)
+				fprintf(fp,"%lf %lf %lf\n",htime[t],hkin[t],henst[t]);
+	}
+
 	fclose(fp);
+	cudaDeviceReset();
 
-
-	cudaDeviceSynchronize();
 #endif
 
 	fp = fopen("final.txt","w+");
@@ -149,7 +148,7 @@ void initProfile() {
 				double fz = z[k];
 				u[idx(i,j,k)] =  V0*sin(fx/1.0)*cos(fy/1.0)*cos(fz/1.0);
 				v[idx(i,j,k)] = -V0*cos(fx/1.0)*sin(fy/1.0)*cos(fz/1.0);
-				w[idx(i,j,k)] =  0.0;
+				w[idx(i,j,k)] = 0.0;
 
 				double press = P0 + 1.0/16.0*R0*V0*V0 * (cos(2.0*fx/1.0) + cos(2.0*fy/1.0)) * (cos(2.0*fz/1.0) + 2.0);
 

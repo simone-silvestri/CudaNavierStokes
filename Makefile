@@ -61,7 +61,7 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS) 
 	$(CC) $(CFLAGS) $(FLAG_GPU) -o $(TARGET) $(OBJECTS) -lm $(LIBS) $(FLAG1)
 
-$(OBJ)main.o: $(SRC)main.cu  
+$(OBJ)main.o: $(SRC)main.cu
 	$(CC) $(FLAG_GPU) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
 
 ifeq ($(ARCH),GPU)

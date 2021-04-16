@@ -7,16 +7,16 @@ from writexmf import writexmf
 
 precision = 'double'
 
-x = np.linspace(0,2*np.pi,128)
-y = np.linspace(0,2*np.pi,128)
-z = np.linspace(0,2*np.pi,128)
+x = np.linspace(0,2*np.pi,192)
+y = np.linspace(0,2*np.pi,192)
+z = np.linspace(0,2*np.pi,192)
 
-writexmf("field192.xmf", precision, \
+writexmf("fieldtest.xmf", precision, \
          x, y, z, \
-         np.arange(1,3,1), 1.0, \
-         ['r',\
-          'u',\
-	  'v',\
-          'w',\
-          'e'])
+         np.arange(0,202,1), 1.0, \
+         ['r']) #,\
+#          'u',\
+#	  'v',\
+#          'w',\
+#          'e'])
 

@@ -15,28 +15,8 @@ class Indices {
        biy = _biy;
        bdx = _bdx;
        bdy = _bdy;
-#if parentGrid == 0
        mkidX();
-#elif parentGrid == 1
-       mkidY();
-#else
-       mkidZ();
-#endif
     }
-
-    __device__ __host__ void mkidZFlx() {
-        k  = tix;
-        i  = bix*bdy + tiy;
-        j  = biy;
-        g = i + j*mx + k*mx*my;
-     }
-
-    __device__ __host__ void mkidYFlx() {
-        j  = tix;
-        i  = bix*bdy + tiy;
-        k  = biy;
-        g = i + j*mx + k*mx*my;
-     }
 
     __device__ __host__ void mkidX() {
        i  = tix;
@@ -59,11 +39,24 @@ class Indices {
        g = i + j*mx + k*mx*my;
     }
 
+    __device__ __host__ void mkidYFlx() {
+        i  = bix*bdy + tiy;
+        j  = tix;
+        k  = biy;
+        g = i + j*mx + k*mx*my;
+     }
+
+    __device__ __host__ void mkidZFlx() {
+        i  = bix*bdy + tiy;
+        j  = biy;
+        k  = tix;
+        g = i + j*mx + k*mx*my;
+     }
 };
 
 void setDerivativeParameters(dim3 &grid, dim3 &block);
-void copyInit(int direction, dim3 grid, dim3 block); 
-
+void copyInit(int direction);
+void checkGpuMem();
 
 //global functions
 __global__ void RHSDeviceX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX, 
@@ -111,13 +104,16 @@ __global__ void FLXDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 		myprec *sij[9], myprec *dil);
 
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
-__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *ddt);
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
+__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
 __global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressZ(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcDil(myprec *stress[9], myprec *dil);
+__global__ void calcIntegrals2(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst);
+__global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
+__global__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 
 //device functions
 __device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);

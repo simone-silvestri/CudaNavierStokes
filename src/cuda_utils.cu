@@ -8,6 +8,8 @@
 
 __constant__ myprec dcoeffF[stencilSize];
 __constant__ myprec dcoeffS[stencilSize+1];
+__constant__ myprec dcoeffVF[stencilSize];
+__constant__ myprec dcoeffVS[stencilSize+1];
 __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
 __constant__ dim3 d_block[5], grid0;
 __constant__ dim3 d_grid[5], block0;
@@ -24,7 +26,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
     exit(1);
   }
 
-  myprec h_dt = (myprec) 6.e-4; //dt;
+  myprec h_dt = (myprec) 1.e-3; //dt;
   myprec h_dx = (myprec) 1.0/(x[1] - x[0]);
   myprec h_dy = (myprec) 1.0/(y[1] - y[0]);
   myprec h_dz = (myprec) 1.0/(z[1] - z[0]);
@@ -33,17 +35,24 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   myprec h_d2y = h_dy*h_dy;
   myprec h_d2z = h_dz*h_dz;
 
-  myprec *h_coeffF = new myprec[stencilSize];
-  myprec *h_coeffS = new myprec[stencilSize+1];
+  myprec *h_coeffF  = new myprec[stencilSize];
+  myprec *h_coeffS  = new myprec[stencilSize+1];
+  myprec *h_coeffVF = new myprec[stencilSize];
+  myprec *h_coeffVS = new myprec[stencilSize+1];
   
-  for (int it=0; it<stencilSize; it++) 
-   h_coeffF[it] = (myprec) coeffF[it]; 
-  for (int it=0; it<stencilSize+1; it++) 
-   h_coeffS[it] = (myprec) coeffS[it]; 
+  for (int it=0; it<stencilSize; it++) {
+   h_coeffF[it]  = (myprec) coeffF[it];
+   h_coeffVF[it] = (myprec) coeffVF[it]; }
+  for (int it=0; it<stencilSize+1; it++) {
+   h_coeffS[it]  = (myprec) coeffS[it];
+   h_coeffVS[it] = (myprec) coeffVS[it]; }
 
-  checkCuda( cudaMemcpyToSymbol(dcoeffF, h_coeffF,  stencilSize   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
-  checkCuda( cudaMemcpyToSymbol(dcoeffS, h_coeffS, (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffF , h_coeffF ,  stencilSize   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffS , h_coeffS , (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffVF, h_coeffVF,  stencilSize   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffVS, h_coeffVS, (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   
+
   checkCuda( cudaMemcpyToSymbol(d_dt  , &h_dt  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_dx  , &h_dx  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_dy  , &h_dy  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
@@ -75,7 +84,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   dim3 blockY = dim3(sPencils, my, 1);     
 #endif
   h_grid[3]  = dim3(mx / sPencils, mz, 1);
-  h_block[3] = dim3(my, sPencils, 1);
+  h_block[3] = dim3(my + 1, sPencils, 1);
 
   // Z-grid spencils
 #if lPencilZ == 1
@@ -100,7 +109,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",h_grid[2].x, h_grid[2].y, h_grid[2].z, h_block[2].x, h_block[2].y, h_block[2].z);
   printf("Grid 3: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",h_grid[3].x, h_grid[3].y, h_grid[3].z, h_block[3].x, h_block[3].y, h_block[3].z);
   printf("Grid 4: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",h_grid[4].x, h_grid[4].y, h_grid[4].z, h_block[4].x, h_block[4].y, h_block[4].z);
-
+  printf("\n");
 
   hgrid  = dim3(my / sPencils, mz, 1);
   hblock = dim3(mx, sPencils, 1);
@@ -113,28 +122,28 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
 
   delete [] h_coeffF;
   delete [] h_coeffS;
+  delete [] h_coeffVF;
+  delete [] h_coeffVS;
   delete [] h_grid;
   delete [] h_block;
 
 }
 
-void copyInit(int direction, dim3 grid, dim3 block) {
+void copyInit(int direction) {
 
   myprec *fr  = new myprec[mx*my*mz];
   myprec *fu  = new myprec[mx*my*mz];
   myprec *fv  = new myprec[mx*my*mz];
   myprec *fw  = new myprec[mx*my*mz];
   myprec *fe  = new myprec[mx*my*mz];
-  myprec *dht = new myprec;
-  myprec *d_fr, *d_fu, *d_fv, *d_fw, *d_fe, *ddt;
+  myprec *d_fr, *d_fu, *d_fv, *d_fw, *d_fe;
   int bytes = mx*my*mz * sizeof(myprec);
   checkCuda( cudaMalloc((void**)&d_fr, bytes) );
   checkCuda( cudaMalloc((void**)&d_fu, bytes) );
   checkCuda( cudaMalloc((void**)&d_fv, bytes) );
   checkCuda( cudaMalloc((void**)&d_fw, bytes) );
   checkCuda( cudaMalloc((void**)&d_fe, bytes) );
-  checkCuda( cudaMalloc((void**)&d_fe, bytes) );
-  checkCuda( cudaMalloc((void**)&ddt, sizeof(myprec)) );
+
 
   if(direction == 1) {
 
@@ -163,16 +172,14 @@ void copyInit(int direction, dim3 grid, dim3 block) {
      checkCuda( cudaMemset(d_fv, 0, bytes) );
      checkCuda( cudaMemset(d_fw, 0, bytes) );
      checkCuda( cudaMemset(d_fe, 0, bytes) );
-     checkCuda( cudaMemset(ddt , 0, sizeof(myprec)) );
 
-     getResults<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe,ddt);
+     getResults<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe);
 
      checkCuda( cudaMemcpy(fr, d_fr, bytes, cudaMemcpyDeviceToHost) );
      checkCuda( cudaMemcpy(fu, d_fu, bytes, cudaMemcpyDeviceToHost) );
      checkCuda( cudaMemcpy(fv, d_fv, bytes, cudaMemcpyDeviceToHost) );
      checkCuda( cudaMemcpy(fw, d_fw, bytes, cudaMemcpyDeviceToHost) );
      checkCuda( cudaMemcpy(fe, d_fe, bytes, cudaMemcpyDeviceToHost) );
-     checkCuda( cudaMemcpy(dht, ddt, sizeof(myprec), cudaMemcpyDeviceToHost) );
 
      for (int it=0; it<mx*my*mz; it++)  {
       r[it]   = (double) fr[it];
@@ -181,7 +188,6 @@ void copyInit(int direction, dim3 grid, dim3 block) {
       w[it]   = (double) fw[it];
       e[it]   = (double) fe[it];
      }
-     dt = (double) *dht;
  
   }
   
@@ -190,13 +196,11 @@ void copyInit(int direction, dim3 grid, dim3 block) {
   checkCuda( cudaFree(d_fv) );
   checkCuda( cudaFree(d_fw) );
   checkCuda( cudaFree(d_fe) );
-  checkCuda( cudaFree(ddt) );
   delete []  fr;  
   delete []  fu;  
   delete []  fv;  
   delete []  fw;  
   delete []  fe;  
-  delete []  dht;
 
 }
 
@@ -215,7 +219,7 @@ __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	d_e[globalThreadNum]   = d_fe[globalThreadNum];
 }
 
-__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *ddt) {
+__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
@@ -228,6 +232,18 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	d_fv[globalThreadNum] = d_v[globalThreadNum];
 	d_fw[globalThreadNum] = d_w[globalThreadNum];
 	d_fe[globalThreadNum] = d_e[globalThreadNum];
+}
 
-	*ddt = dtC;
+
+void checkGpuMem() {
+
+	float free_m;
+	size_t free_t,total_t;
+
+	cudaMemGetInfo(&free_t,&total_t);
+
+	free_m =(uint)free_t/1048576.0 ;
+
+	printf ( "mem free %zu\t (%f MB mem)\n",free_t,free_m);
+
 }
