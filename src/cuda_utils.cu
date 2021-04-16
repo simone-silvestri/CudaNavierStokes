@@ -84,7 +84,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   dim3 blockY = dim3(sPencils, my, 1);     
 #endif
   h_grid[3]  = dim3(mx / sPencils, mz, 1);
-  h_block[3] = dim3(my + 1, sPencils, 1);
+  h_block[3] = dim3(my , sPencils, 1);
 
   // Z-grid spencils
 #if lPencilZ == 1
