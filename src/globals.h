@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define stencilSize 4  // the order is double the stencilSize
+#define stencilSize 3  // the order is double the stencilSize
 #define stencilVisc 2  // the order is double the stencilSize
 
 #define Lx       (2*M_PI)

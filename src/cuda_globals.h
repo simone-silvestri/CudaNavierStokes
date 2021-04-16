@@ -56,9 +56,6 @@ const int lPencils = 32;  // large # pencils
 #endif
 #endif
 
-#define lPencilx   0
-#define lPencilY   1
-#define lPencilZ   1
 
 extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];

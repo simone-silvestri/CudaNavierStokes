@@ -67,38 +67,23 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
 
 
   // X-grid
-#if lPencilX == 1
-  dim3 gridX  = dim3(my / lPencils, mz, 1);
-  dim3 blockX = dim3(mx, sPencils, 1);
-#else
-  dim3 gridX  = dim3(my / sPencils, mz, 1);
-  dim3 blockX = dim3(mx, sPencils, 1);     
-#endif
+  h_grid[0]  = dim3(my / sPencils, mz, 1);
+  h_block[0] = dim3(mx, sPencils, 1);
 
-  // Y-grid
-#if lPencilY == 1
-  dim3 gridY  = dim3(mx / lPencils, mz, 1);
-  dim3 blockY = dim3(lPencils, my * sPencils / lPencils, 1);
-#else
-  dim3 gridY  = dim3(mx / sPencils, mz, 1);
-  dim3 blockY = dim3(sPencils, my, 1);     
-#endif
+  // Y-grid (2) for viscous fluxes and (4) for advective fluxes
+  h_grid[1]  = dim3(mx / lPencils, mz, 1);
+  h_block[1] = dim3(lPencils, my * sPencils / lPencils, 1);
+
   h_grid[3]  = dim3(mx / sPencils, mz, 1);
   h_block[3] = dim3(my , sPencils, 1);
 
-  // Z-grid spencils
-#if lPencilZ == 1
-  dim3 gridZ  = dim3(mx / lPencils, my, 1);
-  dim3 blockZ = dim3(lPencils, mz * sPencils / lPencils, 1);
-#else
-  dim3 gridZ  = dim3(mx / sPencils, my, 1);
-  dim3 blockZ = dim3(sPencils, mz, 1);     
-#endif
+  // Z-grid (2) for viscous fluxes and (4) for advective fluxes
+  h_grid[2]  = dim3(mx / lPencils, my, 1);
+  h_block[2] = dim3(lPencils, mz * sPencils / lPencils, 1);
+
   h_grid[4]  = dim3(mx / sPencils, my, 1);
   h_block[4] = dim3(mz, sPencils, 1);
 
-  h_grid[0]  =  gridX; h_grid[1]  =  gridY; h_grid[2]  =  gridZ;
-  h_block[0] = blockX; h_block[1] = blockY; h_block[2] =  blockZ;
 
   checkCuda( cudaMemcpyToSymbol(d_grid  , h_grid  , 5*sizeof(dim3), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_block , h_block , 5*sizeof(dim3), 0, cudaMemcpyHostToDevice) );
