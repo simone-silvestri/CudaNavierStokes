@@ -127,15 +127,13 @@ __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
 	deviceSca<<<gr0,bl0>>>(d_workSX,u,v,w,u,v,w);
 	deviceMul<<<gr0,bl0>>>(d_workSX,r,d_workSX);
-	cudaDeviceSynchronize();
-	reduceToOne(kin,d_workSX);
 #else
 	deviceSca<<<grid0,block0>>>(d_workSX,u,v,w,u,v,w);
 	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
+#endif
 	cudaDeviceSynchronize();
 	reduceToOne(kin,d_workSX);
 	*kin *= dV/2.0/Lx/Ly/Lz;
-#endif
 #if (capability < capabilityMin)
 	deviceSub<<<gr0,bl0>>>(d_workSX,stress[5],stress[7]);
 	deviceSub<<<gr0,bl0>>>(d_workSY,stress[6],stress[2]);

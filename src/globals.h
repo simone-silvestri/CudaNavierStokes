@@ -29,7 +29,7 @@
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
 
-#define capabilityMin 60
+#define capabilityMin 100
 #define checkCFLcondition 100
 
 const bool periodic = true;
