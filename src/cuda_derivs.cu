@@ -97,82 +97,84 @@ __device__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 	__syncthreads();
 }
 
-__device__ void fluxQuadSharedY(myprec *df, myprec *s_f, myprec *s_g, int si, Indices id)
+__device__ void fluxQuadSharedy(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
-	__shared__ myprec flx[my+1];
 
-	flx[id.tix] = 0.0;
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
 	__syncthreads();
 
 	for (int lt=1; lt<stencilSize+1; lt++)
 		for (int mt=0; mt<lt; mt++) {
-			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1]);
 		}
 
-	__syncthreads();
-
-	if(id.j>=0)
-		*df = 0.5*d_dy*(flx[id.j-1] - flx[id.j]);
+	*df = 0.5*d_dy*(flxm - flxp);
 
 	__syncthreads();
 }
 
-__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
+__device__ void fluxCubeSharedy(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si)
 {
-	__shared__ myprec flx[my+1];
 
-	flx[id.tix] = 0.0;
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
 	__syncthreads();
 
 	for (int lt=1; lt<stencilSize+1; lt++)
 		for (int mt=0; mt<lt; mt++) {
-			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1])*(s_h[si-mt-1]+s_h[si-mt+lt-1]);
 		}
 
-	__syncthreads();
-
-	if(id.j>=0)
-		*df = 0.25*d_dy*(flx[id.j-1] - flx[id.j]);
+	*df = 0.25*d_dy*(flxm - flxp);
 
 	__syncthreads();
 }
 
-__device__ void fluxQuadSharedZ(myprec *df, myprec *s_f, myprec *s_g, int si, Indices id)
+__device__ void fluxQuadSharedz(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
-	__shared__ myprec flx[mz+1];
 
-	flx[id.tix] = 0.0;
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
 	__syncthreads();
 
 	for (int lt=1; lt<stencilSize+1; lt++)
 		for (int mt=0; mt<lt; mt++) {
-			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1]);
 		}
 
-	__syncthreads();
-
-	if(id.j>=0)
-		*df = 0.5*d_dz*(flx[id.tix-1] - flx[id.tix]);
+	*df = 0.5*d_dz*(flxm - flxp);
 
 	__syncthreads();
 }
 
-__device__ void fluxCubeSharedZ(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
+__device__ void fluxCubeSharedz(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si)
 {
-	__shared__ myprec flx[mz+1];
 
-	flx[id.tix] = 0.0;
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
 	__syncthreads();
 
 	for (int lt=1; lt<stencilSize+1; lt++)
 		for (int mt=0; mt<lt; mt++) {
-			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1])*(s_h[si-mt-1]+s_h[si-mt+lt-1]);
 		}
 
-	__syncthreads();
-
-	if(id.j>=0)
-		*df = 0.25*d_dz*(flx[id.tix-1] - flx[id.tix]);
+	*df = 0.25*d_dz*(flxm - flxp);
 
 	__syncthreads();
 }
@@ -670,6 +672,94 @@ __device__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si)
 	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2x;
 	for (int it=0; it<stencilVisc; it++)  {
 		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2x;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ void derDevShared1y(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilSize; it++)  {
+		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dy;
+	}
+
+	__syncthreads();
+}
+
+__device__ void derDevShared2y(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2y;
+	for (int it=0; it<stencilSize; it++)  {
+		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2y;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ void derDevSharedV1y(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilVisc; it++)  {
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it])*d_dy;
+	}
+
+	__syncthreads();
+}
+
+__device__ void derDevSharedV2y(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2y;
+	for (int it=0; it<stencilVisc; it++)  {
+		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2y;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ void derDevShared1z(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilSize; it++)  {
+		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dz;
+	}
+
+	__syncthreads();
+}
+
+__device__ void derDevShared2z(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2y;
+	for (int it=0; it<stencilSize; it++)  {
+		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2z;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ void derDevSharedV1z(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilVisc; it++)  {
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it])*d_dz;
+	}
+
+	__syncthreads();
+}
+
+__device__ void derDevSharedV2z(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2y;
+	for (int it=0; it<stencilVisc; it++)  {
+		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2z;
 	}
 
 	__syncthreads();

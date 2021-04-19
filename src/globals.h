@@ -13,9 +13,9 @@
 #define Lx       (2*M_PI)
 #define Ly       (2*M_PI)
 #define Lz       (2*M_PI)
-#define mx       64
-#define my       64
-#define mz       64
+#define mx       192 
+#define my       192
+#define mz       192
 #define nsteps   1001
 #define nfiles   1
 #define CFL      0.5f

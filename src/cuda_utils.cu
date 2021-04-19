@@ -80,18 +80,18 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   h_block[0] = dim3(mx, sPencils, 1);
 
   // Y-grid (2) for viscous fluxes and (4) for advective fluxes
-  h_grid[1]  = dim3(mx / lPencils, mz, 1);
-  h_block[1] = dim3(lPencils, (my * sPencils) / lPencils, 1);
+  h_grid[3]  = dim3(mx / lPencils, mz, 1);
+  h_block[3] = dim3(lPencils, (my * sPencils) / lPencils, 1);
 
-  h_grid[3]  = dim3(mx / sPencils, mz, 1);
-  h_block[3] = dim3(my , sPencils, 1); //if not using shared change!!
+  h_grid[1]  = dim3(mx / sPencils, mz, 1);
+  h_block[1] = dim3(my , sPencils, 1); //if not using shared change!!
 
   // Z-grid (2) for viscous fluxes and (4) for advective fluxes
-  h_grid[2]  = dim3(mx / lPencils, my, 1);
-  h_block[2] = dim3(lPencils, (mz * sPencils) / lPencils, 1);
+  h_grid[4]  = dim3(mx / lPencils, my, 1);
+  h_block[4] = dim3(lPencils, (mz * sPencils) / lPencils, 1);
 
-  h_grid[4]  = dim3(mx / sPencils, my, 1);
-  h_block[4] = dim3(mz , sPencils, 1); //if not using shared change!!
+  h_grid[2]  = dim3(mx / sPencils, my, 1);
+  h_block[2] = dim3(mz , sPencils, 1); //if not using shared change!!
 
 
   checkCuda( cudaMemcpyToSymbol(d_grid  , h_grid  , 5*sizeof(dim3), 0, cudaMemcpyHostToDevice) );

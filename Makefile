@@ -7,7 +7,7 @@ LIB_GL = /usr/lib/
 
 CUDA = /usr/local/cuda-10.1
 
-GPU_ARCHITECTURE = 52
+GPU_ARCHITECTURE = 70
 
 ifeq ($(ARCH),CPU)
 gpu_usage=0
@@ -49,7 +49,7 @@ TARGET = ns
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_main_dynamic.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o
+OBJ_CUDA = $(OBJ)cuda_main_3streams.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o
 endif
 
 # List of objects
@@ -66,8 +66,8 @@ $(OBJ)main.o: $(SRC)main.cu
 	$(CC) $(FLAG_GPU) $(FLAG_ARCH) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
 
 ifeq ($(ARCH),GPU)
-$(OBJ)cuda_main_dynamic.o: $(SRC)cuda_main_dynamic.cu
-	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_main_dynamic.cu $(FLAG2) -o $(OBJ)cuda_main_dynamic.o
+$(OBJ)cuda_main_3streams.o: $(SRC)cuda_main_3streams.cu
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_main_3streams.cu $(FLAG2) -o $(OBJ)cuda_main_3streams.o
 
 $(OBJ)calc_stress.o: $(SRC)calc_stress.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)calc_stress.cu $(FLAG2) -o $(OBJ)calc_stress.o

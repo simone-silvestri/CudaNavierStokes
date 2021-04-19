@@ -6,9 +6,22 @@
 #include "cuda_globals.h"
 #include "cuda_math.h"
 
-__device__ myprec d_workSX[mx*my*mz];
-__device__ myprec d_workSY[mx*my*mz];
-__device__ myprec d_workSZ[mx*my*mz];
+__device__ myprec *d_workSX;
+__device__ myprec *d_workSY;
+__device__ myprec *d_workSZ;
+
+
+__device__ void initStress() {
+        checkCudaDev( cudaMalloc((void**)&d_workSX,mx*my*mz*sizeof(myprec)) );
+        checkCudaDev( cudaMalloc((void**)&d_workSY,mx*my*mz*sizeof(myprec)) );
+        checkCudaDev( cudaMalloc((void**)&d_workSZ,mx*my*mz*sizeof(myprec)) );
+}
+
+__device__ void clearStress() {
+        checkCudaDev( cudaFree(d_workSX) );
+        checkCudaDev( cudaFree(d_workSY) );
+        checkCudaDev( cudaFree(d_workSZ) );
+}
 
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]) {
 
