@@ -28,6 +28,7 @@ __device__ myprec *d_workY2;
 __device__ myprec *d_workZ1;
 __device__ myprec *d_workZ2;
 
+
 /* The whole RHS in the X direction is calculated in RHSDeviceSharedFlxX thanks to the beneficial memory layout that allows to use small pencils */
 /* For the Y and Z direction, fluxes require a small pencil discretization while the rest of the RHS can be calculated on large pencils which speed
  * up significantly the computation. Therefore 5 streams are used
@@ -36,6 +37,7 @@ __device__ myprec *d_workZ2;
  * stream 2 -> viscous terms and pressure terms in Z (in RHSDeviceFullZL) (large pencil grid)
  * stream 3 -> advective fluxes in Y direction (in FLXDeviceY) (small pencil transposed grid)
  * stream 4 -> advective fluxes in Z direction (in FLXDeviceZ) (small pencil transposed grid)*/
+
 
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
@@ -104,22 +106,22 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	__syncthreads();
 
 	// viscous fluxes derivative
-	derDevShared2x(&wrk1,s_u[sj],si);
+	derDevSharedV2x(&wrk1,s_u[sj],si);
 	uXtmp = wrk1*s_m[sj][si];
-	derDevShared2x(&wrk1,s_v[sj],si);
+	derDevSharedV2x(&wrk1,s_v[sj],si);
 	vXtmp = wrk1*s_m[sj][si];
-	derDevShared2x(&wrk1,s_w[sj],si);
+	derDevSharedV2x(&wrk1,s_w[sj],si);
 	wXtmp = wrk1*s_m[sj][si];
-	derDevShared2x(&wrk1,s_t[sj],si);
+	derDevSharedV2x(&wrk1,s_t[sj],si);
 	eXtmp = wrk1*s_l[sj][si];
 	__syncthreads();
-	derDevShared1x(&wrk2,s_l[sj],si); //wrk2 = d (lam) dx
-	derDevShared1x(&wrk1,s_t[sj],si); //wrk1 = d (t) dx
+	derDevSharedV1x(&wrk2,s_l[sj],si); //wrk2 = d (lam) dx
+	derDevSharedV1x(&wrk1,s_t[sj],si); //wrk1 = d (t) dx
 	eXtmp = eXtmp + wrk1*wrk2;
 
 	//Adding here the terms d (mu) dx * sxj; (lambda in case of h in rhse);
 
-	derDevShared1x(&wrk2,s_m[sj],si); //wrk2 = d (mu) dx
+	derDevSharedV1x(&wrk2,s_m[sj],si); //wrk2 = d (mu) dx
 	uXtmp = uXtmp + wrk2*sij[0][id.g];
 	vXtmp = vXtmp + wrk2*sij[1][id.g];
 	wXtmp = wXtmp + wrk2*sij[2][id.g];
@@ -152,7 +154,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 		s_wrk[sj][si+mx]           = s_wrk[sj][si];
 	}
 	__syncthreads();
-	derDevShared1x(&wrk2,s_wrk[sj],si);
+	derDevSharedV1x(&wrk2,s_wrk[sj],si);
 	derDevShared1x(&wrk1,s_p[sj],si);
 	uXtmp = uXtmp - wrk1 + s_m[sj][si]*wrk2*1.0/3.0;
 
@@ -168,7 +170,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 		s_wrk[sj][si+mx]           = s_wrk[sj][si];
 	}
 	__syncthreads();
-	derDevShared1x(&wrk2,s_wrk[sj],si);
+	derDevSharedV1x(&wrk2,s_wrk[sj],si);
 
 	rX[id.g] = rXtmp;
 	uX[id.g] = uXtmp;
@@ -187,23 +189,23 @@ __global__ void RHSDeviceFullYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, 
 
 	int sum  = id.biy * mx * my + id.bix*id.bdx + id.tix;
 
-	derDev1yL(d_workY1,u,id);
-	derDev1yL(uY,d_workY1,id);
+	derDevV1yL(d_workY1,u,id);
+	derDevV1yL(uY,d_workY1,id);
 	__syncthreads();
 
-	derDev1yL(d_workY1,v,id);
-	derDev1yL(vY,d_workY1,id);
+	derDevV1yL(d_workY1,v,id);
+	derDevV1yL(vY,d_workY1,id);
 	__syncthreads();
 
-	derDev1yL(d_workY1,w,id);
-	derDev1yL(wY,d_workY1,id);
+	derDevV1yL(d_workY1,w,id);
+	derDevV1yL(wY,d_workY1,id);
 	__syncthreads();
 
-	derDev1yL(d_workY1    ,t,id);
-	derDev1yL(eY,d_workY1 ,id);
+	derDevV1yL(d_workY1    ,t,id);
+	derDevV1yL(eY,d_workY1 ,id);
 	__syncthreads();
 
-	derDev1yL(d_workY2,lam,id); //d_work2 = d (lam) dy
+	derDevV1yL(d_workY2,lam,id); //d_work2 = d (lam) dy
 	for (int j = id.tiy; j < my; j += id.bdy) {
 		int glb = sum + j * mx ;
 		uY[glb] = uY[glb]*mu[glb];
@@ -216,7 +218,7 @@ __global__ void RHSDeviceFullYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, 
 
 	//Adding here the terms d (phi) dy * ( d (mu) dy); (lambda in case of t in rhse);
 
-	derDev1yL(d_workY2,mu,id); //d_work2 = d (mu) dy
+	derDevV1yL(d_workY2,mu,id); //d_work2 = d (mu) dy
 	for (int j = id.tiy; j < my; j += id.bdy) {
 		int glb = sum + j * mx ;
 		uY[glb] = uY[glb] + d_workY2[glb]*sij[3][glb];
@@ -226,8 +228,8 @@ __global__ void RHSDeviceFullYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, 
 
 	// pressure derivative and dilation derivative
 	__syncthreads();
-	derDev1yL(d_workY2,  p,id);
-	derDev1yL(d_workY1,dil,id);
+	derDevV1yL(d_workY2,  p,id);
+	derDevV1yL(d_workY1,dil,id);
 	for (int j = id.tiy; j < my; j += id.bdy) {
 		int glb = sum + j * mx ;
 		vY[glb] = vY[glb] - d_workY2[glb] + mu[glb]*d_workY1[glb]*1.0/3.0;
@@ -243,7 +245,7 @@ __global__ void RHSDeviceFullYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, 
 					);
 	}
 	__syncthreads();
-	derDev1yL(d_workY1,d_workY2,id);
+	derDevV1yL(d_workY1,d_workY2,id);
 	for (int j = id.tiy; j < my; j += id.bdy) {
 		int glb = sum + j * mx ;
 		eY[glb] = eY[glb] + d_workY1[glb];
@@ -262,23 +264,23 @@ __global__ void RHSDeviceFullZL(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, 
 	int sum = id.biy * mx + id.bix*id.bdx + id.tix;
 
 
-	derDev1zL(d_workZ1,u,id);
-	derDev1zL(uZ,d_workZ1,id);
+	derDevV1zL(d_workZ1,u,id);
+	derDevV1zL(uZ,d_workZ1,id);
 	__syncthreads();
 
-	derDev1zL(d_workZ1,v,id);
-	derDev1zL(vZ,d_workZ1,id);
+	derDevV1zL(d_workZ1,v,id);
+	derDevV1zL(vZ,d_workZ1,id);
 	__syncthreads();
 
-	derDev1zL(d_workZ1,w,id);
-	derDev1zL(wZ,d_workZ1,id);
+	derDevV1zL(d_workZ1,w,id);
+	derDevV1zL(wZ,d_workZ1,id);
 	__syncthreads();
 
-	derDev1zL(d_workZ1    ,t,id);
-	derDev1zL(eZ,d_workZ1 ,id);
+	derDevV1zL(d_workZ1    ,t,id);
+	derDevV1zL(eZ,d_workZ1 ,id);
 	__syncthreads();
 
-	derDev1zL(d_workZ2,lam,id); //d_work2 = d (lam) dz
+	derDevV1zL(d_workZ2,lam,id); //d_work2 = d (lam) dz
 	__syncthreads();
 	for (int k = id.tiy; k < mz; k += id.bdy) {
 		int glb = k * mx * my + sum;
@@ -292,7 +294,7 @@ __global__ void RHSDeviceFullZL(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, 
 
 	//Adding here the terms d (phi) dz * ( d (mu) dz -0.5 * rw); (lambda in case of h in rhse);
 
-	derDev1zL(d_workZ2,mu,id); //d_work2 = d (mu) dz
+	derDevV1zL(d_workZ2,mu,id); //d_work2 = d (mu) dz
 	for (int k = id.tiy; k < mz; k += id.bdy) {
 		int glb = k * mx * my + sum;
 		uZ[glb] = uZ[glb] + d_workZ2[glb]*sij[6][glb];
@@ -302,8 +304,8 @@ __global__ void RHSDeviceFullZL(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, 
 
 	// pressure derivative and dilation derivative
 	__syncthreads();
-	derDev1zL(d_workZ2,p  ,id);
-	derDev1zL(d_workZ1,dil,id);
+	derDevV1zL(d_workZ2,p  ,id);
+	derDevV1zL(d_workZ1,dil,id);
 	for (int k = id.tiy; k < mz; k += id.bdy) {
 		int glb = k * mx * my + sum;
 		wZ[glb] = wZ[glb] - d_workZ2[glb] + mu[glb]*d_workZ1[glb]*1.0/3.0;
@@ -319,7 +321,7 @@ __global__ void RHSDeviceFullZL(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, 
 					);
 	}
 	__syncthreads();
-	derDev1zL(d_workZ1,d_workZ2,id);  // d_work = d (mu dvdz) dy
+	derDevV1zL(d_workZ1,d_workZ2,id);  // d_work = d (mu dvdz) dy
 	for (int k = id.tiy; k < mz; k += id.bdy) {
 		int glb = k * mx * my + sum;
 		eZ[glb] = eZ[glb] + d_workZ1[glb];

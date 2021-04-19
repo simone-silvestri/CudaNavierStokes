@@ -56,20 +56,20 @@ __device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 	__syncthreads();
 }
 
-__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
-{
-	__shared__ myprec flx[my+1];
-
-	flx[id.tix] = 0.0;
-	__syncthreads();
-
-	for (int lt=1; lt<stencilSize+1; lt++)
-		for (int mt=0; mt<lt; mt++) {
-			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
-		}
-
-	__syncthreads();
-}
+//__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
+//{
+//	__shared__ myprec flx[my+1];
+//
+//	flx[id.tix] = 0.0;
+//	__syncthreads();
+//
+//	for (int lt=1; lt<stencilSize+1; lt++)
+//		for (int mt=0; mt<lt; mt++) {
+//			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+//		}
+//
+//	__syncthreads();
+//}
 
 __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
@@ -197,13 +197,6 @@ __device__ void derDev1z(myprec *df, myprec *f, Indices id)
 	df[id.g] = dftemp;
 
 	__syncthreads();
-
-
-//	if(id.g==2081100) {
-//		for(int kt=0; kt<stencilSize; kt++)
-//			printf("index\t %d \t left\t %le \t right\t %le\t %le\n",kt,s_f[sk+kt-stencilSize][si],s_f[sk-kt+stencilSize][si],df[id.g]);
-//	}
-//	__syncthreads();
 
 }
 
@@ -398,6 +391,76 @@ __device__ void derDev1zL(myprec *df, myprec *f, Indices id)
   }
 }
 
+__device__ void derDevV1yL(myprec *df, myprec *f, Indices id)
+{
+  __shared__ myprec s_f[my+stencilVisc*2][lPencils];
+
+  int i  = id.bix*id.bdx + id.tix;
+  int k  = id.biy;
+  int si = id.tix;
+
+  for (int j = id.tiy; j < my; j += id.bdy) {
+    int globalIdx = k * mx * my + j * mx + i;
+    int sj = j + stencilVisc;
+    s_f[sj][si] = f[globalIdx];
+  }
+
+  __syncthreads();
+
+  int sj = id.tiy + stencilVisc;
+  if (sj < stencilVisc*2) {
+     s_f[sj-stencilVisc][si]  = s_f[sj+my-stencilVisc][si];
+     s_f[sj+my][si] = s_f[sj][si];
+  }
+
+  __syncthreads();
+
+  for (int j = id.tiy; j < my; j += id.bdy) {
+    int globalIdx = k * mx * my + j * mx + i;
+    int sj = j + stencilVisc;
+	myprec dftemp = 0.0;
+	for (int jt=0; jt<stencilVisc; jt++)  {
+		dftemp += dcoeffVF[jt]*(s_f[sj+jt-stencilVisc][si]-s_f[sj+stencilVisc-jt][si])*d_dy;
+	}
+	df[globalIdx] = dftemp;
+  }
+}
+
+__device__ void derDevV1zL(myprec *df, myprec *f, Indices id)
+{
+  __shared__ myprec s_f[mz+stencilVisc*2][lPencils];
+
+  int i  = id.bix*id.bdx + id.tix;
+  int j  = id.biy;
+  int si = id.tix;
+
+  for (int k = id.tiy; k < mz; k += id.bdy) {
+    int globalIdx = k * mx * my + j * mx + i;
+    int sk = k + stencilVisc;
+    s_f[sk][si] = f[globalIdx];
+  }
+
+  __syncthreads();
+
+  int sk = id.tiy + stencilVisc;
+  if (sk < stencilVisc*2) {
+     s_f[sk-stencilVisc][si]  = s_f[sk+mz-stencilVisc][si];
+     s_f[sk+mz][si] = s_f[sk][si];
+  }
+
+  __syncthreads();
+
+  for (int k = id.tiy; k < mz; k += id.bdy) {
+    int globalIdx = k * mx * my + j * mx + i;
+    int sk = k + stencilVisc;
+	myprec dftemp = 0.0;
+	for (int kt=0; kt<stencilVisc; kt++)  {
+		dftemp += dcoeffVF[kt]*(s_f[sk+kt-stencilVisc][si]-s_f[sk+stencilVisc-kt][si])*d_dz;
+	}
+	df[globalIdx] = dftemp;
+  }
+}
+
 __device__ void derDev2xL(myprec *d2f, myprec *f, Indices id)
 {
   __shared__ myprec s_f[lPencils][mx+stencilSize*2]; // 4-wide halo
@@ -526,3 +589,24 @@ __device__ void derDevShared2x(myprec *d2f, myprec *s_f, int si)
 
 }
 
+__device__ void derDevSharedV1x(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilVisc; it++)  {
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it])*d_dx;
+	}
+
+	__syncthreads();
+}
+
+__device__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2x;
+	for (int it=0; it<stencilVisc; it++)  {
+		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2x;
+	}
+
+	__syncthreads();
+
+}

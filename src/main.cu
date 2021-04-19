@@ -54,22 +54,26 @@ int main(int argc, char** argv) {
 	checkCuda( cudaMalloc((void**)&denst, nsteps*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&dtime, nsteps*sizeof(myprec)) );
 
-	copyInit(1);
+	copyField(0);  //Initializing solution on the GPU
 
 	FILE *fp = fopen("solution.txt","w+");
 	/* to allocate 8GB of heap size on the GPU */
 	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB
 	cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
+
 	for(int file = 1; file<nfiles+1; file++) {
-	    checkCuda( cudaMemset(dkin , 0, nsteps*sizeof(myprec)) );
-	    checkCuda( cudaMemset(denst, 0, nsteps*sizeof(myprec)) );
-		runDevice<<<grid,block>>>(dkin,denst,dtime);
-		copyInit(0);
+
+	    runDevice<<<grid,block>>>(dkin,denst,dtime);  //running the simulation on the GPU
+		copyField(1);			  //copying back partial results to CPU
+
 		writeFields(file);
+
 		cudaDeviceSynchronize();
-	    checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+
+		checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
 	    checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
 	    checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+
 	    checkGpuMem();
 	    printf("step: %d\t time: %lf\tkin: %lf\t enstr: %lf\n",file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
 		for(int t=0; t<nsteps; t++)

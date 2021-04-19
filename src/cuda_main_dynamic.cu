@@ -17,16 +17,8 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	calcStresDir[2] = calcStressZ;
 
 	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
-#if lPencilY == 1
 	RHSDeviceDir[1] = RHSDeviceFullYL;
-#else
-	RHSDeviceDir[1] = RHSDeviceY;
-#endif
-#if lPencilZ == 1
 	RHSDeviceDir[2] = RHSDeviceFullZL;
-#else
-	RHSDeviceDir[2] = RHSDeviceZ;
-#endif
 	RHSDeviceDir[3] = FLXDeviceY;
 	RHSDeviceDir[4] = FLXDeviceZ;
 
