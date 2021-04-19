@@ -167,13 +167,13 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	gr[1] = dim3(d_grid[4],d_grid[5],1);
 	gr[2] = dim3(d_grid[8],d_grid[9],1);
 	gr[3] = dim3(d_grid[2],d_grid[3],1);
-	gr[4] = dim3(d_grid[7],d_grid[8],1);
+	gr[4] = dim3(d_grid[6],d_grid[7],1);
 
 	bl[0] = dim3(d_block[0],d_block[1],1);
 	bl[1] = dim3(d_block[4],d_block[5],1);
 	bl[2] = dim3(d_block[8],d_block[9],1);
 	bl[3] = dim3(d_block[2],d_block[3],1);
-	bl[4] = dim3(d_block[7],d_block[8],1);
+	bl[4] = dim3(d_block[6],d_block[7],1);
 
 	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
 
