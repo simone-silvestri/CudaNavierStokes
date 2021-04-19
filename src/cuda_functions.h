@@ -52,6 +52,16 @@ class Indices {
         k  = tix;
         g = i + j*mx + k*mx*my;
      }
+
+    __device__ __host__ void mkidYSharedFlx() {
+        i  = bix*bdy + tiy;
+        j  = tix-1;
+        k  = biy;
+        if(j<0)
+        	g = -10;
+        else
+        	g = i + j*mx + k*mx*my;
+     }
 };
 
 void setDerivativeParameters(dim3 &grid, dim3 &block);
@@ -59,33 +69,10 @@ void copyField(int direction);
 void checkGpuMem();
 
 //global functions
-__global__ void RHSDeviceX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX, 
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p, myprec *mu, myprec *lam);
-__global__ void RHSDeviceY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY, 
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p, myprec *mu, myprec *lam);
-__global__ void RHSDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ, 
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p, myprec *mu, myprec *lam);
-__global__ void RHSDeviceZL(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p, myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil);
-__global__ void RHSDeviceYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p, myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil);
-__global__ void RHSDeviceSharedX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p,  myprec *mu, myprec *lam);
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *sij[9], myprec *dil);
-__global__ void RHSDeviceFlxYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p,  myprec *mu, myprec *lam);
 __global__ void RHSDeviceFullYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
@@ -102,6 +89,10 @@ __global__ void FLXDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *sij[9], myprec *dil);
+__global__ void FLXSharedY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil);
 
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
@@ -110,9 +101,7 @@ __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressZ(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcDil(myprec *stress[9], myprec *dil);
-__global__ void calcIntegrals2(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-__device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 
 //device functions
 __device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);
@@ -121,6 +110,7 @@ __device__ void initRHS();
 __device__ void clearRHS();
 __device__ void threadBlockDeviceSynchronize(void);
 __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
+__device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);
@@ -143,8 +133,10 @@ __device__ void derDevSharedV1x(myprec *df , myprec *s_f, int si);
 __device__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si);
 __device__ void fluxQuadSharedx(myprec *df, myprec *f, myprec *g, int si);
 __device__ void fluxCubeSharedx(myprec *df, myprec *f, myprec *g, myprec *h, int si);
-__device__ void fluxQuadyL(myprec *df, myprec *f, myprec *g, Indices id);
-__device__ void fluxCubeyL(myprec *df, myprec *f, myprec *g, myprec *h, Indices id);
+__device__ void fluxQuadSharedY(myprec *df, myprec *s_f, myprec *s_g, int si, Indices id);
+__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id);
+__device__ void fluxQuadSharedZ(myprec *df, myprec *s_f, myprec *s_g, int si, Indices id);
+__device__ void fluxCubeSharedZ(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id);
 __device__ void fluxQuadSharedG(myprec *df, myprec *s_f, myprec *s_g, int si, myprec dg);
 __device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, myprec dg);
 

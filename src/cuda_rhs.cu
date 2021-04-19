@@ -451,6 +451,129 @@ __global__ void FLXDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 }
 
 
+__global__ void FLXSharedY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil) {
+
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidYSharedFlx();
+
+	int si = id.j + stencilSize;   	   // local i for shared memory access + halo offset
+	int sj = id.tiy;                   // local j for shared memory access
+
+	myprec wrk1=0;
+
+	__shared__ myprec s_r[sPencils][my+stencilSize*2];
+	__shared__ myprec s_u[sPencils][my+stencilSize*2];
+	__shared__ myprec s_v[sPencils][my+stencilSize*2];
+	__shared__ myprec s_w[sPencils][my+stencilSize*2];
+	__shared__ myprec s_h[sPencils][my+stencilSize*2];
+	if(id.j>=0) {
+		s_r[sj][si] = r[id.g];
+		s_u[sj][si] = u[id.g];
+		s_v[sj][si] = v[id.g];
+		s_w[sj][si] = w[id.g];
+		s_h[sj][si] = h[id.g]; }
+	__syncthreads();
+
+	// fill in periodic images in shared memory array
+	if (id.j < stencilSize && id.j>=0) {
+		s_r[sj][si-stencilSize]  = s_r[sj][si+my-stencilSize];
+		s_r[sj][si+my]           = s_r[sj][si];
+		s_u[sj][si-stencilSize]  = s_u[sj][si+my-stencilSize];
+		s_u[sj][si+my]           = s_u[sj][si];
+		s_v[sj][si-stencilSize]  = s_v[sj][si+my-stencilSize];
+		s_v[sj][si+my]           = s_v[sj][si];
+		s_w[sj][si-stencilSize]  = s_w[sj][si+my-stencilSize];
+		s_w[sj][si+my]           = s_w[sj][si];
+		s_h[sj][si-stencilSize]  = s_h[sj][si+my-stencilSize];
+		s_h[sj][si+my]           = s_h[sj][si];
+	}
+
+	__syncthreads();
+
+	fluxQuadSharedY(&wrk1,s_r[sj],s_v[sj],si,id);
+	if(id.j>=0) rY[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedY(&wrk1,s_r[sj],s_v[sj],s_u[sj],si,id);
+	if(id.j>=0) uY[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedY(&wrk1,s_r[sj],s_v[sj],s_v[sj],si,id);
+	if(id.j>=0) vY[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedY(&wrk1,s_r[sj],s_v[sj],s_w[sj],si,id);
+	if(id.j>=0) wY[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedY(&wrk1,s_r[sj],s_v[sj],s_h[sj],si,id);
+	if(id.j>=0) eY[id.g] = wrk1;
+	__syncthreads();
+
+}
+
+
+__global__ void FLXSharedZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil) {
+
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidZFlx();
+
+	int si = id.k + stencilSize;       // local i for shared memory access + halo offset
+	int sj = id.tiy;                   // local j for shared memory access
+
+	myprec wrk1=0;
+
+	__shared__ myprec s_r[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_u[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_v[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_w[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_h[sPencils][mz+stencilSize*2];
+	if(id.k>=0) {
+		s_r[sj][si] = r[id.g];
+		s_u[sj][si] = u[id.g];
+		s_v[sj][si] = v[id.g];
+		s_w[sj][si] = w[id.g];
+		s_h[sj][si] = h[id.g]; }
+	__syncthreads();
+
+	// fill in periodic images in shared memory array
+	if (id.k < stencilSize && id.k>=0) {
+		s_r[sj][si-stencilSize]  = s_r[sj][si+mz-stencilSize];
+		s_r[sj][si+mz]           = s_r[sj][si];
+		s_u[sj][si-stencilSize]  = s_u[sj][si+mz-stencilSize];
+		s_u[sj][si+mz]           = s_u[sj][si];
+		s_v[sj][si-stencilSize]  = s_v[sj][si+mz-stencilSize];
+		s_v[sj][si+mz]           = s_v[sj][si];
+		s_w[sj][si-stencilSize]  = s_w[sj][si+mz-stencilSize];
+		s_w[sj][si+mz]           = s_w[sj][si];
+		s_h[sj][si-stencilSize]  = s_h[sj][si+mz-stencilSize];
+		s_h[sj][si+mz]           = s_h[sj][si];
+	}
+
+	__syncthreads();
+
+	//Adding here the terms - d (ru phi) dx;
+
+	fluxQuadSharedZ(&wrk1,s_r[sj],s_w[sj],si,id);
+	if(id.k>=0) rZ[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedZ(&wrk1,s_r[sj],s_w[sj],s_u[sj],si,id);
+	if(id.k>=0) uZ[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedZ(&wrk1,s_r[sj],s_w[sj],s_v[sj],si,id);
+	if(id.k>=0) vZ[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedZ(&wrk1,s_r[sj],s_w[sj],s_w[sj],si,id);
+	if(id.k>=0) wZ[id.g] = wrk1;
+	__syncthreads();
+	fluxCubeSharedZ(&wrk1,s_r[sj],s_w[sj],s_h[sj],si,id);
+	if(id.k>=0) eZ[id.g] = wrk1;
+	__syncthreads();
+}
+
+
 __device__ void initRHS() {
 	checkCudaDev( cudaMalloc((void**)&d_workY1,mx*my*mz*sizeof(myprec)) );
 	checkCudaDev( cudaMalloc((void**)&d_workY2,mx*my*mz*sizeof(myprec)) );

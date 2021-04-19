@@ -37,7 +37,14 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
 
+    	if(istep%checkCFLcondition==0)
+    		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
+
     	dt2 = dtC/2.;
+    	if(istep==0) {
+    		time[istep] = time[nsteps-1] + dtC;
+    	} else{
+    		time[istep] = time[istep-1] + dtC; }
 
     	deviceMul<<<grid0,block0>>>(d_uO,d_r,d_u);
     	deviceMul<<<grid0,block0>>>(d_vO,d_r,d_v);
@@ -51,14 +58,9 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,sij);
     	cudaDeviceSynchronize();
 
-    	if(istep%50==0) {
+    	if(istep%checkCFLcondition==0) {
     		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
-    		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
     	}
-    	if(istep==0) {
-    		time[istep] = time[nsteps-1] + dtC;
-    	} else{
-    		time[istep] = time[istep-1] + dtC; }
     	cudaDeviceSynchronize();
 
     	calcDil<<<grid0,block0>>>(sij,d_dil);

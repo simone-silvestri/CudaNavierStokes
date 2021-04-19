@@ -56,21 +56,6 @@ __device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 	__syncthreads();
 }
 
-//__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
-//{
-//	__shared__ myprec flx[my+1];
-//
-//	flx[id.tix] = 0.0;
-//	__syncthreads();
-//
-//	for (int lt=1; lt<stencilSize+1; lt++)
-//		for (int mt=0; mt<lt; mt++) {
-//			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
-//		}
-//
-//	__syncthreads();
-//}
-
 __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
 
@@ -108,6 +93,86 @@ __device__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 		}
 
 	*df = 0.25*d_dx*(flxm - flxp);
+
+	__syncthreads();
+}
+
+__device__ void fluxQuadSharedY(myprec *df, myprec *s_f, myprec *s_g, int si, Indices id)
+{
+	__shared__ myprec flx[my+1];
+
+	flx[id.tix] = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+		}
+
+	__syncthreads();
+
+	if(id.j>=0)
+		*df = 0.5*d_dy*(flx[id.j-1] - flx[id.j]);
+
+	__syncthreads();
+}
+
+__device__ void fluxCubeSharedY(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
+{
+	__shared__ myprec flx[my+1];
+
+	flx[id.tix] = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+		}
+
+	__syncthreads();
+
+	if(id.j>=0)
+		*df = 0.25*d_dy*(flx[id.j-1] - flx[id.j]);
+
+	__syncthreads();
+}
+
+__device__ void fluxQuadSharedZ(myprec *df, myprec *s_f, myprec *s_g, int si, Indices id)
+{
+	__shared__ myprec flx[mz+1];
+
+	flx[id.tix] = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+		}
+
+	__syncthreads();
+
+	if(id.j>=0)
+		*df = 0.5*d_dz*(flx[id.tix-1] - flx[id.tix]);
+
+	__syncthreads();
+}
+
+__device__ void fluxCubeSharedZ(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, Indices id)
+{
+	__shared__ myprec flx[mz+1];
+
+	flx[id.tix] = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flx[id.tix] -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+		}
+
+	__syncthreads();
+
+	if(id.j>=0)
+		*df = 0.25*d_dz*(flx[id.tix-1] - flx[id.tix]);
 
 	__syncthreads();
 }

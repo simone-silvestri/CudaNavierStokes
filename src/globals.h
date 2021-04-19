@@ -18,7 +18,7 @@
 #define mz       128
 #define nsteps   1001
 #define nfiles   1
-#define CFL      0.6f
+#define CFL      0.3f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method and rk = 2 is the Adam's Bashforth method
 
 #define Re       1600.f
@@ -29,6 +29,10 @@
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
 #define lamexp   0.7
+
+#define checkCFLcondition 50
+#define calculateBulks    50
+
 
 const bool periodic = true;
 
