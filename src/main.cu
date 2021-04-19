@@ -57,9 +57,13 @@ int main(int argc, char** argv) {
 	copyField(0);  //Initializing solution on the GPU
 
 	FILE *fp = fopen("solution.txt","w+");
-	/* to allocate 8GB of heap size on the GPU */
-	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, rsize);
+
+	/* Increase GPU default limits to accomodate the computations */
+
+	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize     , rsize);
+
+//	cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 4); // allow up to 5 nesteg grids to run cocurrently
 
 	for(int file = 1; file<nfiles+1; file++) {
 
@@ -76,8 +80,8 @@ int main(int argc, char** argv) {
 
 	    checkGpuMem();
 	    printf("step: %d\t time: %lf\tkin: %lf\t enstr: %lf\n",file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
-		for(int t=0; t<nsteps; t++)
-				fprintf(fp,"%lf %lf %lf\n",htime[t],hkin[t],henst[t]);
+		for(int t=0; t<nsteps-1; t++)
+				fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hkin[t],henst[t],htime[t+1]-htime[t]);
 	}
 
 	fclose(fp);

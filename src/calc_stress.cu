@@ -9,7 +9,6 @@
 __device__ myprec d_workSX[mx*my*mz];
 __device__ myprec d_workSY[mx*my*mz];
 __device__ myprec d_workSZ[mx*my*mz];
-__device__ myprec intwrk;
 
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]) {
 
@@ -68,11 +67,11 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 
 }
 
-__global__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
-
+__device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
 	deviceCalcDt<<<grid0,block0>>>(d_workSX,r,u,v,w,e,mu);
-	reduceToMin<<<1,1>>>(&intwrk,d_workSX);
-	*dt = intwrk;
+	cudaDeviceSynchronize();
+	reduceToMin(dt,d_workSX);
+	cudaDeviceSynchronize();
 }
 
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
@@ -97,7 +96,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
 
 }
 
-__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst) {
+__device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst) {
 
 	*kin  = 0;
 	*enst = 0;
@@ -107,8 +106,8 @@ __global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	deviceSca<<<grid0,block0>>>(d_workSX,u,v,w,u,v,w);
 	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
 	cudaDeviceSynchronize();
-	reduceToOne<<<1,1>>>(&intwrk,d_workSX);
-	*kin = (intwrk)*dV/2.0/Lx/Ly/Lz;
+	reduceToOne(kin,d_workSX);
+	*kin *= dV/2.0/Lx/Ly/Lz;
 
 	deviceSub<<<grid0,block0>>>(d_workSX,stress[5],stress[7]);
 	deviceSub<<<grid0,block0>>>(d_workSY,stress[6],stress[2]);
@@ -117,8 +116,8 @@ __global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	deviceSca<<<grid0,block0>>>(d_workSX,d_workSX,d_workSY,d_workSZ,d_workSX,d_workSY,d_workSZ);
 	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
 	cudaDeviceSynchronize();
-	reduceToOne<<<1,1>>>(&intwrk,d_workSX);
-	*enst = (intwrk)*dV/Lx/Ly/Lz/Re;
+	reduceToOne(enst,d_workSX);
+	*enst *= dV/Lx/Ly/Lz/Re;
 }
 
 __global__ void calcIntegrals2(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst) {

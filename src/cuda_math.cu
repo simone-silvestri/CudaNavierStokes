@@ -36,7 +36,7 @@ __global__ void deviceCpy(myprec *a, myprec *b) {
 	a[id.g] = b[id.g];
 }
 
-__global__ void reduceToMax(myprec *gOut, myprec *var) {
+__device__ void reduceToMax(myprec *gOut, myprec *var) {
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid0.x*grid0.y*sizeof(myprec)) );
 
@@ -54,7 +54,7 @@ __global__ void reduceToMax(myprec *gOut, myprec *var) {
 	checkCudaDev( cudaFree(wrkM  ) );
 }
 
-__global__ void reduceToMin(myprec *gOut, myprec *var) {
+__device__ void reduceToMin(myprec *gOut, myprec *var) {
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid0.x*grid0.y*sizeof(myprec)) );
 
@@ -73,7 +73,7 @@ __global__ void reduceToMin(myprec *gOut, myprec *var) {
 
 }
 
-__global__ void reduceToOne(myprec *gOut, myprec *var) {
+__device__ void reduceToOne(myprec *gOut, myprec *var) {
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid0.x*grid0.y*sizeof(myprec)) );
 

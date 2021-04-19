@@ -37,7 +37,7 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 // shared memory tiles will be m*-by-*Pencils
 // sPencils is used when each thread calculates the derivative at one point
 // lPencils is used for coalescing in y and z where each thread has to 
-//     calculate the derivative at mutiple points
+//   				    calculate the derivative at multiple points
 
 #if mx==1 || my==1 
 const int sPencils = 1;

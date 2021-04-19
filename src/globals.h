@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
-#define stencilVisc 2  // the order is double the stencilSize (viscous fluxes stencil)
+#define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
+#define stencilVisc 4  // the order is double the stencilSize (viscous fluxes stencil)
 
 #define Lx       (2*M_PI)
 #define Ly       (2*M_PI)
@@ -16,7 +16,7 @@
 #define mx       128
 #define my       128
 #define mz       128
-#define nsteps   12000
+#define nsteps   1001
 #define nfiles   1
 #define CFL      0.6f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method and rk = 2 is the Adam's Bashforth method
@@ -27,6 +27,8 @@
 #define Ma       0.1f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
+#define viscexp  0.7
+#define lamexp   0.7
 
 const bool periodic = true;
 

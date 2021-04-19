@@ -106,20 +106,21 @@ __global__ void FLXDeviceZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
-__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressZ(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcDil(myprec *stress[9], myprec *dil);
 __global__ void calcIntegrals2(myprec *r, myprec *u, myprec *v, myprec *w, myprec *stress[9], myprec *kin, myprec *enst);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-__global__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
+__device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 
 //device functions
 __device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);
 __device__ void rk4Device(Indices id);
 __device__ void initRHS();
 __device__ void clearRHS();
+__device__ void threadBlockDeviceSynchronize(void);
+__device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);

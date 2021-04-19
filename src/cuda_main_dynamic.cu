@@ -52,8 +52,8 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	cudaDeviceSynchronize();
 
     	if(istep%50==0) {
-    		calcIntegrals2<<<1,1>>>(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
-    		//calcTimeStep<<<1,1>>>(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+    		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
     	}
     	if(istep==0) {
     		time[istep] = time[nsteps-1] + dtC;
@@ -234,7 +234,7 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
     pre[gt]   = rho[gt]*Rgas*tem[gt];
     ht[gt]    = (ret[gt] + pre[gt])*invrho;
 
-    myprec suth = pow(tem[gt],0.75);
+    myprec suth = pow(tem[gt],viscexp);
     mu[gt]      = suth/Re;
     lam[gt]     = suth/Re/Pr/Ec;
     __syncthreads();

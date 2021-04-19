@@ -232,3 +232,10 @@ void checkGpuMem() {
 	printf ( "mem free %zu\t (%f MB mem)\n",free_t,free_m);
 
 }
+
+__device__ void threadBlockDeviceSynchronize(void) {
+  __syncthreads();
+  if(threadIdx.x == 0)
+    cudaDeviceSynchronize();
+  __syncthreads();
+}
