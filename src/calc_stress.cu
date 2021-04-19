@@ -82,7 +82,7 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 
 __device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
 
-#if (capability < 60)
+#if (capability < capabilityMin)
 	dim3 gr0,bl0;
 	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
 	deviceCalcDt<<<gr0,bl0>>>(d_workSX,r,u,v,w,e,mu);
@@ -122,7 +122,7 @@ __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	*enst = 0;
 
 	myprec dV = 1.0/d_dx/d_dy/d_dz;
-#if (capability < 60)
+#if (capability < capabilityMin)
 	dim3 gr0,bl0;
 	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
 	deviceSca<<<gr0,bl0>>>(d_workSX,u,v,w,u,v,w);
@@ -136,7 +136,7 @@ __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	reduceToOne(kin,d_workSX);
 	*kin *= dV/2.0/Lx/Ly/Lz;
 #endif
-#if (capability < 60)
+#if (capability < capabilityMin)
 	deviceSub<<<gr0,bl0>>>(d_workSX,stress[5],stress[7]);
 	deviceSub<<<gr0,bl0>>>(d_workSY,stress[6],stress[2]);
 	deviceSub<<<gr0,bl0>>>(d_workSZ,stress[1],stress[3]);

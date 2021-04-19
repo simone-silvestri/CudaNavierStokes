@@ -11,7 +11,7 @@ __constant__ myprec dcoeffS[stencilSize+1];
 __constant__ myprec dcoeffVF[stencilVisc];
 __constant__ myprec dcoeffVS[stencilVisc+1];
 __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
-#if (capability>60)
+#if (capability>capabilityMin)
 __constant__ dim3 d_block[5], grid0;
 __constant__ dim3 d_grid[5], block0;
 #else
@@ -23,7 +23,7 @@ dim3 hgrid, hblock;
 
 // host routine to set constant data
 
-#if (capability>60)
+#if (capability>capabilityMin)
 void setDerivativeParameters(dim3 &grid, dim3 &block)
 {
 

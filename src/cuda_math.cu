@@ -39,7 +39,7 @@ __global__ void deviceCpy(myprec *a, myprec *b) {
 __device__ void reduceToMax(myprec *gOut, myprec *var) {
 
 	total = mx*my*mz;
-#if (capability < 60)
+#if (capability < capabilityMin)
 	grid  = grid0[0]*grid0[1];
 	block = block0[0]*block0[1];
 #else
@@ -62,7 +62,7 @@ __device__ void reduceToMin(myprec *gOut, myprec *var) {
 
 
 	total = mx*my*mz;
-#if (capability < 60)
+#if (capability < capabilityMin)
 	grid  = grid0[0]*grid0[1];
 	block = block0[0]*block0[1];
 #else
@@ -86,7 +86,7 @@ __device__ void reduceToMin(myprec *gOut, myprec *var) {
 __device__ void reduceToOne(myprec *gOut, myprec *var) {
 
 	total = mx*my*mz;
-#if (capability < 60)
+#if (capability < capabilityMin)
 	grid  = grid0[0]*grid0[1];
 	block = block0[0]*block0[1];
 #else

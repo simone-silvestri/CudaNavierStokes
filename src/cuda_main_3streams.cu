@@ -4,7 +4,7 @@
 #include "cuda_main.h"
 #include "cuda_math.h"
 
-#if (capability>60)
+#if (capability>capabilityMin)
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
 	dtC = d_dt;
@@ -164,46 +164,43 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	dim3 gr[5],bl[5],gr0,bl0;
 
 	gr[0] = dim3(d_grid[0],d_grid[1],1);
-	gr[1] = dim3(d_grid[2],d_grid[3],1);
-	gr[2] = dim3(d_grid[6],d_grid[7],1);
-	gr[3] = dim3(d_grid[4],d_grid[5],1);
-	gr[4] = dim3(d_grid[8],d_grid[8],1);
+	gr[1] = dim3(d_grid[4],d_grid[5],1);
+	gr[2] = dim3(d_grid[8],d_grid[9],1);
+	gr[3] = dim3(d_grid[2],d_grid[3],1);
+	gr[4] = dim3(d_grid[7],d_grid[8],1);
 
 	bl[0] = dim3(d_block[0],d_block[1],1);
-	bl[1] = dim3(d_block[2],d_block[3],1);
-	bl[2] = dim3(d_block[6],d_block[7],1);
-	bl[3] = dim3(d_block[4],d_block[5],1);
-	bl[4] = dim3(d_block[8],d_block[8],1);
+	bl[1] = dim3(d_block[4],d_block[5],1);
+	bl[2] = dim3(d_block[8],d_block[9],1);
+	bl[3] = dim3(d_block[2],d_block[3],1);
+	bl[4] = dim3(d_block[7],d_block[8],1);
 
 	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
 
 	/* allocating temporary arrays and streams */
-	void (*RHSDeviceDir[5])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec**, myprec*);
-	void (*calcStresDir[3])(myprec*, myprec*, myprec*, myprec**);
-	calcStresDir[0] = calcStressX;
-	calcStresDir[1] = calcStressY;
-	calcStresDir[2] = calcStressZ;
+	void (*RHSDeviceDir[3])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec**, myprec*);
 
 	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
-	RHSDeviceDir[1] = RHSDeviceFullYL;
-	RHSDeviceDir[2] = RHSDeviceFullZL;
-	RHSDeviceDir[3] = FLXDeviceY;
-	RHSDeviceDir[4] = FLXDeviceZ;
+	RHSDeviceDir[1] = RHSDeviceSharedFlxY;
+	RHSDeviceDir[2] = RHSDeviceSharedFlxZ;
 
 	__syncthreads();
 
-	cudaStream_t s[5];
-    for (int i=0; i<5; i++) {
+	cudaStream_t s[3];
+    for (int i=0; i<3; i++) {
     	checkCudaDev( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
     }
 
     initSolver();
-    initRHS();
+    initStress();
 
     for (int istep = 0; istep < nsteps; istep++) {
 
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
+
+    	if(istep%checkCFLcondition==0)
+    		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
 
     	dt2 = dtC/2.;
     	if(istep==0) {
@@ -219,19 +216,20 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	/* rk step 1 */
     	cudaDeviceSynchronize();
-    	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
     	cudaDeviceSynchronize();
 
-//    	if(istep%checkCFLcondition==0) {
-//    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
-//    	}
+    	if(istep%checkCFLcondition==0) {
+    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+    	}
     	cudaDeviceSynchronize();
 
     	calcDil<<<gr0,bl0>>>(sij,d_dil);
     	cudaDeviceSynchronize();
 
-    	for (int d = 0; d < 5; d++)
+    	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
     	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,&dt2);
@@ -244,12 +242,13 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//rk step 2
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-    	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
     	cudaDeviceSynchronize();
     	calcDil<<<gr0,bl0>>>(sij,d_dil);
     	cudaDeviceSynchronize();
-    	for (int d = 0; d < 5; d++)
+    	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
 #if rk==4
@@ -272,12 +271,13 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//rk step 3
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-    	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
     	cudaDeviceSynchronize();
     	calcDil<<<gr0,bl0>>>(sij,d_dil);
     	cudaDeviceSynchronize();
-    	for (int d = 0; d < 5; d++)
+    	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
 #if rk==4
@@ -291,13 +291,13 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//rk step 4
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-    	cudaDeviceSynchronize();
-    	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
     	cudaDeviceSynchronize();
     	calcDil<<<gr0,bl0>>>(sij,d_dil);
     	cudaDeviceSynchronize();
-    	for (int d = 0; d < 5; d++)
+    	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
     	cudaDeviceSynchronize();
     	rk4final<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,d_rhsr3,d_rhsr4,&dtC);
@@ -319,11 +319,11 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	}
     __syncthreads();
 
-	for (int i=0; i<5; i++) {
+	for (int i=0; i<3; i++) {
 		checkCudaDev( cudaStreamDestroy(s[i]) );
 	}
     clearSolver();
-    clearRHS();
+    clearStress();
 }
 #endif
 
