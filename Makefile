@@ -7,7 +7,7 @@ LIB_GL = /usr/lib/
 
 CUDA = /usr/local/cuda-10.1
 
-GPU_ARCHITECTURE = 70
+GPU_ARCHITECTURE = 52
 
 ifeq ($(ARCH),CPU)
 gpu_usage=0
@@ -25,12 +25,11 @@ OBJ=./obj/
 
 # Define compiler and optimizer's flags
 
-FLAG_GPU = -Darch=$(gpu_usage) 
-FLAG_PREC = -Dprec=float
+FLAG_GPU  = -Darch=$(gpu_usage) 
+FLAG_ARCH = -Dcapability=$(GPU_ARCHITECTURE)
 
-LIBS = -lGLU -lGL -lglut -lm 
+LIBS = -lm 
 
-CC = nvcc -O3 $(DBG) --ptxas-options=-v  #-Xpreprocessor -fopenmp -O3 -Wno-c++11-extensions $(DBG)  
 
 ifeq ($(ARCH),GPU)
 FLAG2 = --use_fast_math
@@ -38,8 +37,10 @@ MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include
 LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda ## -lcudart 
-NVCC = nvcc $(DBG) -lineinfo -rdc=true #--ptxas-options=-v   
+NVCC = nvcc $(DBG) -O3 -lineinfo -rdc=true #--ptxas-options=-v   
 endif
+
+CC = $(NVCC)
 
 CFLAGS = -I$(INC_GL) -L$(LIB_GL) -I$(INC) -L$(LIB) 
 
@@ -59,29 +60,29 @@ OBJECTS = $(OBJ_CUDA) $(OBJ_SRC)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) 
-	$(CC) $(CFLAGS) $(FLAG_GPU) -o $(TARGET) $(OBJECTS) -lm $(LIBS) $(FLAG1)
+	$(CC) $(CFLAGS) $(FLAG_GPU) $(FLAG_ARCH) -o $(TARGET) $(OBJECTS) -lm $(LIBS) $(FLAG1)
 
 $(OBJ)main.o: $(SRC)main.cu
-	$(CC) $(FLAG_GPU) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
+	$(CC) $(FLAG_GPU) $(FLAG_ARCH) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
 
 ifeq ($(ARCH),GPU)
 $(OBJ)cuda_main_dynamic.o: $(SRC)cuda_main_dynamic.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_main_dynamic.cu $(FLAG2) -o $(OBJ)cuda_main_dynamic.o
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_main_dynamic.cu $(FLAG2) -o $(OBJ)cuda_main_dynamic.o
 
 $(OBJ)calc_stress.o: $(SRC)calc_stress.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)calc_stress.cu $(FLAG2) -o $(OBJ)calc_stress.o
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)calc_stress.cu $(FLAG2) -o $(OBJ)calc_stress.o
 
 $(OBJ)cuda_rhs.o: $(SRC)cuda_rhs.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_rhs.cu $(FLAG2) -o $(OBJ)cuda_rhs.o
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_rhs.cu $(FLAG2) -o $(OBJ)cuda_rhs.o
 
 $(OBJ)cuda_math.o: $(SRC)cuda_math.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_math.cu $(FLAG2) -o $(OBJ)cuda_math.o
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_math.cu $(FLAG2) -o $(OBJ)cuda_math.o
 
 $(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_utils.cu $(FLAG2) -o $(OBJ)cuda_utils.o
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_utils.cu $(FLAG2) -o $(OBJ)cuda_utils.o
 
 $(OBJ)cuda_derivs.o: $(SRC)cuda_derivs.cu
-	$(NVCC) -c $(FLAG1) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
 endif
 
 clean:

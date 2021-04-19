@@ -65,6 +65,8 @@ int main(int argc, char** argv) {
 
 //	cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 4); // allow up to 5 nesteg grids to run cocurrently
 
+	cudaSetDevice(1);
+
 	for(int file = 1; file<nfiles+1; file++) {
 
 	    runDevice<<<grid,block>>>(dkin,denst,dtime);  //running the simulation on the GPU

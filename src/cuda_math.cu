@@ -38,11 +38,15 @@ __global__ void deviceCpy(myprec *a, myprec *b) {
 
 __device__ void reduceToMax(myprec *gOut, myprec *var) {
 
-	checkCudaDev( cudaMalloc((void**)&wrkM ,grid0.x*grid0.y*sizeof(myprec)) );
-
 	total = mx*my*mz;
+#if (capability < 60)
+	grid  = grid0[0]*grid0[1];
+	block = block0[0]*block0[1];
+#else
 	grid  = grid0.x*grid0.y;
 	block = block0.x*block0.y;
+#endif
+	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
 
 	maxOfThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM , var,  total);
 	cudaDeviceSynchronize();
@@ -56,11 +60,17 @@ __device__ void reduceToMax(myprec *gOut, myprec *var) {
 
 __device__ void reduceToMin(myprec *gOut, myprec *var) {
 
-	checkCudaDev( cudaMalloc((void**)&wrkM ,grid0.x*grid0.y*sizeof(myprec)) );
 
 	total = mx*my*mz;
+#if (capability < 60)
+	grid  = grid0[0]*grid0[1];
+	block = block0[0]*block0[1];
+#else
 	grid  = grid0.x*grid0.y;
 	block = block0.x*block0.y;
+#endif
+
+	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
 
 	minOfThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM, var,  total);
 	cudaDeviceSynchronize();
@@ -75,11 +85,16 @@ __device__ void reduceToMin(myprec *gOut, myprec *var) {
 
 __device__ void reduceToOne(myprec *gOut, myprec *var) {
 
-	checkCudaDev( cudaMalloc((void**)&wrkM ,grid0.x*grid0.y*sizeof(myprec)) );
-
 	total = mx*my*mz;
+#if (capability < 60)
+	grid  = grid0[0]*grid0[1];
+	block = block0[0]*block0[1];
+#else
 	grid  = grid0.x*grid0.y;
 	block = block0.x*block0.y;
+#endif
+
+	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
 
 	reduceThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM, var , total);
 	cudaDeviceSynchronize();

@@ -62,8 +62,14 @@ extern __constant__ myprec dcoeffVF[stencilVisc];
 extern __constant__ myprec dcoeffVS[stencilVisc+1];
 extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
 
-extern __constant__ dim3 d_grid[5] , grid0;
-extern __constant__ dim3 d_block[5], block0;
+#if (capability>60)
+extern __constant__ dim3 d_block[5], grid0;
+extern __constant__ dim3 d_grid[5], block0;
+#else
+extern __constant__ int d_block[5*2], grid0[2];
+extern __constant__ int d_grid[5*2], block0[2];
+#endif
+
 
 extern __device__ myprec d_r[mx*my*mz];
 extern __device__ myprec d_u[mx*my*mz];

@@ -4,7 +4,7 @@
 #include "cuda_main.h"
 #include "cuda_math.h"
 
-
+#if (capability>60)
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
 	dtC = d_dt;
@@ -160,6 +160,177 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     clearSolver();
     clearRHS();
 }
+#else
+__global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
+
+	dtC = d_dt;
+
+	dim3 gr[5],bl[5],gr0,bl0;
+
+	gr[0] = dim3(d_grid[0],d_grid[1],1);
+	gr[1] = dim3(d_grid[2],d_grid[3],1);
+	gr[2] = dim3(d_grid[6],d_grid[7],1);
+	gr[3] = dim3(d_grid[4],d_grid[5],1);
+	gr[4] = dim3(d_grid[8],d_grid[8],1);
+
+	bl[0] = dim3(d_block[0],d_block[1],1);
+	bl[1] = dim3(d_block[2],d_block[3],1);
+	bl[2] = dim3(d_block[6],d_block[7],1);
+	bl[3] = dim3(d_block[4],d_block[5],1);
+	bl[4] = dim3(d_block[8],d_block[8],1);
+
+	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
+
+	/* allocating temporary arrays and streams */
+	void (*RHSDeviceDir[5])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec**, myprec*);
+	void (*calcStresDir[3])(myprec*, myprec*, myprec*, myprec**);
+	calcStresDir[0] = calcStressX;
+	calcStresDir[1] = calcStressY;
+	calcStresDir[2] = calcStressZ;
+
+	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
+	RHSDeviceDir[1] = RHSDeviceFullYL;
+	RHSDeviceDir[2] = RHSDeviceFullZL;
+	RHSDeviceDir[3] = FLXDeviceY;
+	RHSDeviceDir[4] = FLXDeviceZ;
+
+	__syncthreads();
+
+	cudaStream_t s[5];
+    for (int i=0; i<5; i++) {
+    	checkCudaDev( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
+    }
+
+    initSolver();
+    initRHS();
+
+    for (int istep = 0; istep < nsteps; istep++) {
+
+    	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	cudaDeviceSynchronize();
+
+    	dt2 = dtC/2.;
+    	if(istep==0) {
+    		time[istep] = time[nsteps-1] + dtC;
+    	} else{
+    		time[istep] = time[istep-1] + dtC; }
+
+    	deviceMul<<<gr0,bl0>>>(d_uO,d_r,d_u);
+    	deviceMul<<<gr0,bl0>>>(d_vO,d_r,d_v);
+    	deviceMul<<<gr0,bl0>>>(d_wO,d_r,d_w);
+    	deviceCpy<<<gr0,bl0>>>(d_rO,d_r);
+    	deviceCpy<<<gr0,bl0>>>(d_eO,d_e);
+
+    	/* rk step 1 */
+    	cudaDeviceSynchronize();
+    	for (int d = 0; d < 3; d++)
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	cudaDeviceSynchronize();
+
+//    	if(istep%checkCFLcondition==0) {
+//    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+//    	}
+    	cudaDeviceSynchronize();
+
+    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	cudaDeviceSynchronize();
+
+    	for (int d = 0; d < 5; d++)
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,&dt2);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<gr0,bl0>>>(d_e,d_eO,d_rhse1,&dt2);
+    	eulerSumR<<<gr0,bl0>>>(d_u,d_uO,d_rhsu1,d_r,&dt2);
+    	eulerSumR<<<gr0,bl0>>>(d_v,d_vO,d_rhsv1,d_r,&dt2);
+    	eulerSumR<<<gr0,bl0>>>(d_w,d_wO,d_rhsw1,d_r,&dt2);
+    	cudaDeviceSynchronize();
+
+    	//rk step 2
+    	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	for (int d = 0; d < 3; d++)
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	cudaDeviceSynchronize();
+    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	cudaDeviceSynchronize();
+    	for (int d = 0; d < 5; d++)
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    	cudaDeviceSynchronize();
+#if rk==4
+    	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr2,&dt2);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<gr0,bl0>>>(d_e,d_eO,d_rhse2,&dt2);
+    	eulerSumR<<<gr0,bl0>>>(d_u,d_uO,d_rhsu2,d_r,&dt2);
+    	eulerSumR<<<gr0,bl0>>>(d_v,d_vO,d_rhsv2,d_r,&dt2);
+    	eulerSumR<<<gr0,bl0>>>(d_w,d_wO,d_rhsw2,d_r,&dt2);
+#elif rk==3
+    	eulerSum3<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,&dtC);
+    	cudaDeviceSynchronize();
+    	eulerSum3<<<gr0,bl0>>>(d_e,d_eO,d_rhse1,d_rhse2,&dtC);
+    	eulerSum3R<<<gr0,bl0>>>(d_u,d_uO,d_rhsu1,d_rhsu2,d_r,&dtC);
+    	eulerSum3R<<<gr0,bl0>>>(d_v,d_vO,d_rhsv1,d_rhsv2,d_r,&dtC);
+    	eulerSum3R<<<gr0,bl0>>>(d_w,d_wO,d_rhsw1,d_rhsw2,d_r,&dtC);
+#endif
+    	cudaDeviceSynchronize();
+
+
+    	//rk step 3
+    	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	for (int d = 0; d < 3; d++)
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	cudaDeviceSynchronize();
+    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	cudaDeviceSynchronize();
+    	for (int d = 0; d < 5; d++)
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    	cudaDeviceSynchronize();
+#if rk==4
+    	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr3,&dtC);
+    	cudaDeviceSynchronize();
+    	eulerSum<<<gr0,bl0>>>(d_e,d_eO,d_rhse3,&dtC);
+    	eulerSumR<<<gr0,bl0>>>(d_u,d_uO,d_rhsu3,d_r,&dtC);
+    	eulerSumR<<<gr0,bl0>>>(d_v,d_vO,d_rhsv3,d_r,&dtC);
+    	eulerSumR<<<gr0,bl0>>>(d_w,d_wO,d_rhsw3,d_r,&dtC);
+    	cudaDeviceSynchronize();
+
+    	//rk step 4
+    	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	cudaDeviceSynchronize();
+    	for (int d = 0; d < 3; d++)
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    	cudaDeviceSynchronize();
+    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	cudaDeviceSynchronize();
+    	for (int d = 0; d < 5; d++)
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    	cudaDeviceSynchronize();
+    	rk4final<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,d_rhsr3,d_rhsr4,&dtC);
+    	cudaDeviceSynchronize();
+    	rk4final<<<gr0,bl0>>>(d_e,d_eO,d_rhse1,d_rhse2,d_rhse3,d_rhse4,&dtC);
+    	rk4finalR<<<gr0,bl0>>>(d_u,d_uO,d_rhsu1,d_rhsu2,d_rhsu3,d_rhsu4,d_r,&dtC);
+    	rk4finalR<<<gr0,bl0>>>(d_v,d_vO,d_rhsv1,d_rhsv2,d_rhsv3,d_rhsv4,d_r,&dtC);
+    	rk4finalR<<<gr0,bl0>>>(d_w,d_wO,d_rhsw1,d_rhsw2,d_rhsw3,d_rhsw4,d_r,&dtC);
+#elif rk==3
+    	rk3final<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,d_rhsr3,&dtC);
+    	cudaDeviceSynchronize();
+    	rk3final<<<gr0,bl0>>>(d_e,d_eO,d_rhse1,d_rhse2,d_rhse3,&dtC);
+    	rk3finalR<<<gr0,bl0>>>(d_u,d_uO,d_rhsu1,d_rhsu2,d_rhsu3,d_r,&dtC);
+    	rk3finalR<<<gr0,bl0>>>(d_v,d_vO,d_rhsv1,d_rhsv2,d_rhsv3,d_r,&dtC);
+    	rk3finalR<<<gr0,bl0>>>(d_w,d_wO,d_rhsw1,d_rhsw2,d_rhsw3,d_r,&dtC);
+#endif
+    	cudaDeviceSynchronize();
+
+	}
+    __syncthreads();
+
+	for (int i=0; i<5; i++) {
+		checkCudaDev( cudaStreamDestroy(s[i]) );
+	}
+    clearSolver();
+    clearRHS();
+}
+#endif
+
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c[5], myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
