@@ -14,9 +14,8 @@ z = np.linspace(0,2*np.pi,192)
 writexmf("field.0000.xmf", precision, \
          x, y, z, \
          np.arange(0,1,1), 1.0, \
-         ['r',\
-          'u',\
+         ['u',\
 	  'v',\
-          'w',\
-          'e'])
+          'w']) #,\
+          #'e'])
 

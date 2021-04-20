@@ -201,6 +201,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	__shared__ myprec s_p[sPencils][my+stencilSize*2];
 	__shared__ myprec s_m[sPencils][my+stencilSize*2];
 	__shared__ myprec s_l[sPencils][my+stencilSize*2];
+	__shared__ myprec s_s1[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s2[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s3[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_wrk[sPencils][my+stencilSize*2];
 
 	s_r[sj][si] = r[id.g];
@@ -211,6 +214,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	s_t[sj][si] = t[id.g];
 	s_p[sj][si] = p[id.g];
 	s_m[sj][si] = mu[id.g];
+	s_s1[sj][si] = sij[3][id.g];
+	s_s2[sj][si] = sij[4][id.g];
+	s_s3[sj][si] = sij[5][id.g];
 	s_l[sj][si] = lam[id.g];
 	__syncthreads();
 
@@ -255,9 +261,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	//Adding here the terms d (mu) dy * syj; (lambda in case of h in rhse);
 
 	derDevSharedV1y(&wrk2,s_m[sj],si); //wrk2 = d (mu) dx
-	uYtmp = uYtmp + wrk2*sij[3][id.g];
-	vYtmp = vYtmp + wrk2*sij[4][id.g];
-	wYtmp = wYtmp + wrk2*sij[5][id.g];
+	uYtmp = uYtmp + wrk2*s_s1[sj][si];
+	vYtmp = vYtmp + wrk2*s_s2[sj][si];
+	wYtmp = wYtmp + wrk2*s_s3[sj][si];
 
 	// split advection terms
 
@@ -293,9 +299,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 
 	//viscous dissipation
 	s_wrk[sj][si] = s_m[sj][si]*(
-					s_u[sj][si]*(  sij[3][id.g]  ) +
-					s_v[sj][si]*(  sij[4][id.g]  ) +
-					s_w[sj][si]*(  sij[5][id.g]  )
+					s_u[sj][si]*(  s_s1[sj][si]  ) +
+					s_v[sj][si]*(  s_s2[sj][si]  ) +
+					s_w[sj][si]*(  s_s3[sj][si]  )
 					);
 	__syncthreads();
 	if (id.j < stencilSize) {
@@ -341,6 +347,9 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	__shared__ myprec s_p[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_m[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_l[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s1[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s2[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s3[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_wrk[sPencils][mz+stencilSize*2];
 
 	s_r[sj][si] = r[id.g];
@@ -352,6 +361,9 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	s_p[sj][si] = p[id.g];
 	s_m[sj][si] = mu[id.g];
 	s_l[sj][si] = lam[id.g];
+	s_s1[sj][si] = sij[6][id.g];
+	s_s2[sj][si] = sij[7][id.g];
+	s_s3[sj][si] = sij[8][id.g];
 	__syncthreads();
 
 	// fill in periodic images in shared memory array
@@ -395,9 +407,9 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	//Adding here the terms d (mu) dz * szj; (lambda in case of h in rhse);
 
 	derDevSharedV1z(&wrk2,s_m[sj],si); //wrk2 = d (mu) dz
-	uZtmp = uZtmp + wrk2*sij[6][id.g];
-	vZtmp = vZtmp + wrk2*sij[7][id.g];
-	wZtmp = wZtmp + wrk2*sij[8][id.g];
+	uZtmp = uZtmp + wrk2*s_s1[sj][si];
+	vZtmp = vZtmp + wrk2*s_s2[sj][si];
+	wZtmp = wZtmp + wrk2*s_s3[sj][si];
 
 	// split advection terms
 
@@ -433,9 +445,9 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 
 	//viscous dissipation
 	s_wrk[sj][si] = s_m[sj][si]*(
-					s_u[sj][si]*(  sij[6][id.g]  ) +
-					s_v[sj][si]*(  sij[7][id.g]  ) +
-					s_w[sj][si]*(  sij[8][id.g]  )
+					s_u[sj][si]*(  s_s1[sj][si]  ) +
+					s_v[sj][si]*(  s_s2[sj][si]  ) +
+					s_w[sj][si]*(  s_s3[sj][si]  )
 					);
 	__syncthreads();
 	if (id.k < stencilSize) {

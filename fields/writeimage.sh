@@ -1,8 +1,8 @@
 #!/bin/bash                                                                                                                                                                                                
 
 
-i=161
-while [[ $i -le 202 ]]; do
+i=0
+while [[ $i -le 200 ]]; do
      num1=`printf "%04i" $i`
      num2=`printf "%07i" $i`
 

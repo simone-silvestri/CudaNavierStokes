@@ -51,7 +51,7 @@ SetActiveView(renderView1)
 # ----------------------------------------------------------------
 
 # create a new 'XDMF Reader'
-field128xmf = XDMFReader(FileNames=['/home/simone/Dropbox/cuda-solvers/fields/field.NUMBER.xmf'])
+field128xmf = XDMFReader(FileNames=['/home/simone/Dropbox/cuda-solvers/fields/field.0047.xmf'])
 field128xmf.PointArrayStatus = ['u', 'v', 'w']
 field128xmf.GridStatus = ['T0000000']
 
@@ -184,4 +184,4 @@ SetActiveSource(calculator1)
 # ----------------------------------------------------------------
 
 
-WriteImage("image.NUMBER.png")
+WriteImage("image.0047.png")

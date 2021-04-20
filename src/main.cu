@@ -177,14 +177,14 @@ void initProfile() {
 void writeFields(int timestep) {
 
 	char str[80];
-	sprintf(str, "fields/r.%07d.bin",timestep);
+	//sprintf(str, "fields/r.%07d.bin",timestep);
 
-	FILE *fb = fopen(str,"wb");
-	fwrite(r , mx*my*mz , sizeof(str) , fb );
-	fclose(fb);
+	//FILE *fb = fopen(str,"wb");
+	//fwrite(r , mx*my*mz , sizeof(str) , fb );
+	//fclose(fb);
 
 	sprintf(str, "fields/u.%07d.bin",timestep);
-	fb = fopen(str,"wb");
+	FILE *fb = fopen(str,"wb");
 	fwrite(u , mx*my*mz , sizeof(str) , fb );
 	fclose(fb);
 
@@ -198,10 +198,10 @@ void writeFields(int timestep) {
 	fwrite(w , mx*my*mz , sizeof(str) , fb );
 	fclose(fb);
 
-	sprintf(str, "fields/e.%07d.bin",timestep);
-	fb = fopen(str,"wb");
-	fwrite(e , mx*my*mz , sizeof(str) , fb );
-	fclose(fb);
+	//sprintf(str, "fields/e.%07d.bin",timestep);
+	//fb = fopen(str,"wb");
+	//fwrite(e , mx*my*mz , sizeof(str) , fb );
+	//fclose(fb);
 }
 
 

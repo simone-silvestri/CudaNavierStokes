@@ -13,7 +13,7 @@
 #define Lx       (2*M_PI)
 #define Ly       (2*M_PI)
 #define Lz       (2*M_PI)
-#define mx       128 
+#define mx       128
 #define my       128
 #define mz       128
 #define nsteps   1001
@@ -29,7 +29,7 @@
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
 
-#define capabilityMin 100
+#define capabilityMin 60
 #define checkCFLcondition 100
 
 const bool periodic = true;
