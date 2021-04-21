@@ -37,19 +37,19 @@ MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include
 LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda ## -lcudart 
-NVCC = nvcc $(DBG) -O3 -lineinfo -rdc=true #--ptxas-options=-v   
+NVCC = nvcc $(DBG) -O5 -lineinfo -rdc=true #--ptxas-options=-v   
 endif
 
 CC = $(NVCC)
 
-CFLAGS = -I$(INC_GL) -L$(LIB_GL) -I$(INC) -L$(LIB) 
+CFLAGS = $(INC) $(LIB) 
 
 TARGET = ns
 
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_main_3streams.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o
+OBJ_CUDA = $(OBJ)cuda_main_3streams.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o $(OBJ)boundary.o
 endif
 
 # List of objects
@@ -63,7 +63,7 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $(FLAG_GPU) $(FLAG_ARCH) -o $(TARGET) $(OBJECTS) -lm $(LIBS) $(FLAG1)
 
 $(OBJ)main.o: $(SRC)main.cu
-	$(CC) $(FLAG_GPU) $(FLAG_ARCH) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
+	$(CC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
 
 ifeq ($(ARCH),GPU)
 $(OBJ)cuda_main_3streams.o: $(SRC)cuda_main_3streams.cu
@@ -74,6 +74,9 @@ $(OBJ)calc_stress.o: $(SRC)calc_stress.cu
 
 $(OBJ)cuda_rhs.o: $(SRC)cuda_rhs.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_rhs.cu $(FLAG2) -o $(OBJ)cuda_rhs.o
+
+$(OBJ)boundary.o: $(SRC)boundary.cu
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)boundary.cu $(FLAG2) -o $(OBJ)boundary.o
 
 $(OBJ)cuda_math.o: $(SRC)cuda_math.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_math.cu $(FLAG2) -o $(OBJ)cuda_math.o

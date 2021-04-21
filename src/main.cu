@@ -85,7 +85,6 @@ int main(int argc, char** argv) {
 		for(int t=0; t<nsteps-1; t++)
 				fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hkin[t],henst[t],htime[t+1]-htime[t]);
 	}
-
 	fclose(fp);
 	cudaDeviceReset();
 
@@ -151,14 +150,14 @@ void initProfile() {
 
 
 	for (int i=0; i<mx; i++) {
-		double fx = x[i];
+		double fx = 2*M_PI*x[i]/Lx;
 		for (int j=0; j<my; j++) {
-			double fy = y[j];
+			double fy = 2*M_PI*y[j]/Ly;
 			for (int k=0; k<mz; k++) {
-				double fz = z[k];
+				double fz = 2*M_PI*z[k]/Lz;
 				u[idx(i,j,k)] =  V0*sin(fx/1.0)*cos(fy/1.0)*cos(fz/1.0);
 				v[idx(i,j,k)] = -V0*cos(fx/1.0)*sin(fy/1.0)*cos(fz/1.0);
-				w[idx(i,j,k)] = 0.0;
+				w[idx(i,j,k)] =  0.0;
 
 				double press = P0 + 1.0/16.0*R0*V0*V0 * (cos(2.0*fx/1.0) + cos(2.0*fy/1.0)) * (cos(2.0*fz/1.0) + 2.0);
 
@@ -177,14 +176,14 @@ void initProfile() {
 void writeFields(int timestep) {
 
 	char str[80];
-	//sprintf(str, "fields/r.%07d.bin",timestep);
+	sprintf(str, "fields/r.%07d.bin",timestep);
 
-	//FILE *fb = fopen(str,"wb");
-	//fwrite(r , mx*my*mz , sizeof(str) , fb );
-	//fclose(fb);
+	FILE *fb = fopen(str,"wb");
+	fwrite(r , mx*my*mz , sizeof(str) , fb );
+	fclose(fb);
 
 	sprintf(str, "fields/u.%07d.bin",timestep);
-	FILE *fb = fopen(str,"wb");
+	fb = fopen(str,"wb");
 	fwrite(u , mx*my*mz , sizeof(str) , fb );
 	fclose(fb);
 
@@ -198,10 +197,10 @@ void writeFields(int timestep) {
 	fwrite(w , mx*my*mz , sizeof(str) , fb );
 	fclose(fb);
 
-	//sprintf(str, "fields/e.%07d.bin",timestep);
-	//fb = fopen(str,"wb");
-	//fwrite(e , mx*my*mz , sizeof(str) , fb );
-	//fclose(fb);
+	sprintf(str, "fields/e.%07d.bin",timestep);
+	fb = fopen(str,"wb");
+	fwrite(e , mx*my*mz , sizeof(str) , fb );
+	fclose(fb);
 }
 
 

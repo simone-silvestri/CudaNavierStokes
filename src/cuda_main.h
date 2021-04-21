@@ -75,5 +75,4 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 __device__ void initSolver();
 __device__ void clearSolver();
 
-
 #endif /* RHS_H_ */

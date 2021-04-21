@@ -1,7 +1,7 @@
 #include "globals.h"
 #include "cuda_functions.h"
 #include "cuda_globals.h"
-#include "cuda_main.h"
+#include "cuda_main_5streams.h"
 #include "cuda_math.h"
 
 #if (capability>60)
@@ -17,10 +17,10 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	calcStresDir[2] = calcStressZ;
 
 	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
-	RHSDeviceDir[1] = RHSDeviceFullYL;
-	RHSDeviceDir[2] = RHSDeviceFullZL;
-	RHSDeviceDir[3] = FLXDeviceY;
-	RHSDeviceDir[4] = FLXDeviceZ;
+	RHSDeviceDir[3] = RHSDeviceFullYL;
+	RHSDeviceDir[4] = RHSDeviceFullZL;
+	RHSDeviceDir[1] = FLXDeviceY;
+	RHSDeviceDir[2] = FLXDeviceZ;
 
 	__syncthreads();
 
@@ -189,10 +189,10 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	calcStresDir[2] = calcStressZ;
 
 	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
-	RHSDeviceDir[1] = RHSDeviceFullYL;
-	RHSDeviceDir[2] = RHSDeviceFullZL;
-	RHSDeviceDir[3] = FLXDeviceY;
-	RHSDeviceDir[4] = FLXDeviceZ;
+	RHSDeviceDir[3] = RHSDeviceFullYL;
+	RHSDeviceDir[4] = RHSDeviceFullZL;
+	RHSDeviceDir[1] = FLXDeviceY;
+	RHSDeviceDir[2] = FLXDeviceZ;
 
 	__syncthreads();
 

@@ -72,8 +72,8 @@ calculator2.Function = 'Vorticity_Z'
 
 # create a new 'Resample To Image'
 resampleToImage1 = ResampleToImage(Input=calculator2)
-resampleToImage1.SamplingDimensions = [192, 192, 192]
-resampleToImage1.SamplingBounds = [0.0, 6.283185, 0.0, 6.283185, 0.0, 6.283185]
+resampleToImage1.SamplingDimensions = [192, 128, 128]
+resampleToImage1.SamplingBounds = [0.0, 2.0, 0.0, 3.1415925, 0.0, 6.283185]
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'

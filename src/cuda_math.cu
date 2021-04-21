@@ -4,7 +4,7 @@
 #include "cuda_math.h"
 
 __device__ myprec *wrkM;
-__device__ int block, grid, total;
+__device__ unsigned int block, grid, total;
 
 __global__ void deviceSum(myprec *a, myprec *b, myprec *c) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
@@ -47,6 +47,9 @@ __device__ void reduceToMax(myprec *gOut, myprec *var) {
 	block = block0.x*block0.y;
 #endif
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	block = findPreviousPowerOf2(block);
 
 	maxOfThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM , var,  total);
 	cudaDeviceSynchronize();
@@ -71,6 +74,9 @@ __device__ void reduceToMin(myprec *gOut, myprec *var) {
 #endif
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	block = findPreviousPowerOf2(block);
 
 	minOfThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM, var,  total);
 	cudaDeviceSynchronize();
@@ -95,6 +101,9 @@ __device__ void reduceToOne(myprec *gOut, myprec *var) {
 #endif
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	block = findPreviousPowerOf2(block);
 
 	reduceThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM, var , total);
 	cudaDeviceSynchronize();
@@ -102,7 +111,6 @@ __device__ void reduceToOne(myprec *gOut, myprec *var) {
 	cudaDeviceSynchronize();
 
 	*gOut = wrkM[0];
-
 	checkCudaDev( cudaFree(wrkM  ) );
 
 }
@@ -194,7 +202,11 @@ __global__ void maxOfThreads(myprec *gOut, myprec *gArr, int arraySize) {
 
 }
 
+__device__ unsigned int findPreviousPowerOf2(unsigned int n)
+{
+    while (n & n - 1) {
+        n = n & n - 1;        // unset rightmost bit
+    }
 
-
-
-
+    return n;
+}

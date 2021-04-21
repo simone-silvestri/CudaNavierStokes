@@ -21,5 +21,6 @@ __device__ void reduceToMin(myprec *gout, myprec *var);
 __global__ void reduceThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void minOfThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void maxOfThreads (myprec *gOut, myprec *gArr, int arraySize);
+__device__ unsigned int findPreviousPowerOf2(unsigned int n);
 
 #endif /* CUDA_MATH_H_ */

@@ -17,7 +17,7 @@
 #define my       128
 #define mz       128
 #define nsteps   1001
-#define nfiles   1
+#define nfiles	 10
 #define CFL      0.35f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method and rk = 2 is the Adam's Bashforth method
 
@@ -29,11 +29,10 @@
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
 
+#define periodicX (true)
+
 #define capabilityMin 60
-#define checkCFLcondition 100
-
-const bool periodic = true;
-
+#define checkCFLcondition 50
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 

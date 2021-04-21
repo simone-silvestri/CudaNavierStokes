@@ -5,6 +5,7 @@
 #include "cuda_functions.h"
 #include "cuda_globals.h"
 #include "cuda_math.h"
+#include "boundary.h"
 
 __device__ myprec *d_workSX;
 __device__ myprec *d_workSY;
@@ -28,9 +29,37 @@ __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]) 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 
-	derDev1x(stress[0],u,id);
-	derDev1x(stress[1],v,id);
-	derDev1x(stress[2],w,id);
+//	derDev1x(stress[0],u,id);
+//	derDev1x(stress[1],v,id);
+//	derDev1x(stress[2],w,id);
+	__shared__ myprec s_u[sPencils][mx+stencilSize*2];
+	__shared__ myprec s_v[sPencils][mx+stencilSize*2];
+	__shared__ myprec s_w[sPencils][mx+stencilSize*2];
+
+	int si = id.i + stencilSize;       // local i for shared memory access + halo offset
+	int sj = id.tiy;                   // local j for shared memory access
+
+	myprec wrk1;
+
+	s_u[sj][si] = u[id.g];
+	s_v[sj][si] = v[id.g];
+	s_w[sj][si] = w[id.g];
+
+	__syncthreads();
+
+	if (id.i < stencilSize) {
+#if periodicX
+		perBCx(s_u[sj],si); perBCx(s_v[sj],si); perBCx(s_w[sj],si);
+#else
+		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
+#endif
+	}
+	derDevShared1x(&wrk1,s_u[sj],si);
+	stress[0][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_v[sj],si);
+	stress[1][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_w[sj],si);
+	stress[2][id.g] = wrk1;
 }
 
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]) {
@@ -56,27 +85,30 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 
-	myprec dudx = stress[0][id.g];
-	myprec dvdx = stress[1][id.g];
-	myprec dwdx = stress[2][id.g];
-	myprec dudy = stress[3][id.g];
-	myprec dvdy = stress[4][id.g];
-	myprec dwdy = stress[5][id.g];
-	myprec dudz = stress[6][id.g];
-	myprec dvdz = stress[7][id.g];
-	myprec dwdz = stress[8][id.g];
+	//Stress goes with RHS old
+//
+//	myprec dudx = stress[0][id.g];
+//	myprec dvdx = stress[1][id.g];
+//	myprec dwdx = stress[2][id.g];
+//	myprec dudy = stress[3][id.g];
+//	myprec dvdy = stress[4][id.g];
+//	myprec dwdy = stress[5][id.g];
+//	myprec dudz = stress[6][id.g];
+//	myprec dvdz = stress[7][id.g];
+//	myprec dwdz = stress[8][id.g];
 
-	dil[id.g] = dudx + dvdy + dwdz; // stress[0][id.g] + stress[4][id.g] + stress[8][id.g]; //
+	dil[id.g] = stress[0][id.g] + stress[4][id.g] + stress[8][id.g]; //dudx + dvdy + dwdz; //
 
-	stress[0][id.g] = 2.0*dudx - 2.0/3.0*dil[id.g];
-	stress[1][id.g] = dudy + dvdx;
-	stress[2][id.g] = dudz + dwdx;
-	stress[3][id.g] = dudy + dvdx;
-	stress[4][id.g] = 2.0*dvdy - 2.0/3.0*dil[id.g];
-	stress[5][id.g] = dvdz + dwdy;
-	stress[6][id.g] = dudz + dwdx;
-	stress[7][id.g] = dvdz + dwdy;
-	stress[8][id.g] = 2.0*dwdz - 2.0/3.0*dil[id.g];
+//	stress[0][id.g] = 2.0*dudx - 2.0/3.0*dil[id.g];
+//	stress[1][id.g] = dudy + dvdx;
+//	stress[2][id.g] = dudz + dwdx;
+//	stress[3][id.g] = dudy + dvdx;
+//	stress[4][id.g] = 2.0*dvdy - 2.0/3.0*dil[id.g];
+//	stress[5][id.g] = dvdz + dwdy;
+//	stress[6][id.g] = dudz + dwdx;
+//	stress[7][id.g] = dvdz + dwdy;
+//	stress[8][id.g] = 2.0*dwdz - 2.0/3.0*dil[id.g];
+
 
 }
 

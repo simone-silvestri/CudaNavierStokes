@@ -23,16 +23,17 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	checkCudaDev( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
     }
 
-    initSolver();
-    initStress();
+	initSolver();
+	initStress();
+
     for (int istep = 0; istep < nsteps; istep++) {
 
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
 
-    	if(istep%checkCFLcondition==0)
+    	if(istep%checkCFLcondition==0) {
     		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
-
+    	}
     	dt2 = dtC/2.;
     	if(istep==0) {
     		time[istep] = time[nsteps-1] + dtC;
@@ -153,8 +154,9 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	for (int i=0; i<3; i++) {
 		checkCudaDev( cudaStreamDestroy(s[i]) );
 	}
-    clearSolver();
-    clearStress();
+
+	clearSolver();
+	clearStress();
 }
 #else
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
@@ -322,8 +324,9 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	for (int i=0; i<3; i++) {
 		checkCudaDev( cudaStreamDestroy(s[i]) );
 	}
-    clearSolver();
-    clearStress();
+
+	clearSolver();
+	clearStress();
 }
 #endif
 

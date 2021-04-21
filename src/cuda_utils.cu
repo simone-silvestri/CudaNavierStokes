@@ -1,5 +1,9 @@
 /* To run the debugger!!
  * CUDA_VISIBLE_DEVICES="0" cuda-gdb -tui ns
+ *
+ * To run the profiler on Reynolds!!
+ * nvvp -vmargs -Dosgi.locking=none
+ *
  *  */
 
 #include "globals.h"
@@ -230,7 +234,6 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
 }
 #endif
 
-
 void copyField(int direction) {
 
   myprec *fr  = new myprec[mx*my*mz];
@@ -266,7 +269,7 @@ void copyField(int direction) {
 
      initDevice<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe);
 
-  } else {
+  } else if (direction == 1) {
 
      checkCuda( cudaMemset(d_fr, 0, bytes) );
      checkCuda( cudaMemset(d_fu, 0, bytes) );
@@ -275,6 +278,7 @@ void copyField(int direction) {
      checkCuda( cudaMemset(d_fe, 0, bytes) );
 
      getResults<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe);
+
 
      checkCuda( cudaMemcpy(fr, d_fr, bytes, cudaMemcpyDeviceToHost) );
      checkCuda( cudaMemcpy(fu, d_fu, bytes, cudaMemcpyDeviceToHost) );
