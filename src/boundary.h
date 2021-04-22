@@ -12,12 +12,12 @@ const myprec TwallTop = 1.0;
 const myprec TwallBot = 1.0;
 
 extern __device__ __forceinline__ void perBCx(myprec *s_f, int si);
+extern __device__ __forceinline__ void perBCy(myprec *s_f, int si);
+extern __device__ __forceinline__ void perBCz(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxExt(myprec *s_f, int si, const myprec Bctop, const myprec Bcbot);
 extern __device__ __forceinline__ void wallBCxMir(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxVel(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxDil(myprec *s_f, myprec *s_u, myprec *s_v, myprec *s_w, int si);
-extern __device__ __forceinline__ void perBCy(myprec *s_f, int si);
-extern __device__ __forceinline__ void perBCz(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxVisc(myprec *s_f, myprec *u, myprec *v, myprec *w,
 		myprec *s0 , myprec *s1,  myprec *s2 , myprec *s3,
 		myprec *s6 , myprec *dil, myprec *m  , int si);

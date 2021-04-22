@@ -29,17 +29,12 @@ __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]) 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 
-//	derDev1x(stress[0],u,id);
-//	derDev1x(stress[1],v,id);
-//	derDev1x(stress[2],w,id);
 	__shared__ myprec s_u[sPencils][mx+stencilSize*2];
 	__shared__ myprec s_v[sPencils][mx+stencilSize*2];
 	__shared__ myprec s_w[sPencils][mx+stencilSize*2];
 
-	int si = id.i + stencilSize;       // local i for shared memory access + halo offset
-	int sj = id.tiy;                   // local j for shared memory access
-
-	myprec wrk1;
+	int si = id.i + stencilSize;
+	int sj = id.tiy;
 
 	s_u[sj][si] = u[id.g];
 	s_v[sj][si] = v[id.g];
@@ -47,19 +42,21 @@ __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]) 
 
 	__syncthreads();
 
-	if (id.i < stencilSize) {
+	if(id.i<stencilSize) {
 #if periodicX
-		perBCx(s_u[sj],si); perBCx(s_v[sj],si); perBCx(s_w[sj],si);
+		perBCx(s_u[sj],si);perBCx(s_v[sj],si);perBCx(s_w[sj],si);
 #else
-		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
+		wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
 #endif
 	}
-	derDevShared1x(&wrk1,s_u[sj],si);
-	stress[0][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_v[sj],si);
-	stress[1][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_w[sj],si);
-	stress[2][id.g] = wrk1;
+
+	__syncthreads();
+
+	myprec wrk1;
+	derDevShared1x(&wrk1,s_u[sj],si); stress[0][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_v[sj],si); stress[1][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_w[sj],si); stress[2][id.g] = wrk1;
+
 }
 
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]) {
@@ -110,6 +107,13 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 //	stress[8][id.g] = 2.0*dwdz - 2.0/3.0*dil[id.g];
 
 
+}
+
+__device__ void calcPressureGrad(myprec *dpdz, myprec *w) {
+	myprec dpdz_prev = *dpdz;
+	reduceToOne(dpdz,w);
+	*dpdz = *dpdz/mx/my/mz;
+	*dpdz = 0.99*dpdz_prev - 0.5*(*dpdz - 1.0);
 }
 
 __device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {

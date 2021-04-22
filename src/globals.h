@@ -7,29 +7,33 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//Remember : Viscous stencil should always be smaller than the advective stencil!!!
+
 #define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 4  // the order is double the stencilSize (viscous fluxes stencil)
 
-#define Lx       (2*M_PI)
+#define Lx       (2)
 #define Ly       (2*M_PI)
-#define Lz       (2*M_PI)
-#define mx       128
-#define my       128
-#define mz       128
-#define nsteps   1001
-#define nfiles	 10
-#define CFL      0.35f
+#define Lz       (12.0)
+#define mx       192
+#define my       192
+#define mz       192
+#define nsteps   1
+#define nfiles	 100
+#define CFL      0.7f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method and rk = 2 is the Adam's Bashforth method
 
-#define Re       1600.f
-#define Pr       1.f
+#define Re       3000.f
+#define Pr       0.71f
 #define gamma    1.4f
-#define Ma       0.1f
+#define Ma       0.2f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
-#define viscexp  0.7
+#define viscexp  0.0
 
-#define periodicX (true)
+#define forcing       (true)
+#define periodicX     (false)
+#define nonUniformX   (true)
 
 #define capabilityMin 60
 #define checkCFLcondition 50
@@ -67,7 +71,7 @@ const double coeffVS[] = {-1.0/560.0,  8.0/315.0, -1.0/5.0,  8.0/5.0,  -205.0/72
 
 extern double dt;
 
-extern double x[mx],y[my],z[mz];
+extern double dx,x[mx],xp[mx],xpp[mx],y[my],z[mz];
 
 extern double r[mx*my*mz];
 extern double u[mx*my*mz];

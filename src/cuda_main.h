@@ -56,7 +56,7 @@ __device__ myprec *d_rhse4[3];
 
 __device__ myprec *sij[9];
 
-__device__ myprec dt2,dtC;
+__device__ myprec dt2,dtC,dpdz;
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c[3], myprec *dt);
 __global__ void eulerSumR(myprec *a, myprec *b, myprec *c[3], myprec *r, myprec *dt);

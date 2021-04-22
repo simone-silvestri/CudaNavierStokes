@@ -35,7 +35,7 @@
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil) {
+		myprec *sij[9], myprec *dil, myprec dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
@@ -177,7 +177,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil) {
+		myprec *sij[9], myprec *dil, myprec dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidYFlx();
@@ -203,9 +203,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	__shared__ myprec s_p[sPencils][my+stencilSize*2];
 	__shared__ myprec s_m[sPencils][my+stencilSize*2];
 	__shared__ myprec s_l[sPencils][my+stencilSize*2];
-	__shared__ myprec s_s3[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_s4[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_s5[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s3[sPencils][my+stencilSize*2];
+	__shared__ myprec s_s4[sPencils][my+stencilSize*2];
+	__shared__ myprec s_s5[sPencils][my+stencilSize*2];
 	__shared__ myprec s_dil[sPencils][my+stencilSize*2];
 
 	s_r[sj][si] = r[id.g];
@@ -304,7 +304,7 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil) {
+		myprec *sij[9], myprec *dil, myprec dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidZFlx();
@@ -423,8 +423,8 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	rZ[id.g] = rZtmp;
 	uZ[id.g] = uZtmp;
 	vZ[id.g] = vZtmp;
-	wZ[id.g] = wZtmp;
-	eZ[id.g] = eZtmp; // + 1.0*s_w[sj][si] ;
+	wZ[id.g] = wZtmp + dpdz;
+	eZ[id.g] = eZtmp + dpdz*s_w[sj][si] ;
 	__syncthreads();
 }
 
@@ -433,7 +433,7 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 __global__ void RHSDeviceSharedFlxX_old(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil) {
+		myprec *sij[9], myprec *dil, myprec dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
@@ -577,7 +577,7 @@ __global__ void RHSDeviceSharedFlxX_old(myprec *rX, myprec *uX, myprec *vX, mypr
 __global__ void RHSDeviceSharedFlxY_old(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil) {
+		myprec *sij[9], myprec *dil, myprec dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidYFlx();
@@ -603,9 +603,9 @@ __global__ void RHSDeviceSharedFlxY_old(myprec *rY, myprec *uY, myprec *vY, mypr
 	__shared__ myprec s_p[sPencils][my+stencilSize*2];
 	__shared__ myprec s_m[sPencils][my+stencilSize*2];
 	__shared__ myprec s_l[sPencils][my+stencilSize*2];
-	__shared__ myprec s_s1[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_s2[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_s3[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_s1[sPencils][my+stencilSize*2];
+	__shared__ myprec s_s2[sPencils][my+stencilSize*2];
+	__shared__ myprec s_s3[sPencils][my+stencilSize*2];
 	__shared__ myprec s_wrk[sPencils][my+stencilSize*2];
 
 	s_r[sj][si] = r[id.g];
@@ -708,7 +708,7 @@ __global__ void RHSDeviceSharedFlxY_old(myprec *rY, myprec *uY, myprec *vY, mypr
 __global__ void RHSDeviceSharedFlxZ_old(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil) {
+		myprec *sij[9], myprec *dil, myprec dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidZFlx();
@@ -832,7 +832,7 @@ __global__ void RHSDeviceSharedFlxZ_old(myprec *rZ, myprec *uZ, myprec *vZ, mypr
 	rZ[id.g] = rZtmp;
 	uZ[id.g] = uZtmp;
 	vZ[id.g] = vZtmp;
-	wZ[id.g] = wZtmp;
-	eZ[id.g] = eZtmp + wrk2;
+	wZ[id.g] = wZtmp + dpdz;
+	eZ[id.g] = eZtmp + dpdz*s_w[sj][si] ;
 }
 

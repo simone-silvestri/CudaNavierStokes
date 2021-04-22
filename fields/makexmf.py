@@ -7,16 +7,21 @@ from writexmf import writexmf
 
 precision = 'double'
 
-x = np.linspace(0,2,128)
-y = np.linspace(0,np.pi,128)
-z = np.linspace(0,2*np.pi,128)
+x = np.fromfile('x.bin', dtype=precision)
+y = np.fromfile('y.bin', dtype=precision)
+z = np.fromfile('z.bin', dtype=precision)
 
 writexmf("fieldtest.xmf", precision, \
          x, y, z, \
-         np.arange(0,201,20), 1.0, \
+         np.arange(0,3,1), 1.0, \
          ['r',\
 	  'u',\
 	  'v',\
           'w',\
 	  'e'])
 
+         ##['r',\
+	 ## 'u',\
+	 ## 'v',\
+         ## 'w',\
+	 ## 'e'])

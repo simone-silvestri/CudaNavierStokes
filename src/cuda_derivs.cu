@@ -74,6 +74,10 @@ __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 
 	*df = 0.5*d_dx*(flxm - flxp);
 
+#if !nonUniformX
+	*df = (*df)*d_xp[si-stencilSize];
+#endif
+
 	__syncthreads();
 }
 
@@ -93,6 +97,10 @@ __device__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 		}
 
 	*df = 0.25*d_dx*(flxm - flxp);
+
+#if !nonUniformX
+	*df = (*df)*d_xp[si-stencilSize];
+#endif
 
 	__syncthreads();
 }
@@ -638,8 +646,14 @@ __device__ void derDevShared1x(myprec *df, myprec *s_f, int si)
 {
 	*df = 0.0;
 	for (int it=0; it<stencilSize; it++)  {
-		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dx;
+		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it]);
 	}
+
+	*df = *df*d_dx;
+
+#if nonUniformX
+	*df = *df*d_xp[si-stencilSize];
+#endif
 
 	__syncthreads();
 }
@@ -652,6 +666,14 @@ __device__ void derDevShared2x(myprec *d2f, myprec *s_f, int si)
 		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2x;
 	}
 
+#if nonUniformX
+	myprec df = 0;
+	for (int it=0; it<stencilSize; it++)  {
+		df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dx;
+	}
+	*d2f = *d2f*d_xp[si-stencilSize]*d_xp[si-stencilSize] + df*d_xpp[si-stencilSize];
+#endif
+
 	__syncthreads();
 
 }
@@ -660,8 +682,13 @@ __device__ void derDevSharedV1x(myprec *df, myprec *s_f, int si)
 {
 	*df = 0.0;
 	for (int it=0; it<stencilVisc; it++)  {
-		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it])*d_dx;
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it]);
 	}
+
+	*df = *df*d_dx;
+#if nonUniformX
+	*df = *df*d_xp[si-stencilSize];
+#endif
 
 	__syncthreads();
 }
@@ -673,6 +700,15 @@ __device__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si)
 	for (int it=0; it<stencilVisc; it++)  {
 		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2x;
 	}
+
+#if nonUniformX
+	myprec df = 0;
+	for (int it=0; it<stencilSize; it++)  {
+		df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dx;
+	}
+	*d2f = *d2f*d_xp[si-stencilSize]*d_xp[si-stencilSize] + df*d_xpp[si-stencilSize];
+#endif
+
 
 	__syncthreads();
 
@@ -735,7 +771,7 @@ __device__ void derDevShared1z(myprec *df, myprec *s_f, int si)
 __device__ void derDevShared2z(myprec *d2f, myprec *s_f, int si)
 {
 
-	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2y;
+	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2z;
 	for (int it=0; it<stencilSize; it++)  {
 		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2z;
 	}
@@ -757,7 +793,7 @@ __device__ void derDevSharedV1z(myprec *df, myprec *s_f, int si)
 __device__ void derDevSharedV2z(myprec *d2f, myprec *s_f, int si)
 {
 
-	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2y;
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2z;
 	for (int it=0; it<stencilVisc; it++)  {
 		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2z;
 	}

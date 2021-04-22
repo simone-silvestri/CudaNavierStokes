@@ -5,7 +5,10 @@
 #define MIN(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a <= _b ? _a : _b; })
 
 extern void writeFields(int timestep);
-extern void initProfile();
+void initFile(int timestep);
+extern void initCHIT();
+extern void initGrid();
+extern void initChannel();
 extern void calcdt();
 
 #endif

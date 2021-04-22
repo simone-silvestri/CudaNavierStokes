@@ -49,11 +49,11 @@ TARGET = ns
 
 
 ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_main_3streams.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o $(OBJ)boundary.o
+OBJ_CUDA = $(OBJ)cuda_main_3streams.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o 
 endif
 
 # List of objects
-OBJ_SRC = $(OBJ)main.o
+OBJ_SRC = $(OBJ)main.o $(OBJ)init.o
 
 OBJECTS = $(OBJ_CUDA) $(OBJ_SRC)
 
@@ -64,7 +64,10 @@ $(TARGET): $(OBJECTS)
 
 $(OBJ)main.o: $(SRC)main.cu
 	$(CC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o
-
+	
+$(OBJ)init.o: $(SRC)init.cu
+	$(CC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)init.cu $(CFLAGS) -o $(OBJ)init.o
+	
 ifeq ($(ARCH),GPU)
 $(OBJ)cuda_main_3streams.o: $(SRC)cuda_main_3streams.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_main_3streams.cu $(FLAG2) -o $(OBJ)cuda_main_3streams.o
@@ -74,9 +77,6 @@ $(OBJ)calc_stress.o: $(SRC)calc_stress.cu
 
 $(OBJ)cuda_rhs.o: $(SRC)cuda_rhs.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_rhs.cu $(FLAG2) -o $(OBJ)cuda_rhs.o
-
-$(OBJ)boundary.o: $(SRC)boundary.cu
-	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)boundary.cu $(FLAG2) -o $(OBJ)boundary.o
 
 $(OBJ)cuda_math.o: $(SRC)cuda_math.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_math.cu $(FLAG2) -o $(OBJ)cuda_math.o

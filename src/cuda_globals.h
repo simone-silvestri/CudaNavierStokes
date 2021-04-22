@@ -60,7 +60,7 @@ extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
 extern __constant__ myprec dcoeffVF[stencilVisc];
 extern __constant__ myprec dcoeffVS[stencilVisc+1];
-extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z;
+extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_xpp[mx];
 
 #if (capability>capabilityMin)
 extern __constant__ dim3 d_block[5], grid0;
@@ -76,16 +76,8 @@ extern __device__ myprec d_u[mx*my*mz];
 extern __device__ myprec d_v[mx*my*mz];
 extern __device__ myprec d_w[mx*my*mz];
 extern __device__ myprec d_e[mx*my*mz];
-//
-//#define nVar     12     // boundaries that have to be calculated (0->r, 1->u, 2->v, 3->w, 5->t, 6-> sxx, 7-> sxy, 8-> sxz, 9-> syy, 10-> syz, 11-> szz, 12-> dil)
-//extern __device__ myprec boundXPos[mx*stencilSize*2*nVar];
-//extern __device__ myprec boundXNeg[mx*stencilSize*2*nVar];
-//extern __device__ myprec boundYPos[my*stencilSize*2*nVar];
-//extern __device__ myprec boundYNeg[my*stencilSize*2*nVar];
-//extern __device__ myprec boundZPos[mz*stencilSize*2*nVar];
-//extern __device__ myprec boundZNeg[mz*stencilSize*2*nVar];
 
 
-extern __device__ myprec dt2,dtC;
+extern __device__ myprec dt2,dtC,dpdz;
 
 #endif
