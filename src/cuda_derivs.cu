@@ -15,47 +15,6 @@
 #include "cuda_globals.h"
 
 
-__device__ void fluxQuadSharedG(myprec *df, myprec *s_f, myprec *s_g, int si, myprec dg)
-{
-
-
-	myprec flxp,flxm;
-
-	flxp = 0.0;
-	flxm = 0.0;
-	__syncthreads();
-
-	for (int lt=1; lt<stencilSize+1; lt++)
-		for (int mt=0; mt<lt; mt++) {
-			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
-			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1]);
-		}
-
-	*df = 0.5*dg*(flxm - flxp);
-
-	__syncthreads();
-}
-
-__device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, myprec dg)
-{
-
-	myprec flxp,flxm;
-
-	flxp = 0.0;
-	flxm = 0.0;
-	__syncthreads();
-
-	for (int lt=1; lt<stencilSize+1; lt++)
-		for (int mt=0; mt<lt; mt++) {
-			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
-			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1])*(s_h[si-mt-1]+s_h[si-mt+lt-1]);
-		}
-
-	*df = 0.25*dg*(flxm - flxp);
-
-	__syncthreads();
-}
-
 __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
 
@@ -74,7 +33,7 @@ __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 
 	*df = 0.5*d_dx*(flxm - flxp);
 
-#if !nonUniformX
+#if nonUniformX
 	*df = (*df)*d_xp[si-stencilSize];
 #endif
 
@@ -98,7 +57,7 @@ __device__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_
 
 	*df = 0.25*d_dx*(flxm - flxp);
 
-#if !nonUniformX
+#if nonUniformX
 	*df = (*df)*d_xp[si-stencilSize];
 #endif
 

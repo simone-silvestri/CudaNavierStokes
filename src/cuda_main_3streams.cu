@@ -36,6 +36,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
     		if(forcing)  calcPressureGrad(&dpdz,d_w);
     	}
+
     	dt2 = dtC/2.;
     	if(istep==0) {
     		time[istep] = time[nsteps-1] + dtC;
@@ -336,7 +337,6 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 	clearStress();
 }
 #endif
-
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c[3], myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);

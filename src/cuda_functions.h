@@ -148,8 +148,6 @@ __device__ void derDevShared1z(myprec *df , myprec *s_f, int si);
 __device__ void derDevShared2z(myprec *d2f, myprec *s_f, int si);
 __device__ void derDevSharedV1z(myprec *df , myprec *s_f, int si);
 __device__ void derDevSharedV2z(myprec *d2f, myprec *s_f, int si);
-__device__ void fluxQuadSharedG(myprec *df, myprec *s_f, myprec *s_g, int si, myprec dg);
-__device__ void fluxCubeSharedG(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si, myprec dg);
 __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si);
 __device__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
 __device__ void fluxQuadSharedy(myprec *df, myprec *s_f, myprec *s_g, int si);

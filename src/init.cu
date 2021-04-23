@@ -26,43 +26,48 @@ void calcdt() {
 	}
 	dt = CFL/MAX(dtConvInv, dtViscInv);
 
-	printf("this is the dt %lf\n",dt);
+	printf("the initial dt is: %lf\n",dt);
 
 }
 
+void initFile(int timestep) {
 
-//void initFile(int timestep) {
-//
-//	char str[80];
-//	sprintf(str, "fields/r.%07d.bin",timestep);
-//
-//	FILE *fb = fopen(str,"wb");
-//	fread(r , mx*my*mz , sizeof(str) , fb );
-//	fclose(fb);
-//
-//	sprintf(str, "fields/u.%07d.bin",timestep);
-//	fb = fopen(str,"wb");
-//	fread(u , mx*my*mz , sizeof(str) , fb );
-//	fclose(fb);
-//
-//	sprintf(str, "fields/v.%07d.bin",timestep);
-//	fb = fopen(str,"wb");
-//	fread(v , mx*my*mz , sizeof(str) , fb );
-//	fclose(fb);
-//
-//	sprintf(str, "fields/w.%07d.bin",timestep);
-//	fb = fopen(str,"wb");
-//	fread(w , mx*my*mz , sizeof(str) , fb );
-//	fclose(fb);
-//
-//	sprintf(str, "fields/e.%07d.bin",timestep);
-//	fb = fopen(str,"wb");
-//	fread(e , mx*my*mz , sizeof(str) , fb );
-//	fclose(fb);
-//
-//
-//}
+	char str[80];
+	size_t result;
+	sprintf(str, "fields/r.%07d.bin",timestep);
+	int lSize = mx*my*mz;
 
+	FILE *fb = fopen(str,"rb");
+	result = fread(r , sizeof(double) , mx*my*mz , fb );
+	if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+	fclose(fb);
+
+	sprintf(str, "fields/u.%07d.bin",timestep);
+	fb = fopen(str,"rb");
+	result = fread(u , sizeof(double) , mx*my*mz ,  fb );
+	if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+	fclose(fb);
+
+	sprintf(str, "fields/v.%07d.bin",timestep);
+	fb = fopen(str,"rb");
+	result = fread(v , sizeof(double) , mx*my*mz , fb );
+	if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+	fclose(fb);
+
+	sprintf(str, "fields/w.%07d.bin",timestep);
+	fb = fopen(str,"rb");
+	result = fread(w , sizeof(double) , mx*my*mz , fb );
+	if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+	fclose(fb);
+
+	sprintf(str, "fields/e.%07d.bin",timestep);
+	fb = fopen(str,"rb");
+	result = fread(e , sizeof(double) , mx*my*mz , fb );
+	if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+	fclose(fb);
+
+
+}
 
 void initGrid() {
 
@@ -85,6 +90,7 @@ void initGrid() {
 #if !nonUniformX
 	for(int i=0;i<mx;i++) {
 			x[i]=Lx*(0.5+i*1.0)/(mx);  }
+
 	dx = x[1] - x[0];
 
 #endif
@@ -145,14 +151,7 @@ void initChannel() {
 				e[idx(i,j,k)] = P0/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 
-    FILE *fp = fopen("initial.txt","w+");
-	for(int k=0; k<mz; k++)
-		for(int i=0; i<mx; i++)
-			fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
-	fclose(fp);
-	writeFields(0);
 }
-
 
 void initCHIT() {
 
@@ -176,16 +175,7 @@ void initCHIT() {
 				r[idx(i,j,k)] = press/Rgas/T0;
 				e[idx(i,j,k)] = press/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
-
-    FILE *fp = fopen("initial.txt","w+");
-	for(int k=0; k<mz; k++)
-		for(int i=0; i<mx; i++)
-			fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
-	fclose(fp);
-	writeFields(0);
 }
-
-
 
 void writeFields(int timestep) {
 

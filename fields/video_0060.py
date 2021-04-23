@@ -51,8 +51,8 @@ SetActiveView(renderView1)
 # ----------------------------------------------------------------
 
 # create a new 'XDMF Reader'
-field128xmf = XDMFReader(FileNames=['/home/simone/Dropbox/cuda-solvers/fields/field.0060.xmf'])
-field128xmf.PointArrayStatus = ['u', 'v', 'w']
+field128xmf = XDMFReader(FileNames=['/home/simone/Dropbox/cuda-solvers/fields/fieldtest.xmf'])
+field128xmf.PointArrayStatus = ['r','u', 'v', 'w','e']
 field128xmf.GridStatus = ['T0000000']
 
 # create a new 'Calculator'
@@ -72,8 +72,8 @@ calculator2.Function = 'Vorticity_Z'
 
 # create a new 'Resample To Image'
 resampleToImage1 = ResampleToImage(Input=calculator2)
-resampleToImage1.SamplingDimensions = [192, 128, 160]
-resampleToImage1.SamplingBounds = [0.0, 3.1415925, 0.0, 6.283185, 0.0, 5.0]
+resampleToImage1.SamplingDimensions = [192, 192, 192]
+resampleToImage1.SamplingBounds = [0.0, 2.0, 0.0, 6.283185, 0.0, 12.0]
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'

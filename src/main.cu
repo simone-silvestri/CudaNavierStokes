@@ -29,8 +29,9 @@ int main(int argc, char** argv) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	initGrid();
-	initChannel();
+	initFile(1);
 	calcdt();
+	writeFields(0);
 
 	dim3 grid, block;
 
@@ -51,8 +52,6 @@ int main(int argc, char** argv) {
 
 	copyField(0);  //Initializing solution on the GPU
 
-	FILE *fp = fopen("solution.txt","w+");
-
 	/* Increase GPU default limits to accomodate the computations */
 
 	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
@@ -62,6 +61,13 @@ int main(int argc, char** argv) {
 
 	//cudaSetDevice(1);
 
+    FILE *fp = fopen("initial.txt","w+");
+	for(int k=0; k<mz; k++)
+		for(int i=0; i<mx; i++)
+			fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
+	fclose(fp);
+
+	fp = fopen("solution.txt","w+");
 	for(int file = 1; file<nfiles+1; file++) {
 
 	    runDevice<<<grid,block>>>(dkin,denst,dtime);  //running the simulation on the GPU
@@ -75,8 +81,8 @@ int main(int argc, char** argv) {
 	    checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
 	    checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
 
-	    checkGpuMem();
-	    printf("step: %d\t time: %lf\tkin: %lf\t enstr: %lf\n",file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
+//	    checkGpuMem();
+	    printf("file number: %d\t step: %d\t time: %lf\t kin: %lf\t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
 		for(int t=0; t<nsteps-1; t++)
 				fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hkin[t],henst[t],htime[t+1]-htime[t]);
 	}
@@ -94,7 +100,9 @@ int main(int argc, char** argv) {
 	cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 	cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::seconds>     (end - begin).count() << "[s]" << std::endl;
 
-	cout << "The final time step is: " << dt << "\n";
+	double timePerTimeStep = ((double) (std::chrono::duration_cast<std::chrono::seconds>  (end - begin).count()))/(nfiles*nsteps);
+
+	cout << "The simulation time per time step is: " << timePerTimeStep << "\n";
 
 	cout << "Simulation is finished! \n";
 

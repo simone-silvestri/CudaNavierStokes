@@ -132,22 +132,30 @@ __device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec
 
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
 
-	int threadsPerBlock  = blockDim.x * blockDim.y;
-	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
-	int blockNumInGrid   = blockIdx.x  + gridDim.x  * blockIdx.y;
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	int gt = blockNumInGrid * threadsPerBlock + threadNumInBlock;
-
-    myprec dtConvInv = 0.0;
+	myprec dtConvInv = 0.0;
     myprec dtViscInv = 0.0;
 
-    myprec ien = e[gt]/r[gt] - 0.5*(u[gt]*u[gt] + v[gt]*v[gt] + w[gt]*w[gt]);
+    myprec ien = e[id.g]/r[id.g] - 0.5*(u[id.g]*u[id.g] + v[id.g]*v[id.g] + w[id.g]*w[id.g]);
     myprec sos = pow(gamma*(gamma-1)*ien,0.5);
 
-    dtConvInv =  MAX( (abs(u[gt]) + sos)*d_dx, MAX( (abs(v[gt]) + sos)*d_dy, (abs(w[gt]) + sos)*d_dz) );
-    dtViscInv =  MAX( mu[gt]*d_d2x, MAX( mu[gt]*d_d2y, mu[gt]*d_d2z) );
+    myprec dx,d2x;
 
-    wrkArray[gt] = CFL/MAX(dtConvInv, dtViscInv);
+    if(id.i==0) {
+    	dx = (d_x[id.i+1] + d_x[id.i])/2.0;
+    } else if (id.i==mx-1) {
+    	dx = Lx - (d_x[id.i] + d_x[id.i-1])/2.0;
+    } else {
+    	dx = (d_x[id.i+1] - d_x[id.i-1])/2.0;
+    }
+
+    d2x = dx*dx;
+
+    dtConvInv =  MAX( (abs(u[id.g]) + sos)/dx, MAX( (abs(v[id.g]) + sos)*d_dy, (abs(w[id.g]) + sos)*d_dz) );
+    dtViscInv =  MAX( mu[id.g]/d2x, MAX( mu[id.g]*d_d2y, mu[id.g]*d_d2z) );
+
+    wrkArray[id.g] = CFL/MAX(dtConvInv, dtViscInv);
     __syncthreads();
 
 }

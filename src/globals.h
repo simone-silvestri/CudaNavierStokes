@@ -12,16 +12,16 @@
 #define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 4  // the order is double the stencilSize (viscous fluxes stencil)
 
-#define Lx       (2)
+#define Lx       (2.0)
 #define Ly       (2*M_PI)
 #define Lz       (12.0)
 #define mx       192
 #define my       192
 #define mz       192
-#define nsteps   1
+#define nsteps   2001
 #define nfiles	 100
-#define CFL      0.7f
-#define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method and rk = 2 is the Adam's Bashforth method
+#define CFL      0.8f
+#define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
 #define Re       3000.f
 #define Pr       0.71f
