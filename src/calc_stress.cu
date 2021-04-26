@@ -111,8 +111,8 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 
 __device__ void calcPressureGrad(myprec *dpdz, myprec *w) {
 	myprec dpdz_prev = *dpdz;
-	reduceToOne(dpdz,w);
-	*dpdz = *dpdz/mx/my/mz;
+	volumeIntegral(dpdz,w);
+	*dpdz = *dpdz/Lx/Ly/Lz;
 	*dpdz = 0.99*dpdz_prev - 0.5*(*dpdz - 1.0);
 }
 
@@ -141,15 +141,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
     myprec sos = pow(gamma*(gamma-1)*ien,0.5);
 
     myprec dx,d2x;
-
-    if(id.i==0) {
-    	dx = (d_x[id.i+1] + d_x[id.i])/2.0;
-    } else if (id.i==mx-1) {
-    	dx = Lx - (d_x[id.i] + d_x[id.i-1])/2.0;
-    } else {
-    	dx = (d_x[id.i+1] - d_x[id.i-1])/2.0;
-    }
-
+    dx = d_dxv[id.i];
     d2x = dx*dx;
 
     dtConvInv =  MAX( (abs(u[id.g]) + sos)/dx, MAX( (abs(v[id.g]) + sos)*d_dy, (abs(w[id.g]) + sos)*d_dz) );
@@ -176,8 +168,8 @@ __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
 #endif
 	cudaDeviceSynchronize();
-	reduceToOne(kin,d_workSX);
-	*kin *= dV/2.0/Lx/Ly/Lz;
+	volumeIntegral(kin,w);
+	*kin *= 1.0/Lx/Ly/Lz;
 #if (capability < capabilityMin)
 	deviceSub<<<gr0,bl0>>>(d_workSX,stress[5],stress[7]);
 	deviceSub<<<gr0,bl0>>>(d_workSY,stress[6],stress[2]);
@@ -194,6 +186,6 @@ __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
 #endif
 	cudaDeviceSynchronize();
-	reduceToOne(enst,d_workSX);
-	*enst *= dV/Lx/Ly/Lz/Re;
+	volumeIntegral(enst,d_workSX);
+	*enst = *enst/Lx/Ly/Lz/Re;
 }

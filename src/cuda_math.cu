@@ -89,6 +89,26 @@ __device__ void reduceToMin(myprec *gOut, myprec *var) {
 
 }
 
+__device__ void volumeIntegral(myprec *gOut, myprec *var) {
+
+	grid  = my*mz;
+	block = mx;
+	total = mx*my*mz;
+
+	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	block = findPreviousPowerOf2(block);
+
+	integrateThreads<<<grid, block, block*sizeof(myprec)>>>(wrkM, var , total);
+	cudaDeviceSynchronize();
+	reduceThreads<<<   1, block, block*sizeof(myprec)>>>(wrkM, wrkM, grid);
+	cudaDeviceSynchronize();
+
+	*gOut = wrkM[0];
+	checkCudaDev( cudaFree(wrkM  ) );
+}
+
 __device__ void reduceToOne(myprec *gOut, myprec *var) {
 
 	total = mx*my*mz;
@@ -112,6 +132,37 @@ __device__ void reduceToOne(myprec *gOut, myprec *var) {
 
 	*gOut = wrkM[0];
 	checkCudaDev( cudaFree(wrkM  ) );
+
+}
+
+__global__ void integrateThreads(myprec *gOut, myprec *gArr, int arraySize) {
+
+	int bdim  = blockDim.x;
+	int tix   = threadIdx.x;
+	int bix   = blockIdx.x;
+	int gdim  = gridDim.x*blockDim.x;
+
+	int glb   = tix + bix * bdim;
+	myprec dx;
+
+	myprec sum = 0;
+	for (int it = glb; it < arraySize; it += gdim) {
+		int i = it%my;
+		sum += gArr[it]*d_dxv[i]/d_dy/d_dz;
+	}
+	extern __shared__ myprec shArr[];
+	shArr[tix] = sum;
+	__syncthreads();
+	for (int size = bdim/2; size>0; size/=2) {
+		if (tix<size)
+			shArr[tix] += shArr[tix+size];
+		__syncthreads();
+	}
+	if (tix == 0) {
+			gOut[bix] = shArr[0];
+	}
+
+	__syncthreads();
 
 }
 
