@@ -9,10 +9,10 @@
 
 void calcdt() {
 
-	double dx = x[1] - x[0];
+	double dx;
 	double dy = y[1] - y[0];
 	double dz = z[1] - z[0];
-	double dx2 = dx*dx;
+	double dx2;
 	double dy2 = dy*dy;
 	double dz2 = dz*dz;
 	double dtConvInv = 0.0;
@@ -21,8 +21,24 @@ void calcdt() {
 		double ien = e[gt]/r[gt] - 0.5*(u[gt]*u[gt] + v[gt]*v[gt] + w[gt]*w[gt]);
 		double sos = pow(gamma*(gamma-1)*ien,0.5);
 
-		dtConvInv =  MAX( dtConvInv, MAX( (abs(u[gt]) + sos)/dx, MAX( (abs(v[gt]) + sos)/dy, (abs(w[gt]) + sos)/dz) ) );
-		dtViscInv =  MAX( dtViscInv, MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) ) );
+		int i = gt%my;
+
+	    if(i==0) {
+	    	dx = (x[i+1] + x[i])/2.0;
+	    } else if (i==mx-1) {
+	    	dx = Lx - (x[i] + x[i-1])/2.0;
+	    } else {
+	    	dx = (x[i+1] - x[i-1])/2.0;
+	    }
+
+	    dx2 = dx*dx;
+
+	    double dtc1, dtv1;
+
+	    dtc1      =  MAX( (abs(u[gt]) + sos)/dx, MAX( (abs(v[gt]) + sos)/dy, (abs(w[gt]) + sos)/dz) );
+	    dtv1      =  MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) );
+		dtConvInv =  MAX( dtConvInv, dtc1 );
+		dtViscInv =  MAX( dtViscInv, dtv1 );
 	}
 	dt = CFL/MAX(dtConvInv, dtViscInv);
 
@@ -71,14 +87,12 @@ void initFile(int timestep) {
 
 void initGrid() {
 
-	double stretch = 4.0;
-
 	//constant grid in y and z and stretched in x
 	for(int i=0;i<mx;i++) {
 		double fact    =  (i*1.0)/(mx) - 0.5;
     	x[i]  =  0.5*(1.0+tanh(stretch*fact)/tanh(stretch*0.5))*Lx;
        xp[i]  =  1./(0.5*stretch/tanh(stretch/2.)/(cosh(stretch*fact)*cosh(stretch*fact)));
-      xpp[i]  = - stretch*stretch*tanh(stretch*fact)/tanh(stretch/2.)/(cosh(stretch*fact)*cosh(stretch*fact));
+      xpp[i]  = - stretch*stretch*tanh(stretch*fact)/tanh(stretch/2.)/(cosh(stretch*fact)*cosh(stretch*fact))/Lx;
 	}
 	double bias = (Lx - x[mx-1])/2.0;
 	for(int i=0;i<mx;i++) {

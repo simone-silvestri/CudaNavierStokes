@@ -620,17 +620,17 @@ __device__ void derDevShared1x(myprec *df, myprec *s_f, int si)
 __device__ void derDevShared2x(myprec *d2f, myprec *s_f, int si)
 {
 
+
+#if nonUniformX
+	*d2f = 0.0;
+	for (int it=0; it<2*stencilSize+1; it++)  {
+		*d2f += dcoeffSx[it*mx+(si-stencilSize)]*(s_f[si+it-stencilSize]);
+	}
+#else
 	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2x;
 	for (int it=0; it<stencilSize; it++)  {
 		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2x;
 	}
-
-#if nonUniformX
-	myprec df = 0;
-	for (int it=0; it<stencilSize; it++)  {
-		df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dx;
-	}
-	*d2f = *d2f*d_xp[si-stencilSize]*d_xp[si-stencilSize] + df*d_xpp[si-stencilSize];
 #endif
 
 	__syncthreads();
@@ -655,19 +655,17 @@ __device__ void derDevSharedV1x(myprec *df, myprec *s_f, int si)
 __device__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si)
 {
 
+#if nonUniformX
+	*d2f = 0.0;
+	for (int it=0; it<2*stencilVisc+1; it++)  {
+		*d2f += dcoeffVSx[it*mx+(si-stencilSize)]*(s_f[si+it-stencilVisc]);
+	}
+#else
 	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2x;
 	for (int it=0; it<stencilVisc; it++)  {
 		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2x;
 	}
-
-#if nonUniformX
-	myprec df = 0;
-	for (int it=0; it<stencilSize; it++)  {
-		df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dx;
-	}
-	*d2f = *d2f*d_xp[si-stencilSize]*d_xp[si-stencilSize] + df*d_xpp[si-stencilSize];
 #endif
-
 
 	__syncthreads();
 

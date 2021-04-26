@@ -7,24 +7,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//Remember : Viscous stencil should always be smaller than the advective stencil!!!
+//Remember : Viscous stencil should always be smaller than the advective stencil!!! (otherwise errors in how you load in shared memory)
 
 #define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 4  // the order is double the stencilSize (viscous fluxes stencil)
 
 #define Lx       (2.0)
-#define Ly       (2*M_PI)
+#define Ly       (2.0*M_PI)
 #define Lz       (12.0)
 #define mx       192
 #define my       192
 #define mz       192
-#define nsteps   2001
-#define nfiles	 100
+#define nsteps   1001
+#define nfiles	 200
 #define CFL      0.8f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
-#define Re       3000.f
-#define Pr       0.71f
+#define Re       8000.f
+#define Pr       1.0f
 #define gamma    1.4f
 #define Ma       0.2f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
@@ -35,8 +35,11 @@
 #define periodicX     (false)
 #define nonUniformX   (true)
 
+const double stretch = 4.0;
+
+
 #define capabilityMin 60
-#define checkCFLcondition 50
+#define checkCFLcondition 10
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 

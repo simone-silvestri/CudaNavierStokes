@@ -104,7 +104,6 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 #endif
     	cudaDeviceSynchronize();
 
-
     	//rk step 3
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,sij);

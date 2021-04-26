@@ -29,7 +29,8 @@ int main(int argc, char** argv) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	initGrid();
-	initFile(1);
+	initFile(200);
+//	initChannel();
 	calcdt();
 	writeFields(0);
 

@@ -14,7 +14,9 @@ __constant__ myprec dcoeffF[stencilSize];
 __constant__ myprec dcoeffS[stencilSize+1];
 __constant__ myprec dcoeffVF[stencilVisc];
 __constant__ myprec dcoeffVS[stencilVisc+1];
-__constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_xpp[mx];
+__constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
+__constant__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
+__constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx];
 #if (capability>capabilityMin)
 __constant__ dim3 d_block[5], grid0;
 __constant__ dim3 d_grid[5], block0;
@@ -69,10 +71,48 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   for (int it=0; it<stencilVisc+1; it++) {
 	  h_coeffVS[it] = (myprec) coeffVS[it]; }
 
+  //constructing the second order derivative coefficients in the x-direction
+  myprec *h_coeffVSx = new myprec[mx*(2*stencilVisc+1)];
+  for (int it=0; it<stencilVisc; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffVSx[idx] = (coeffVS[it]*(xp[i]*xp[i])*h_d2x - coeffVF[it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+  for (int i=0; i<mx; i++) {
+	  int idx = i + stencilVisc*mx;
+	  h_coeffVSx[idx] = coeffVS[stencilVisc]*(xp[i]*xp[i])*h_d2x;
+  }
+  for (int it=stencilVisc+1; it<2*stencilVisc+1; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffVSx[idx] = ( coeffVS[2*stencilVisc - it]*(xp[i]*xp[i])*h_d2x +
+				  	  	  	  coeffVF[2*stencilVisc - it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+
+  myprec *h_coeffSx = new myprec[mx*(2*stencilSize+1)];
+  for (int it=0; it<stencilVisc; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffSx[idx] = (coeffS[it]*(xp[i]*xp[i])*h_d2x - coeffF[it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+  for (int i=0; i<mx; i++) {
+	  int idx = i + stencilSize*mx;
+	  h_coeffSx[idx] = coeffS[stencilSize]*(xp[i]*xp[i])*h_d2x;
+  }
+  for (int it=stencilSize+1; it<2*stencilSize+1; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffSx[idx] = ( coeffVS[2*stencilSize - it]*(xp[i]*xp[i])*h_d2x +
+				  	  	  	 coeffVF[2*stencilSize - it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+
+
   checkCuda( cudaMemcpyToSymbol(dcoeffF , h_coeffF ,  stencilSize   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(dcoeffS , h_coeffS , (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(dcoeffVF, h_coeffVF,  stencilVisc   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(dcoeffVS, h_coeffVS, (stencilVisc+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffSx , h_coeffSx , mx*(2*stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffVSx, h_coeffVSx, mx*(2*stencilVisc+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 
   checkCuda( cudaMemcpyToSymbol(d_dt  , &h_dt  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_dx  , &h_dx  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
@@ -83,7 +123,6 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   checkCuda( cudaMemcpyToSymbol(d_d2z , &h_d2z ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_x   ,  h_x   ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_xp  ,  h_xp  ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
-  checkCuda( cudaMemcpyToSymbol(d_xpp ,  h_xpp ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 
   dim3 *h_grid, *h_block;
   h_grid  = new dim3[5];
@@ -133,6 +172,8 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   delete [] h_coeffS;
   delete [] h_coeffVF;
   delete [] h_coeffVS;
+  delete [] h_coeffSx;
+  delete [] h_coeffVSx;
   delete [] h_grid;
   delete [] h_block;
   delete [] h_x;
@@ -183,10 +224,48 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   for (int it=0; it<stencilVisc+1; it++) {
 	  h_coeffVS[it] = (myprec) coeffVS[it]; }
 
+  //constructing the second order derivative coefficients in the x-direction
+  myprec *h_coeffVSx = new myprec[mx*(2*stencilVisc+1)];
+  for (int it=0; it<stencilVisc; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffVSx[idx] = (coeffVS[it]*(xp[i]*xp[i])*h_d2x - coeffVF[it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+  for (int i=0; i<mx; i++) {
+	  int idx = i + stencilVisc*mx;
+	  h_coeffVSx[idx] = coeffVS[stencilVisc]*(xp[i]*xp[i])*h_d2x;
+  }
+  for (int it=stencilVisc+1; it<2*stencilVisc+1; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffVSx[idx] = ( coeffVS[2*stencilVisc - it]*(xp[i]*xp[i])*h_d2x +
+				  	  	  	  coeffVF[2*stencilVisc - it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+
+  myprec *h_coeffSx = new myprec[mx*(2*stencilSize+1)];
+  for (int it=0; it<stencilVisc; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffSx[idx] = (coeffS[it]*(xp[i]*xp[i])*h_d2x - coeffF[it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+  for (int i=0; i<mx; i++) {
+	  int idx = i + stencilSize*mx;
+	  h_coeffSx[idx] = coeffS[stencilSize]*(xp[i]*xp[i])*h_d2x;
+  }
+  for (int it=stencilSize+1; it<2*stencilSize+1; it++)
+	  for (int i=0; i<mx; i++) {
+		  int idx = i + it*mx;
+		  h_coeffSx[idx] = (  coeffVS[2*stencilSize - it]*(xp[i]*xp[i])*h_d2x +
+				  	  	  	  coeffVF[2*stencilSize - it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
+	  }
+
+
   checkCuda( cudaMemcpyToSymbol(dcoeffF , h_coeffF ,  stencilSize   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(dcoeffS , h_coeffS , (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(dcoeffVF, h_coeffVF,  stencilVisc   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(dcoeffVS, h_coeffVS, (stencilVisc+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffSx , h_coeffSx , mx*(2*stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+  checkCuda( cudaMemcpyToSymbol(dcoeffVSx, h_coeffVSx, mx*(2*stencilVisc+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 
 
   checkCuda( cudaMemcpyToSymbol(d_dt  , &h_dt  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
@@ -198,7 +277,6 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   checkCuda( cudaMemcpyToSymbol(d_d2z , &h_d2z ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_x   ,  h_x   ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
   checkCuda( cudaMemcpyToSymbol(d_xp  ,  h_xp  ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
-  checkCuda( cudaMemcpyToSymbol(d_xpp ,  h_xpp ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 
 
   int *h_grid, *h_block;
@@ -254,13 +332,14 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
   delete [] h_coeffS;
   delete [] h_coeffVF;
   delete [] h_coeffVS;
+  delete [] h_coeffSx;
+  delete [] h_coeffVSx;
   delete [] h_grid;
   delete [] h_block;
   delete [] h_grid0;
   delete [] h_block0;
   delete [] h_x;
   delete [] h_xp;
-  delete [] h_xpp;
 
 }
 #endif
@@ -349,7 +428,7 @@ __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	int globalThreadNum = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
 	if(forcing) {
-		dpdz = 0.6457e-2;
+		dpdz = 0;
 	} else {
 		dpdz = 0;
 	}

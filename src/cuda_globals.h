@@ -27,7 +27,7 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 {
 #if defined(DEBUG) || defined(_DEBUG)
   if (result != cudaSuccess) {
-    fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
+    printf("CUDA Runtime Error: %s\n", cudaGetErrorString(result));
     assert(result == cudaSuccess);
   }
 #endif
@@ -60,7 +60,9 @@ extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
 extern __constant__ myprec dcoeffVF[stencilVisc];
 extern __constant__ myprec dcoeffVS[stencilVisc+1];
-extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_xpp[mx];
+extern __constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
+extern __constant__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
+extern __constant__ myprec d_dt, d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx];
 
 #if (capability>capabilityMin)
 extern __constant__ dim3 d_block[5], grid0;
