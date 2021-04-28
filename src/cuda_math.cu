@@ -106,7 +106,7 @@ __device__ void volumeIntegral(myprec *gOut, myprec *var) {
 	cudaDeviceSynchronize();
 
 	*gOut = wrkM[0];
-	checkCudaDev( cudaFree(wrkM  ) );
+	checkCudaDev( cudaFree( wrkM ) );
 }
 
 __device__ void reduceToOne(myprec *gOut, myprec *var) {
@@ -146,7 +146,7 @@ __global__ void integrateThreads(myprec *gOut, myprec *gArr, int arraySize) {
 
 	myprec sum = 0;
 	for (int it = glb; it < arraySize; it += gdim) {
-		int i = it%my;
+		int i = it % mx;
 		sum += gArr[it]*d_dxv[i]/d_dy/d_dz;
 	}
 	extern __shared__ myprec shArr[];

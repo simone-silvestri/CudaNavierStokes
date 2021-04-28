@@ -38,7 +38,7 @@ FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include
 LIB = -L$(CUDA)/lib64 -lc -lstdc++ -lcuda ## -lcudart 
 NVCC = nvcc $(DBG) -lineinfo -rdc=true #--ptxas-options=-v  
-ifeq ($GPU),)
+ifeq ($(DBG),)
 NVCC += -O5  
 endif
 endif

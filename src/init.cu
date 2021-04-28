@@ -43,9 +43,6 @@ void calcdt() {
 		dtViscInv =  MAX( dtViscInv, dtv1 );
 	}
 	dt = CFL/MAX(dtConvInv, dtViscInv);
-
-	printf("the initial dt is: %lf\n",dt);
-
 }
 
 void initFile(int timestep) {
@@ -222,6 +219,97 @@ void writeFields(int timestep) {
 	fb = fopen(str,"wb");
 	fwrite(e , mx*my*mz , sizeof(double) , fb );
 	fclose(fb);
+}
+
+void calcAvgChan() {
+	double um[mx],vm[mx],wm[mx],rm[mx],em[mx];
+	double uf[mx],vf[mx],wf[mx],rf[mx],ef[mx];
+
+	FILE *fp = fopen("prof.txt","w+");
+	for (int i=0; i<mx; i++) {
+		rm[i] = 0.0;
+		um[i] = 0.0;
+		vm[i] = 0.0;
+		wm[i] = 0.0;
+		em[i] = 0.0;
+		rf[i] = 0.0;
+		uf[i] = 0.0;
+		vf[i] = 0.0;
+		wf[i] = 0.0;
+		ef[i] = 0.0;
+		for (int k=0; k<mz; k++)
+			for (int j=0; j<my; j++) {
+				rm[i] += r[idx(i,j,k)]/my/mz;
+				um[i] += r[idx(i,j,k)]*u[idx(i,j,k)]/my/mz;
+				vm[i] += r[idx(i,j,k)]*v[idx(i,j,k)]/my/mz;
+				wm[i] += r[idx(i,j,k)]*w[idx(i,j,k)]/my/mz;
+				em[i] += e[idx(i,j,k)]/my/mz;
+			}
+		um[i] /= rm[i];
+		vm[i] /= rm[i];
+		wm[i] /= rm[i];
+		for (int k=0; k<mz; k++)
+			for (int j=0; j<my; j++) {
+				rf[i] += (r[idx(i,j,k)]-rm[i])*(r[idx(i,j,k)]-rm[i])/my/mz;
+				uf[i] += (u[idx(i,j,k)]-um[i])*(u[idx(i,j,k)]-um[i])/my/mz;
+				vf[i] += (v[idx(i,j,k)]-vm[i])*(v[idx(i,j,k)]-vm[i])/my/mz;
+				wf[i] += (w[idx(i,j,k)]-wm[i])*(w[idx(i,j,k)]-wm[i])/my/mz;
+				ef[i] += (e[idx(i,j,k)]-em[i])*(e[idx(i,j,k)]-em[i])/my/mz;
+			}
+		fprintf(fp,"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",x[i],rm[i],um[i],vm[i],wm[i],em[i],rf[i],uf[i],vf[i],wf[i],ef[i]);
+
+	}
+	fclose(fp);
+
+}
+
+void printRes() {
+
+	double ut;
+
+	double Ret = 0.0;
+	double muw,temw;
+
+	for (int k=0; k<mz; k++)
+		for (int j=0; j<my; j++) {
+			    temw   = 1.0;
+			    double suth = pow(temw,viscexp);
+			    muw      = suth/Re;
+
+			    double ub[stencilSize*2+1];
+			    for (int i=stencilSize; i<stencilSize*2+1; i++)
+			    	ub[i] = w[i-stencilSize];
+			    for (int i=0; i<stencilSize; i++)
+			    	ub[i] = w[stencilSize-i-1];
+
+			    double dudx = 0;
+			    for (int i=0; i<stencilSize; i++)
+			    	dudx += coeffF[i]*(ub[i]-ub[stencilSize*2-i])/dx;
+
+			    dudx *= xp[0];
+
+			    ut  = sqrt(muw*abs(dudx)/r[idx(0,j,k)]);
+			    Ret += ut*r[idx(0,j,k)]/muw;
+		}
+
+	Ret = Ret/my/mz;
+	printf("\n");
+	printf("The average friction Reynolds number is: \t %lf\n",Ret);
+	printf("Resolutions are: \n");
+	printf("wall-normal: \t %lf\n",(x[0]+x[1])/2*Ret);
+	printf("span-wise: \t %lf\n",(y[1]-y[0])*Ret);
+	printf("stream-wise: \t %lf\n",(z[1]-z[0])*Ret);
+	printf("\n");
+
+
+	printf("the initial dt is: %lf\n",dt);
+	printf("\n");
+
+    FILE *fp = fopen("initial.txt","w+");
+	for(int k=0; k<mz; k++)
+		for(int i=0; i<mx; i++)
+			fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
+	fclose(fp);
 }
 
 void derivGrid(double *d2f, double *df, double *f, double dx) {

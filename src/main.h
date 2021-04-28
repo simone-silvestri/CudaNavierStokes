@@ -6,9 +6,11 @@
 
 extern void writeFields(int timestep);
 void initFile(int timestep);
+void printRes();
 extern void initCHIT();
 extern void initGrid();
 extern void initChannel();
 extern void calcdt();
+void calcAvgChan();
 
 #endif

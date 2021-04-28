@@ -29,11 +29,14 @@ int main(int argc, char** argv) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	initGrid();
-	initFile(199);
-//	initChannel();
+	if(restartFile<0) {
+		initChannel();
+	} else {
+		initFile(restartFile); }
 	calcdt();
 	writeFields(0);
-
+	printRes();
+	calcAvgChan();
 	dim3 grid, block;
 
 	cout <<"\n";
@@ -62,13 +65,7 @@ int main(int argc, char** argv) {
 
 	//cudaSetDevice(1);
 
-    FILE *fp = fopen("initial.txt","w+");
-	for(int k=0; k<mz; k++)
-		for(int i=0; i<mx; i++)
-			fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
-	fclose(fp);
-
-	fp = fopen("solution.txt","w+");
+	FILE *fp = fopen("solution.txt","w+");
 	for(int file = 1; file<nfiles+1; file++) {
 
 	    runDevice<<<grid,block>>>(dkin,denst,dtime);  //running the simulation on the GPU
@@ -82,6 +79,8 @@ int main(int argc, char** argv) {
 	    checkCuda( cudaMemcpy(henst, denst, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
 	    checkCuda( cudaMemcpy(hkin , dkin , nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
 
+	    calcAvgChan();
+
 //	    checkGpuMem();
 	    printf("file number: %d\t step: %d\t time: %lf\t kin: %lf\t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
 		for(int t=0; t<nsteps-1; t++)
@@ -89,6 +88,7 @@ int main(int argc, char** argv) {
 	}
 	fclose(fp);
 	cudaDeviceReset();
+
 
 	fp = fopen("final.txt","w+");
 	for(int k=0; k<mz; k++)

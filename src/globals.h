@@ -15,31 +15,33 @@
 #define Lx       (2.0)
 #define Ly       (2.0*M_PI)
 #define Lz       (12.0)
-#define mx       192
+#define mx       160
 #define my       192
 #define mz       192
-#define nsteps   1001
-#define nfiles	 199
+#define nsteps   2001
+#define nfiles	 100
 #define CFL      0.8f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
-#define Re       8000.f
-#define Pr       1.0f
+const int restartFile = 23;
+
+#define Re       3000.f
+#define Pr       0.7f
 #define gamma    1.4f
-#define Ma       0.2f
+#define Ma       1.5f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
-#define viscexp  0.0
+#define viscexp  0.7
 
 #define forcing       (true)
 #define periodicX     (false)
 #define nonUniformX   (true)
 
-const double stretch = 4.0;
+const double stretch = 3.0;
 
 
 #define capabilityMin 60
-#define checkCFLcondition 5
+#define checkCFLcondition 10
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 
