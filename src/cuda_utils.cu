@@ -388,7 +388,7 @@ void copyField(int direction) {
      checkCuda( cudaMemcpy(d_fw, fw, bytes, cudaMemcpyHostToDevice) );  
      checkCuda( cudaMemcpy(d_fe, fe, bytes, cudaMemcpyHostToDevice) );  
 
-     initDevice<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe);
+     initDevice<<<hgrid, hblock>>>(d_fr,d_fu,d_fv,d_fw,d_fe,h_dpdz);
 
   } else if (direction == 1) {
 
@@ -430,7 +430,7 @@ void copyField(int direction) {
 
 }
 
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe) {
+__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, double h_dpdz) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
@@ -439,7 +439,7 @@ __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	int globalThreadNum = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
 	if(forcing) {
-		dpdz = 0;
+		dpdz = h_dpdz;
 	} else {
 		dpdz = 0;
 	}

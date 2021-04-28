@@ -81,6 +81,9 @@ void initFile(int timestep) {
 	if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
 	fclose(fb);
 
+	fb = fopen("fields/dpdz","r");
+	result = fscanf(fb,"%lf",&h_dpdz);
+	fclose(fb);
 
 }
 
@@ -219,6 +222,11 @@ void writeFields(int timestep) {
 	fb = fopen(str,"wb");
 	fwrite(e , mx*my*mz , sizeof(double) , fb );
 	fclose(fb);
+
+	fb = fopen("fields/dpdz","w+");
+	fprintf(fb,"%lf",h_dpdz);
+	fclose(fb);
+
 }
 
 void calcAvgChan() {
@@ -302,7 +310,7 @@ void printRes() {
 	printf("\n");
 
 
-	printf("the initial dt is: %lf\n",dt);
+	printf("the initial dt and dpdz are : %lf   and    %lf\n",dt,h_dpdz);
 	printf("\n");
 
     FILE *fp = fopen("initial.txt","w+");

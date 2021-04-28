@@ -23,7 +23,7 @@
 #define CFL      0.8f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
-const int restartFile = 23;
+const int restartFile = 11;
 
 #define Re       3000.f
 #define Pr       0.7f
@@ -74,7 +74,7 @@ const double coeffVF[] = { 1.0/280.0, -4.0/105.0,  1.0/5.0, -4.0/5.0};
 const double coeffVS[] = {-1.0/560.0,  8.0/315.0, -1.0/5.0,  8.0/5.0,  -205.0/72.0};
 #endif
 
-extern double dt;
+extern double dt, h_dpdz;
 
 extern double dx,x[mx],xp[mx],xpp[mx],y[my],z[mz];
 

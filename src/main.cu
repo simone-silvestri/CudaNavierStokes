@@ -13,7 +13,7 @@
 
 using namespace std;
 
-double dt;
+double dt, h_dpdz;
 
 double dx,x[mx],xp[mx],xpp[mx],y[my],z[mz];
 

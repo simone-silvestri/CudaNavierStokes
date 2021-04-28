@@ -101,7 +101,7 @@ __global__ void FLXDeviceZ(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 		myprec *sij[9], myprec *dil);
 
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
+__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, double dpdz);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
