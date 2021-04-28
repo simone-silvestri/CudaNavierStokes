@@ -18,8 +18,8 @@
 #define mx       192
 #define my       192
 #define mz       192
-#define nsteps   101
-#define nfiles	 200
+#define nsteps   1001
+#define nfiles	 199
 #define CFL      0.8f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 

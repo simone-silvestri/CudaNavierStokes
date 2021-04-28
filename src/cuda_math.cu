@@ -143,7 +143,6 @@ __global__ void integrateThreads(myprec *gOut, myprec *gArr, int arraySize) {
 	int gdim  = gridDim.x*blockDim.x;
 
 	int glb   = tix + bix * bdim;
-	myprec dx;
 
 	myprec sum = 0;
 	for (int it = glb; it < arraySize; it += gdim) {

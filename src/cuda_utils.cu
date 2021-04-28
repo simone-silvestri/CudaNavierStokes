@@ -94,7 +94,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
 	  }
 
   myprec *h_coeffSx = new myprec[mx*(2*stencilSize+1)];
-  for (int it=0; it<stencilVisc; it++)
+  for (int it=0; it<stencilSize; it++)
 	  for (int i=0; i<mx; i++) {
 		  int idx = i + it*mx;
 		  h_coeffSx[idx] = (coeffS[it]*(xp[i]*xp[i])*h_d2x - coeffF[it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
@@ -252,7 +252,7 @@ void setDerivativeParameters(dim3 &grid, dim3 &block)
 	  }
 
   myprec *h_coeffSx = new myprec[mx*(2*stencilSize+1)];
-  for (int it=0; it<stencilVisc; it++)
+  for (int it=0; it<stencilSize; it++)
 	  for (int i=0; i<mx; i++) {
 		  int idx = i + it*mx;
 		  h_coeffSx[idx] = (coeffS[it]*(xp[i]*xp[i])*h_d2x - coeffF[it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);

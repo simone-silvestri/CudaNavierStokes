@@ -7,6 +7,8 @@
 #include "globals.h"
 #include "main.h"
 
+void derivGrid(double *d2f, double *df, double *f, double dx);
+
 void calcdt() {
 
 	double dx;
@@ -88,18 +90,20 @@ void initFile(int timestep) {
 void initGrid() {
 
 	//constant grid in y and z and stretched in x
-	for(int i=0;i<mx;i++) {
-		double fact    =  (i*1.0)/(mx) - 0.5;
-    	x[i]  =  0.5*(1.0+tanh(stretch*fact)/tanh(stretch*0.5))*Lx;
-       xp[i]  =  1./(0.5*stretch/tanh(stretch/2.)/(cosh(stretch*fact)*cosh(stretch*fact)));
-      xpp[i]  = - stretch*stretch*tanh(stretch*fact)/tanh(stretch/2.)/(cosh(stretch*fact)*cosh(stretch*fact))/Lx;
-	}
-	double bias = (Lx - x[mx-1])/2.0;
-	for(int i=0;i<mx;i++) {
-		x[i] = x[i] + bias;
-	}
 
 	dx = Lx*(1.0)/(mx);
+
+	double xn[mx+1];
+	for (int i=0; i<mx+1; i++)
+		xn[i] = tanh(stretch*((i*1.0)/mx-0.5))/tanh(stretch*0.5);
+
+	for (int i=0; i<mx; i++)
+			x[i] = Lx * (1.0 + (xn[i] + xn[i+1])/2.0)/2.0;
+
+	derivGrid(xpp,xp,x,dx);
+
+	for (int i=0; i<mx; i++)
+		xp[i] = 1.0/xp[i];
 
 #if !nonUniformX
 	for(int i=0;i<mx;i++) {
@@ -131,7 +135,6 @@ void initGrid() {
 	fb = fopen("fields/z.bin","wb");
 	fwrite(z , mz , sizeof(double) , fb );
 	fclose(fb);
-
 }
 
 void initChannel() {
@@ -219,4 +222,25 @@ void writeFields(int timestep) {
 	fb = fopen(str,"wb");
 	fwrite(e , mx*my*mz , sizeof(double) , fb );
 	fclose(fb);
+}
+
+void derivGrid(double *d2f, double *df, double *f, double dx) {
+
+	double fbound[mx+stencilSize*2];
+	for(int i=stencilSize; i<mx+stencilSize; i++)
+		fbound[i] = f[i-stencilSize];
+
+	for(int i=0; i<stencilSize; i++) {
+		fbound[i]   = - fbound[2*stencilSize-i-1];
+		fbound[mx+stencilSize+i] = 2*Lx - fbound[mx+stencilSize-i-1];
+	}
+
+	for (int i = 0; i < mx; i++){
+		df[i]  = 0.0;
+		d2f[i] = coeffS[stencilSize]*fbound[i+stencilSize]/dx/dx;
+		for (int it = 0; it < stencilSize; it++){
+			df[i]  += coeffF[it]*(fbound[i+it]-fbound[i+stencilSize*2-it])/dx;
+			d2f[i] += coeffS[it]*(fbound[i+it]+fbound[i+stencilSize*2-it])/dx/dx;
+		}
+	}
 }

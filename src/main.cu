@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	initGrid();
-	initFile(200);
+	initFile(199);
 //	initChannel();
 	calcdt();
 	writeFields(0);
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 	/* Increase GPU default limits to accomodate the computations */
 
 	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize     , rsize);
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
 
 //	cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 4); // allow up to 5 nesteg grids to run cocurrently
 
@@ -86,14 +86,6 @@ int main(int argc, char** argv) {
 	    printf("file number: %d\t step: %d\t time: %lf\t kin: %lf\t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
 		for(int t=0; t<nsteps-1; t++)
 				fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hkin[t],henst[t],htime[t+1]-htime[t]);
-
-		FILE *fp2 = fopen("final.txt","w+");
-		for(int k=0; k<mz; k++)
-			for(int i=0; i<mx; i++)
-				fprintf(fp2,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
-		fclose(fp2);
-
-
 	}
 	fclose(fp);
 	cudaDeviceReset();
