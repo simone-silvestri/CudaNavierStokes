@@ -83,29 +83,8 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 	id.mkidX();
 
 	//Stress goes with RHS old
-//
-//	myprec dudx = stress[0][id.g];
-//	myprec dvdx = stress[1][id.g];
-//	myprec dwdx = stress[2][id.g];
-//	myprec dudy = stress[3][id.g];
-//	myprec dvdy = stress[4][id.g];
-//	myprec dwdy = stress[5][id.g];
-//	myprec dudz = stress[6][id.g];
-//	myprec dvdz = stress[7][id.g];
-//	myprec dwdz = stress[8][id.g];
 
-	dil[id.g] = stress[0][id.g] + stress[4][id.g] + stress[8][id.g]; //dudx + dvdy + dwdz; //
-
-//	stress[0][id.g] = 2.0*dudx - 2.0/3.0*dil[id.g];
-//	stress[1][id.g] = dudy + dvdx;
-//	stress[2][id.g] = dudz + dwdx;
-//	stress[3][id.g] = dudy + dvdx;
-//	stress[4][id.g] = 2.0*dvdy - 2.0/3.0*dil[id.g];
-//	stress[5][id.g] = dvdz + dwdy;
-//	stress[6][id.g] = dudz + dwdx;
-//	stress[7][id.g] = dvdz + dwdy;
-//	stress[8][id.g] = 2.0*dwdz - 2.0/3.0*dil[id.g];
-
+	dil[id.g] = stress[0][id.g] + stress[4][id.g] + stress[8][id.g];
 
 }
 

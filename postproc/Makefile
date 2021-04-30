@@ -4,8 +4,8 @@
 
 gpu_usage=1
 
-SRC=./src/
-OBJ=./obj/
+SRC=./
+OBJ=./
 
 # Define compiler and optimizer's flags
 

@@ -94,10 +94,10 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 		perBCx(s_p[sj],si); perBCx(s_m[sj],si);
 		perBCx(s_l[sj],si);
 #else
-		wallBCxMir(s_r[sj],si);
+		wallBCxMir(s_p[sj],si);
 		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
 		wallBCxExt(s_t[sj],si,1.0,1.0);
-		stateBoundTr(s_r[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], s_h[sj], s_p[sj], s_m[sj], s_l[sj], si);
+		stateBoundPT(s_r[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], s_h[sj], s_p[sj], s_m[sj], s_l[sj], si);
 		wallBCxMir(s_s0[sj],si); wallBCxVel(s_s4[sj],si);  wallBCxVel(s_s8[sj],si);
 #endif
 	}
@@ -484,7 +484,7 @@ __global__ void RHSDeviceSharedFlxX_old(myprec *rX, myprec *uX, myprec *vX, mypr
 		wallBCxMir(s_r[sj],si);
 		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
 		wallBCxExt(s_t[sj],si,1.0,1.0);
-		stateBoundTr(s_r[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], s_h[sj], s_p[sj], s_m[sj], s_l[sj], si);
+		stateBoundPT(s_r[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], s_h[sj], s_p[sj], s_m[sj], s_l[sj], si);
 #endif
 	}
 

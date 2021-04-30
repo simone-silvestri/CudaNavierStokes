@@ -21,7 +21,7 @@ extern __device__ __forceinline__ void wallBCxDil(myprec *s_f, myprec *s_u, mypr
 extern __device__ __forceinline__ void wallBCxVisc(myprec *s_f, myprec *u, myprec *v, myprec *w,
 		myprec *s0 , myprec *s1,  myprec *s2 , myprec *s3,
 		myprec *s6 , myprec *dil, myprec *m  , int si);
-extern __device__ __forceinline__ void  stateBoundTr(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l);
+extern __device__ __forceinline__ void  stateBoundPT(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l);
 
 __device__ __forceinline__ __attribute__((always_inline)) void perBCx(myprec *s_f, int si) {
 	s_f[si-stencilSize]  = s_f[si+mx-stencilSize];
@@ -59,22 +59,22 @@ __device__ __forceinline__ __attribute__((always_inline)) void wallBCxMir(myprec
 	s_f[si+mx]           = s_f[mx+2*stencilSize-si-1];
 }
 
-__device__ __forceinline__ __attribute__((always_inline)) void stateBoundTr(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l, int si)
+__device__ __forceinline__ __attribute__((always_inline)) void stateBoundPT(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l, int si)
 {
 	int idx = si-stencilSize;
 
-    p[idx]  = r[idx]*Rgas*t[idx];
-    h[idx]  = t[idx]*Rgas/(gamma - 1.0)
-    		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]) + p[idx]*r[idx];
+    r[idx]  = p[idx]/(Rgas*t[idx]);
+    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+    		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
 
     myprec suth = pow(t[idx],viscexp);
     m[idx]   = suth/Re;
     l[idx]   = suth/Re/Pr/Ec;
 
     idx = si+mx;
-    p[idx]  = r[idx]*Rgas*t[idx];
-    h[idx]  = t[idx]*Rgas/(gamma - 1.0)
-        		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]) + p[idx]*r[idx];
+    r[idx]  = p[idx]/(Rgas*t[idx]);
+    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+        		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
 
     suth = pow(t[idx],viscexp);
     m[idx]   = suth/Re;

@@ -72,13 +72,11 @@ extern __constant__ int d_block[5*2], grid0[2];
 extern __constant__ int d_grid[5*2], block0[2];
 #endif
 
-
 extern __device__ myprec d_r[mx*my*mz];
 extern __device__ myprec d_u[mx*my*mz];
 extern __device__ myprec d_v[mx*my*mz];
 extern __device__ myprec d_w[mx*my*mz];
 extern __device__ myprec d_e[mx*my*mz];
-
 
 extern __device__ myprec dt2,dtC,dpdz;
 
