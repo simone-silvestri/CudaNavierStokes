@@ -88,10 +88,19 @@ __global__ void calcDil(myprec *stress[9], myprec *dil) {
 
 }
 
-__device__ void calcPressureGrad(myprec *dpdz, myprec *w) {
+__device__ void calcPressureGrad(myprec *dpdz, myprec *r, myprec *w) {
 	myprec dpdz_prev = *dpdz;
-	volumeIntegral(dpdz,w);
-	*dpdz = *dpdz/Lx/Ly/Lz;
+	volumeIntegral(dpdz,r);
+	myprec rbulk = *dpdz;
+#if (capability < capabilityMin)
+	dim3 gr0,bl0;
+	gr0 = dim3(grid0[0],grid0[1],1); bl0 = dim3(block0[0],block0[1],1);
+	deviceMul<<<gr0,bl0>>>(d_workSX,r,w);
+#else
+	deviceMul<<<grid0,block0>>>(d_workSX,r,w);
+#endif
+	volumeIntegral(dpdz,d_workSX);
+	*dpdz = *dpdz/rbulk;
 	*dpdz = 0.99*dpdz_prev - 0.5*(*dpdz - 1.0);
 }
 

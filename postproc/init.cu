@@ -94,7 +94,6 @@ void initGrid() {
 	fclose(fp);
 }
 
-
 void calcAvgChan() {
 	double um[mx],vm[mx],wm[mx],rm[mx],em[mx];
 	double uf[mx],vf[mx],wf[mx],rf[mx],ef[mx];

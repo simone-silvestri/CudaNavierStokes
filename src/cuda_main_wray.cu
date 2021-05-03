@@ -4,8 +4,8 @@
 #include "cuda_main.h"
 #include "cuda_math.h"
 
-__global__ void wraySum(myprec *a, myprec *c1[3], myprec *c2[3], myprec alpha, beta, myprec *dt);
-__global__ void wraySumR(myprec *a, myprec *b, myprec *c1[3], myprec *c2[3], myprec alpha, beta, myprec *r, myprec *dt);
+__global__ void wraySum(myprec *a, myprec *c1[3], myprec *c2[3], myprec alpha, myprec beta, myprec *dt);
+__global__ void wraySumR(myprec *a, myprec *b, myprec *c1[3], myprec *c2[3], myprec alpha, myprec beta, myprec *r, myprec *dt);
 
 #if (capability>capabilityMin)
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
@@ -264,20 +264,43 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 }
 #endif
 
-__global__ void wraySum(myprec *a, myprec *c1[3], myprec *c2[3], myprec alpha, beta, myprec *dt) {
+__global__ void wraySum(myprec *a, myprec *c1[3], myprec *c2[3], myprec alpha, myprec beta, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 	a[id.g] = a[id.g] + alpha     * ( c1[0][id.g] + c1[1][id.g] + c1[2][id.g] )*(*dt)
 					  + beta      * ( c2[0][id.g] + c2[1][id.g] + c2[2][id.g] )*(*dt);
 }
 
-
-__global__ void wraySumR(myprec *a, myprec *b, myprec *c1[3], myprec *c2[3], myprec alpha, beta, myprec *r, myprec *dt) {
+__global__ void wraySumR(myprec *a, myprec *b, myprec *c1[3], myprec *c2[3], myprec alpha, myprec beta, myprec *r, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 	b[id.g] =  b[id.g] + alpha     * ( c1[0][id.g] + c1[1][id.g] + c1[2][id.g] )*(*dt)
 				       + beta      * ( c2[0][id.g] + c2[1][id.g] + c2[2][id.g] )*(*dt) ;
 	a[id.g] = b[id.g]/r[id.g];
+}
+
+__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam) {
+
+	int threadsPerBlock  = blockDim.x * blockDim.y;
+	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
+	int blockNumInGrid   = blockIdx.x  + gridDim.x  * blockIdx.y;
+
+	int gt = blockNumInGrid * threadsPerBlock + threadNumInBlock;
+
+    myprec cvInv = (gamma - 1.0)/Rgas;
+
+    myprec invrho = 1.0/rho[gt];
+
+    myprec en = ret[gt]*invrho - 0.5*(uvel[gt]*uvel[gt] + vvel[gt]*vvel[gt] + wvel[gt]*wvel[gt]);
+    tem[gt]   = cvInv*en;
+    pre[gt]   = rho[gt]*Rgas*tem[gt];
+    ht[gt]    = (ret[gt] + pre[gt])*invrho;
+
+    myprec suth = pow(tem[gt],viscexp);
+    mu[gt]      = suth/Re;
+    lam[gt]     = suth/Re/Pr/Ec;
+    __syncthreads();
+
 }
 
 __device__ void initSolver() {
@@ -311,7 +334,6 @@ __device__ void initSolver() {
     	checkCudaDev( cudaMalloc((void**)&sij[i],mx*my*mz*sizeof(myprec)) );
 
 }
-
 
 __device__ void clearSolver() {
 

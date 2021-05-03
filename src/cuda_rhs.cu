@@ -127,9 +127,11 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	wXtmp = uXtmp + wrk1*s_m[sj][si];
 
 	//adding the viscous dissipation part ui*(mu * d2duidx2 + dmudx * six)
-	derDevSharedV2x(&wrk1,s_t[sj],si);
-	eXtmp = eXtmp + s_u[sj][si]*uXtmp + s_v[sj][si]*vXtmp + s_w[sj][si]*wXtmp + wrk1*s_l[sj][si];
+	eXtmp = eXtmp + s_u[sj][si]*uXtmp + s_v[sj][si]*vXtmp + s_w[sj][si]*wXtmp;
 
+	//adding the molecular conduction part (d2 temp dx2*lambda + dlambda dx * d temp dx)
+	derDevSharedV2x(&wrk1,s_t[sj],si);
+	eXtmp = eXtmp + wrk1*s_l[sj][si];
 	derDevSharedV1x(&wrk2,s_l[sj],si); //wrk2 = d (lam) dx
 	derDevSharedV1x(&wrk1,s_t[sj],si); //wrk1 = d (t) dx
 	eXtmp = eXtmp + wrk1*wrk2;
@@ -234,9 +236,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uYtmp =     s_s3[sj][si] + sij[1][id.g];
-	vYtmp = 2 * s_s4[sj][si] - 2./3.*s_dil[sj][si];
-	wYtmp =     s_s5[sj][si] + sij[7][id.g];
+	uYtmp = (     s_s3[sj][si] + sij[1][id.g]        ) ;
+	vYtmp = ( 2 * s_s4[sj][si] - 2./3.*s_dil[sj][si] ) ;
+	wYtmp = (     s_s5[sj][si] + sij[7][id.g]        ) ;
 
 	//adding the viscous dissipation part duidy*mu*siy
 	eYtmp = s_m[sj][si]*(uYtmp*s_s3[sj][si] + vYtmp*s_s4[sj][si] + wYtmp*s_s5[sj][si]);
@@ -353,8 +355,8 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	// fill in periodic images in shared memory array
 	if (id.k < stencilSize) {
 		perBCz(s_r[sj],si); perBCz(s_u[sj],si);
-		perBCz(s_v[sj],si); perBCz(s_w[sj],si); perBCz(s_t[sj],si);
-		perBCz(s_h[sj],si);
+		perBCz(s_v[sj],si); perBCz(s_w[sj],si);
+		perBCz(s_h[sj],si); perBCz(s_t[sj],si);
 		perBCz(s_p[sj],si); perBCz(s_m[sj],si);
 		perBCz(s_l[sj],si);
 	}
@@ -377,11 +379,11 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 
 	// viscous fluxes derivative
 	derDevSharedV2z(&wrk1,s_u[sj],si);
-	uZtmp = wrk1*s_m[sj][si];
+	uZtmp = uZtmp + wrk1*s_m[sj][si];
 	derDevSharedV2z(&wrk1,s_v[sj],si);
-	vZtmp = wrk1*s_m[sj][si];
+	vZtmp = vZtmp + wrk1*s_m[sj][si];
 	derDevSharedV2z(&wrk1,s_w[sj],si);
-	wZtmp = wrk1*s_m[sj][si];
+	wZtmp = wZtmp + wrk1*s_m[sj][si];
 
 	//adding the viscous dissipation part ui*(mu * d2duidz2 + dmudz * siz)
 	derDevSharedV2z(&wrk1,s_t[sj],si);

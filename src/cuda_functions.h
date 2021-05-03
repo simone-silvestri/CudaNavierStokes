@@ -119,7 +119,7 @@ __device__ void clearRHS();
 __device__ void threadBlockDeviceSynchronize(void);
 __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
 __device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-__device__ void calcPressureGrad(myprec *dpdx, myprec *w);
+__device__ void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);

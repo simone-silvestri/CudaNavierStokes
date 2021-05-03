@@ -34,7 +34,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	if(istep%checkCFLcondition==0) {
     		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
-    		if(forcing)  calcPressureGrad(&dpdz,d_w);
+    		if(forcing)  calcPressureGrad(&dpdz,d_r,d_w);
     	}
 
     	dt2 = dtC/2.;
@@ -208,7 +208,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	if(istep%checkCFLcondition==0) {
     		calcTimeStep(&dtC,d_r,d_u,d_v,d_w,d_e,d_m);
-    		if(forcing) calcPressureGrad(&dpdz,d_w);
+    		if(forcing)  calcPressureGrad(&dpdz,d_r,d_w);
     	}
     	dt2 = dtC/2.;
     	if(istep==0) {

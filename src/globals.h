@@ -19,11 +19,11 @@
 #define my       192
 #define mz       192
 #define nsteps   2001
-#define nfiles	 100
+#define nfiles	 200
 #define CFL      0.8f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
-const int restartFile = 30;
+const int restartFile = 200;
 
 #define Re       3000.f
 #define Pr       0.7f
@@ -38,7 +38,6 @@ const int restartFile = 30;
 #define nonUniformX   (true)
 
 const double stretch = 3.0;
-
 
 #define capabilityMin 60
 #define checkCFLcondition 10
