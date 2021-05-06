@@ -184,7 +184,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
 	/* allocating temporary arrays and streams */
 	void (*RHSDeviceDir[3])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*,
-							myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec**, myprec*, myprec*);
+							myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec**, myprec*, myprec);
 
 
 	RHSDeviceDir[0] = RHSDeviceSharedFlxX;

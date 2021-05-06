@@ -71,6 +71,34 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *sij[9], myprec *dil, myprec dpdz);
+__global__ void RHSDeviceSharedFlxX_old(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil, myprec dpdz);
+__global__ void RHSDeviceSharedFlxY_old(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil, myprec dpdz);
+__global__ void RHSDeviceSharedFlxZ_old(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil, myprec dpdz);
+__global__ void RHSDeviceFullYL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil);
+__global__ void RHSDeviceFullZL(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+			myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+			myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+			myprec *sij[9], myprec *dil);
+__global__ void FLXDeviceY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil);
+__global__ void FLXDeviceZ(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *sij[9], myprec *dil);
 
 __global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, double dpdz);

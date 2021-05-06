@@ -35,7 +35,7 @@ const int restartFile = -1;
 #define forcing       (true)
 #define periodicX     (false)
 #define nonUniformX   (true)
-#define useStreams    (false)   // true gives a little speedup but not that much, depends on the mesh size
+#define useStreams    (false)
 
 const double stretch = 3.0;
 

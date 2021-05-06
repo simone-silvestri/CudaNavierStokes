@@ -106,7 +106,7 @@ print(fig,'ChannelMach1.5Re3000/flucfavre.eps','-depsc')
 
 % -- temperature fluctuations
 fig = figure();
-plot(nmf(:,1),nmf(:,13)); hold on
+plot(nmf(:,1),nmf(:,12)); hold on
 plot(ncf(1:sk:end,1),ncf(1:sk:end,12),'o');
 xlabel('$y/h$','interpreter','latex');
 legend({'Present code, $\overline{T^{\prime} T^{\prime}}$','Coleman, $\overline{T^{\prime} T^{\prime}}$'},'Interpreter','latex','location','northeast')
