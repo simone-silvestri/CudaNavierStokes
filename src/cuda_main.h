@@ -46,14 +46,6 @@ __device__ myprec *d_rhsv3[3];
 __device__ myprec *d_rhsw3[3];
 __device__ myprec *d_rhse3[3];
 
-#if rk == 4
-__device__ myprec *d_rhsr4[3];
-__device__ myprec *d_rhsu4[3];
-__device__ myprec *d_rhsv4[3];
-__device__ myprec *d_rhsw4[3];
-__device__ myprec *d_rhse4[3];
-#endif
-
 __device__ myprec *sij[9];
 
 __device__ myprec dt2,dtC,dpdz;

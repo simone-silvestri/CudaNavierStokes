@@ -12,30 +12,30 @@
 #define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 4  // the order is double the stencilVisc (viscous fluxes stencil)
 
-#define Lx       (2.0)
+#define Lx       (2.0*M_PI)
 #define Ly       (2.0*M_PI)
-#define Lz       (4.0*M_PI)
-#define mx       160
-#define my       192
-#define mz       192
-#define nsteps   2001
+#define Lz       (2.0*M_PI)
+#define mx       256
+#define my       256
+#define mz       256
+#define nsteps   101
 #define nfiles	 300
 #define CFL      0.5f
 
 const int restartFile = -1;
 
-#define Re       3000.f
-#define Pr       0.7f
+#define Re       1600.f
+#define Pr       1.0f
 #define gamma    1.4f
-#define Ma       1.5f
+#define Ma       0.1f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
-#define viscexp  0.7
+#define viscexp  0.0
 
-#define forcing       (true)
-#define periodicX     (false)
-#define nonUniformX   (true)
-#define useStreams    (true)   // true gives a little speedup but not that much, depends on the mesh size
+#define forcing       (false)
+#define periodicX     (true)
+#define nonUniformX   (false)
+#define useStreams    (false)   // true gives a little speedup but not that much, depends on the mesh size
 
 const double stretch = 3.0;
 

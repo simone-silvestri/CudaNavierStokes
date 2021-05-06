@@ -65,7 +65,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	if(istep%checkCFLcondition==0) {
     		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
-    		enst[istep] = dpdz;
+    		if(forcing) enst[istep] = dpdz;
     	}
     	cudaDeviceSynchronize();
 
@@ -220,7 +220,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	if(istep%checkCFLcondition==0) {
     		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
-    		enst[istep] = dpdz;
+    		if(forcing) enst[istep] = dpdz;
     	}
     	cudaDeviceSynchronize();
 

@@ -156,8 +156,8 @@ __device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec
 	deviceMul<<<grid0,block0>>>(d_workSX,r,d_workSX);
 #endif
 	cudaDeviceSynchronize();
-	volumeIntegral(kin,w);
-	*kin *= 1.0/Lx/Ly/Lz;
+	volumeIntegral(kin,d_workSX);
+	*kin *= 1.0/Lx/Ly/Lz/2.0;
 #if (capability < capabilityMin)
 	deviceSub<<<gr0,bl0>>>(d_workSX,stress[5],stress[7]);
 	deviceSub<<<gr0,bl0>>>(d_workSY,stress[6],stress[2]);

@@ -15,19 +15,19 @@
 #define Lx       (2.0)
 #define Ly       (2.0*M_PI)
 #define Lz       (4.0*M_PI)
-#define mx       160
-#define my       192
-#define mz       192
-#define nsteps   2001
+#define mx       216
+#define my       256
+#define mz       412
+#define nsteps   101
 #define nfiles	 300
 #define CFL      0.5f
 
 const int restartFile = -1;
 
-#define Re       3000.f
+#define Re       4880.f
 #define Pr       0.7f
 #define gamma    1.4f
-#define Ma       1.5f
+#define Ma       3.0f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
@@ -35,7 +35,7 @@ const int restartFile = -1;
 #define forcing       (true)
 #define periodicX     (false)
 #define nonUniformX   (true)
-#define useStreams    (true)   // true gives a little speedup but not that much, depends on the mesh size
+#define useStreams    (false)   // true gives a little speedup but not that much, depends on the mesh size
 
 const double stretch = 3.0;
 

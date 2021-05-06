@@ -30,9 +30,14 @@ features:
 - flux formulation to solve the conservative full split form of the advective terms
 
 
-validation case
+Text cases:
 
-in the validation folder exchange the chit.h file to param.h in the src to validate with
-J.R. DeBonis, Solutions of the Taylor-Green Vortex Problem Using High-Resolution Explicit Finite Difference Methods, 
-AIAA 2013-0382
+substitute the globals.h to the globals.h in the src folder before compilation to run these cases
 
+Decaying Taylor-Green Vortices
+-> J.R. DeBonis, "Solutions of the Taylor-Green Vortex Problem Using High-Resolution Explicit Finite Difference Methods" 
+AIAA 2013-0382 (Decaying Taylor Green vortices)
+
+Supersonic Channel flow
+-> Coleman, G. N., Kim, J., and Moser, R. D., "A numerical study of turbulent supersonic isothermal-wall channel flow"
+J. Fluid Mech, Vol. 305, 1995, pp. 159-183.
