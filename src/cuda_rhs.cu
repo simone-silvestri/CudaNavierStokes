@@ -122,9 +122,9 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	derDevSharedV2x(&wrk1,s_u[sj],si);
 	uXtmp = uXtmp + wrk1*s_m[sj][si];
 	derDevSharedV2x(&wrk1,s_v[sj],si);
-	vXtmp = uXtmp + wrk1*s_m[sj][si];
+	vXtmp = vXtmp + wrk1*s_m[sj][si];
 	derDevSharedV2x(&wrk1,s_w[sj],si);
-	wXtmp = uXtmp + wrk1*s_m[sj][si];
+	wXtmp = wXtmp + wrk1*s_m[sj][si];
 
 	//adding the viscous dissipation part ui*(mu * d2duidx2 + dmudx * six)
 	eXtmp = eXtmp + s_u[sj][si]*uXtmp + s_v[sj][si]*vXtmp + s_w[sj][si]*wXtmp;
@@ -258,9 +258,10 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	wYtmp = wYtmp + wrk1*s_m[sj][si];
 
 	//adding the viscous dissipation part ui*(mu * d2duidy2 + dmudy * siy)
-	derDevSharedV2y(&wrk1,s_t[sj],si);
-	eYtmp = eYtmp + s_u[sj][si]*uYtmp + s_v[sj][si]*vYtmp + s_w[sj][si]*wYtmp + wrk1*s_l[sj][si];
+	eYtmp = eYtmp + s_u[sj][si]*uYtmp + s_v[sj][si]*vYtmp + s_w[sj][si]*wYtmp;
 
+	derDevSharedV2y(&wrk1,s_t[sj],si);
+	eYtmp = eYtmp + wrk1*s_l[sj][si];
 	derDevSharedV1y(&wrk2,s_l[sj],si); //wrk2 = d (lam) dx
 	derDevSharedV1y(&wrk1,s_t[sj],si); //wrk1 = d (t) dx
 	eYtmp = eYtmp + wrk1*wrk2;

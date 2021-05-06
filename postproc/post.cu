@@ -144,8 +144,8 @@ void addFluc(Variables *var, Variables mean) {
 				var->e[i] += (e[gt]-mean.e[i])*(e[gt]-mean.e[i])/denom;
 				var->h[i] += (h[gt]-mean.h[i])*(h[gt]-mean.h[i])/denom;
 				var->hf[i]+= (h[gt]-mean.hf[i])*(h[gt]-mean.hf[i])/denom;
-				var->p[i] += (p[gt]-mean.t[i])*(t[gt]-mean.t[i])/denom;
-				var->t[i] += (t[gt]-mean.p[i])*(p[gt]-mean.p[i])/denom;
+				var->t[i] += (t[gt]-mean.t[i])*(t[gt]-mean.t[i])/denom;
+				var->p[i] += (p[gt]-mean.p[i])*(p[gt]-mean.p[i])/denom;
 				var->m[i] += (m[gt]-mean.m[i])*(m[gt]-mean.m[i])/denom;
 			}
 		}

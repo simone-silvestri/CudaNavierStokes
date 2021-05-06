@@ -18,12 +18,12 @@
 #define mx       160
 #define my       192
 #define mz       192
-#define nsteps   2001
-#define nfiles	 200
+#define nsteps   1501
+#define nfiles	 400
 #define CFL      0.8f
 #define rk       3             // rk = 3 is the runge-kutta 3 method while rk = 4 is runge-kutta 4 method
 
-const int restartFile = 200;
+const int restartFile = 193;
 
 #define Re       3000.f
 #define Pr       0.7f
