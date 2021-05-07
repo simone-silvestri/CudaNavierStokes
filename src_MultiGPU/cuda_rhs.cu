@@ -35,7 +35,7 @@
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil, myprec dpdz) {
+		myprec *dil, myprec *dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
@@ -61,8 +61,8 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	__shared__ myprec s_p[sPencils][mx+stencilSize*2];
 	__shared__ myprec s_m[sPencils][mx+stencilSize*2];
 	__shared__ myprec s_l[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_s0[sPencils][mx+stencilSize*2];
 #if !periodicX
+	__shared__ myprec s_s0[sPencils][mx+stencilSize*2];
 	__shared__ myprec s_s4[sPencils][mx+stencilSize*2];
 	__shared__ myprec s_s8[sPencils][mx+stencilSize*2];
 #endif
@@ -77,8 +77,8 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	s_p[sj][si] = p[id.g];
 	s_m[sj][si] = mu[id.g];
 	s_l[sj][si] = lam[id.g];
-	s_s0[sj][si]= sij[0][id.g];
 #if !periodicX
+	s_s0[sj][si]= sij[0][id.g];
 	s_s4[sj][si]= sij[4][id.g];
 	s_s8[sj][si]= sij[8][id.g];
 #endif
@@ -110,7 +110,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	wXtmp = (     sij[2][id.g] + sij[6][id.g]  );
 
 	//adding the viscous dissipation part duidx*mu*six
-	eXtmp = s_m[sj][si]*(uXtmp*s_s0[sj][si] + vXtmp*sij[1][id.g] + wXtmp*sij[2][id.g]);
+	eXtmp = s_m[sj][si]*(uXtmp*sij[0][id.g] + vXtmp*sij[1][id.g] + wXtmp*sij[2][id.g]);
 
 	//Adding here the terms d (mu) dx * sxj; (lambda in case of h in rhse);
 	derDevSharedV1x(&wrk2,s_m[sj],si); //wrk2 = d (mu) dx
@@ -179,7 +179,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil, myprec dpdz) {
+		myprec *dil, myprec *dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidYFlx();
@@ -314,7 +314,7 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil, myprec dpdz) {
+		myprec *dil, myprec *dpdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidZFlx();
@@ -434,15 +434,14 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	rZ[id.g] = rZtmp;
 	uZ[id.g] = uZtmp;
 	vZ[id.g] = vZtmp;
-	wZ[id.g] = wZtmp + dpdz;
-	eZ[id.g] = eZtmp + dpdz*s_w[sj][si] ;
+	wZ[id.g] = wZtmp + *dpdz;
+	eZ[id.g] = eZtmp + *dpdz*s_w[sj][si] ;
 #else
 	rZ[id.g] += rZtmp;
 	uZ[id.g] += uZtmp;
 	vZ[id.g] += vZtmp;
-	wZ[id.g] += wZtmp + dpdz;
-	eZ[id.g] += eZtmp + dpdz*s_w[sj][si] ;
+	wZ[id.g] += wZtmp + *dpdz;
+	eZ[id.g] += eZtmp + *dpdz*s_w[sj][si] ;
 #endif
 	__syncthreads();
 }
-

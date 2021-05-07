@@ -54,44 +54,40 @@ class Indices {
      }
 };
 
-void setDerivativeParameters(dim3 &grid, dim3 &block);
+void setDerivativeParameters();
 void copyField(int direction);
 void checkGpuMem();
+void runSimulation(myprec *kin, myprec *enst, myprec *time);
 
 //global functions
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil, myprec dpdz);
+		myprec *dil, myprec *dpdz);
 __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil, myprec dpdz);
+		myprec *dil, myprec *dpdz);
 __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *sij[9], myprec *dil, myprec dpdz);
+		myprec *dil, myprec *dpdz);
 
-__global__ void runDevice(myprec *kin, myprec *enst, myprec *time);
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, double dpdz);
-__global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe);
-__global__ void calcStressX(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
-__global__ void calcStressY(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
-__global__ void calcStressZ(myprec *u, myprec *v, myprec *w, myprec *stress[9]);
-__global__ void calcDil(myprec *stress[9], myprec *dil);
+__global__ void calcStressX(myprec *u, myprec *v, myprec *w);
+__global__ void calcStressY(myprec *u, myprec *v, myprec *w);
+__global__ void calcStressZ(myprec *u, myprec *v, myprec *w);
+__global__ void calcDil(myprec *dil);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 
 //device functions
-__device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);
-__device__ void rk4Device(Indices id);
-__device__ void initStress();
-__device__ void clearStress();
-__device__ void initRHS();
-__device__ void clearRHS();
+__global__ void initStress();
+__global__ void clearStress();
+__global__ void initRHS();
+__global__ void clearRHS();
 __device__ void threadBlockDeviceSynchronize(void);
-__device__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *sij[9], myprec *kin, myprec *enst);
-__device__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-__device__ void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
+__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *kin, myprec *enst);
+__global__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
+__global__ void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);

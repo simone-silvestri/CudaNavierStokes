@@ -20,7 +20,7 @@ ifeq ($(ARCH),GPU)
 gpu_usage=1
 endif
 
-SRC=./src/
+SRC=./src_MultiGPU/
 OBJ=./obj/
 
 # Define compiler and optimizer's flags

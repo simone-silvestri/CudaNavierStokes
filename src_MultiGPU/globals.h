@@ -14,15 +14,15 @@
 
 #define Lx       (2.0)
 #define Ly       (2.0*M_PI)
-#define Lz       (12.0)
+#define Lz       (4.0*M_PI)
 #define mx       160
 #define my       192
 #define mz       192
-#define nsteps   1001
+#define nsteps   100
 #define nfiles	 1
-#define CFL      0.8f
+#define CFL      0.7f
 
-const int restartFile = -1;
+const int restartFile = 800;
 
 #define Re       3000.f
 #define Pr       0.7f
@@ -35,11 +35,11 @@ const int restartFile = -1;
 #define forcing       (true)
 #define periodicX     (false)
 #define nonUniformX   (true)
-#define useStreams    (false)
+#define useStreams    (false)   // true gives a little speedup but not that much, depends on the mesh size
 
 const double stretch = 3.0;
 
-#define capabilityMin 60
+#define capabilityMin 100
 #define checkCFLcondition 10
 
 #define idx(i,j,k) \

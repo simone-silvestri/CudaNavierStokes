@@ -1,12 +1,10 @@
 % read the validation figures and perform the validation
 close all
 
-mm = importdata('../postproc/mean.txt');
-mf = importdata('../postproc/fluc.txt');
-cm = importdata('ChannelMach1.5Re3000/coleman.mean');
-cm = cm.data;
-cf = importdata('ChannelMach1.5Re3000/coleman.fluc');
-cf = cf.data;
+mm = importdata('present-mean');
+mf = importdata('present-fluc');
+cm = importdata('coleman.mean');
+cf = importdata('coleman.fluc');
 
 cm(:,1) = cm(:,1)+1;
 cf(:,1) = cf(:,1)+1;
@@ -54,7 +52,7 @@ xlabel('$y/h$','interpreter','latex');
 legend({'Present code, $\overline{\rho}$','Present code, $\overline{T}$','Present code, $\overline{\mu}$',...
     'Coleman, $\overline{\rho}$','Coleman, $\overline{T}$','Coleman, $\overline{\mu}$'},'Interpreter','latex','location','east')
 legend boxoff
-print(fig,'ChannelMach1.5Re3000/prop.eps','-depsc')
+print(fig,'prop.eps','-depsc')
 
 % -- pressure
 fig = figure();
@@ -63,7 +61,7 @@ plot(ncm(1:sk:end,1),ncm(1:sk:end,3),'o');
 xlabel('$y/h$','interpreter','latex');
 legend({'Present code, $\overline{p}$','Coleman, $\overline{p}$'},'Interpreter','latex','location','east')
 legend boxoff
-print(fig,'ChannelMach1.5Re3000/press.eps','-depsc')
+print(fig,'press.eps','-depsc')
 
 % -- velocity reynolds averaged
 fig = figure();
@@ -72,7 +70,7 @@ plot(ncm(1:sk:end,1),ncm(1:sk:end,5),'o');
 xlabel('$y/h$','interpreter','latex');
 legend({'Present code, $\overline{u}$','Coleman, $\overline{u}$'},'Interpreter','latex','location','east')
 legend boxoff
-print(fig,'ChannelMach1.5Re3000/velrey.eps','-depsc')
+print(fig,'velrey.eps','-depsc')
 
 % % -- velocity favre averaged
 % fig = figure();
@@ -82,27 +80,31 @@ print(fig,'ChannelMach1.5Re3000/velrey.eps','-depsc')
 %% PLOT FLUC
 
 % -- fluctuations favre averaged
+% fig = figure();
+% plot(nmf(:,1),nmf(:,5)); hold on
+% plot(nmf(:,1),nmf(:,3));
+% plot(nmf(:,1),nmf(:,4));
+% plot(ncf(1:sk:end,1),ncf(1:sk:end,2),'o');
+% plot(ncf(1:sk:end,1),ncf(1:sk:end,3),'s');
+% plot(ncf(1:sk:end,1),ncf(1:sk:end,4),'d');
+% xlabel('$y/h$','interpreter','latex');
+% legend({'Present code, $\widetilde{u^{\prime \prime} u^{\prime \prime}}$','Present code, $\widetilde{v^{\prime \prime} v^{\prime \prime}}$','Present code, $\widetilde{w^{\prime \prime} w^{\prime \prime}}$',...
+%     'Coleman, $\widetilde{u^{\prime \prime} u^{\prime \prime}}$','Coleman, $\widetilde{v^{\prime \prime} v^{\prime \prime}}$','Coleman, $\widetilde{w^{\prime \prime} w^{\prime \prime}}$'},'Interpreter','latex','location','northeast')
+% legend boxoff
+% print(fig,'ChannelMach1.5Re3000/flucfavre.eps','-depsc')
+% 
+% -- fluctuations reynolds averaged
 fig = figure();
-plot(nmf(:,1),nmf(:,5)); hold on
-plot(nmf(:,1),nmf(:,3));
-plot(nmf(:,1),nmf(:,4));
-plot(ncf(1:sk:end,1),ncf(1:sk:end,2),'o');
-plot(ncf(1:sk:end,1),ncf(1:sk:end,3),'s');
-plot(ncf(1:sk:end,1),ncf(1:sk:end,4),'d');
-xlabel('$y/h$','interpreter','latex');
+plot(nmf(:,1),nmf(:,6)); hold on
+plot(nmf(:,1),nmf(:,7));
+plot(nmf(:,1),nmf(:,8));
+plot(ncf(1:sk:end,1),ncf(1:sk:end,9),'o');
+plot(ncf(1:sk:end,1),ncf(1:sk:end,10),'s');
+plot(ncf(1:sk:end,1),ncf(1:sk:end,8),'d');xlabel('$y/h$','interpreter','latex');
 legend({'Present code, $\widetilde{u^{\prime \prime} u^{\prime \prime}}$','Present code, $\widetilde{v^{\prime \prime} v^{\prime \prime}}$','Present code, $\widetilde{w^{\prime \prime} w^{\prime \prime}}$',...
     'Coleman, $\widetilde{u^{\prime \prime} u^{\prime \prime}}$','Coleman, $\widetilde{v^{\prime \prime} v^{\prime \prime}}$','Coleman, $\widetilde{w^{\prime \prime} w^{\prime \prime}}$'},'Interpreter','latex','location','northeast')
 legend boxoff
-print(fig,'ChannelMach1.5Re3000/flucfavre.eps','-depsc')
-
-% % -- fluctuations reynolds averaged
-% fig = figure();
-% plot(nmf(:,1),nmf(:,6)); hold on
-% plot(ncf(:,1),ncf(:,9),'o');
-% plot(nmf(:,1),nmf(:,7));
-% plot(ncf(:,1),ncf(:,10),'o');
-% plot(nmf(:,1),nmf(:,8));
-% plot(ncf(:,1),ncf(:,8),'o');
+print(fig,'flucrey.eps','-depsc')
 
 % -- temperature fluctuations
 fig = figure();
@@ -111,7 +113,7 @@ plot(ncf(1:sk:end,1),ncf(1:sk:end,12),'o');
 xlabel('$y/h$','interpreter','latex');
 legend({'Present code, $\overline{T^{\prime} T^{\prime}}$','Coleman, $\overline{T^{\prime} T^{\prime}}$'},'Interpreter','latex','location','northeast')
 legend boxoff
-print(fig,'ChannelMach1.5Re3000/fluctemp.eps','-depsc')
+print(fig,'fluctemp.eps','-depsc')
 
 
 

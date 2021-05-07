@@ -30,25 +30,35 @@ int main(int argc, char** argv) {
 
 	initGrid();
 	if(restartFile<0) {
-		initChannel();
+		if(forcing) {
+			initChannel();
+		} else {
+			initCHIT();
+		}
 	} else {
 		initFile(restartFile); }
 	calcdt();
 	writeFields(0);
 	printRes();
 	calcAvgChan();
-	dim3 grid, block;
 
 	cout <<"\n";
 	cout <<"code is running on -> GPU \n";
 	cout <<"\n";
 
-	setDerivativeParameters(grid, block);
+	setDerivativeParameters();
 
 	myprec *dkin, *denst, *dtime;
 	myprec *hkin  = new myprec[nsteps];
 	myprec *henst = new myprec[nsteps];
 	myprec *htime = new myprec[nsteps];
+
+	checkCuda( cudaMalloc((void**)&d_r, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_u, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_v, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_w, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_e, mx*my*mz*sizeof(myprec)) );
+
 
 	checkCuda( cudaMalloc((void**)&dkin , nsteps*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&denst, nsteps*sizeof(myprec)) );
@@ -61,14 +71,10 @@ int main(int argc, char** argv) {
 	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
 	cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
 
-//	cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 4); // allow up to 5 nesteg grids to run cocurrently
-
-	//cudaSetDevice(1);
-
 	FILE *fp = fopen("solution.txt","w+");
 	for(int file = 1; file<nfiles+1; file++) {
 
-	    runDevice<<<grid,block>>>(dkin,denst,dtime);  //running the simulation on the GPU
+	    runSimulation(dkin,denst,dtime);  //running the simulation on the GPU
 		copyField(1);			  //copying back partial results to CPU
 
 		writeFields(file);
@@ -82,7 +88,7 @@ int main(int argc, char** argv) {
 	    calcAvgChan();
 
 //	    checkGpuMem();
-	    printf("file number: %d\t step: %d\t time: %lf\t kin: %lf\t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
+	    printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hkin[nsteps-1],henst[nsteps-1]);
 		for(int t=0; t<nsteps-1; t++)
 				fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hkin[t],henst[t],htime[t+1]-htime[t]);
 	}

@@ -9,7 +9,7 @@ while [[ $i -le $2 ]]; do
      if test -f "$FILE"; then
         echo "$FILE exists."
         cp field.NUMBER.xmf field.$num1.xmf
-        cp video_NUMBER.py  video_$num1.py
+        cp video_NUMBER.channel.vQ.py  video_$num1.py
 
         sed -i -e "s/NUMBER/$num2/g" field.$num1.xmf
         sed -i -e "s/NUMBER/$num1/g" video_$num1.py

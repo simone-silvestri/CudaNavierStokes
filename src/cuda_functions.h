@@ -82,8 +82,6 @@ __global__ void calcDil(myprec *stress[9], myprec *dil);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 
 //device functions
-__device__ void RHSDevice(myprec *var, myprec *rhs, Indices id);
-__device__ void rk4Device(Indices id);
 __device__ void initStress();
 __device__ void clearStress();
 __device__ void initRHS();

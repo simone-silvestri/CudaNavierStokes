@@ -39,13 +39,10 @@ __global__ void deviceCpy(myprec *a, myprec *b) {
 __device__ void reduceToMax(myprec *gOut, myprec *var) {
 
 	total = mx*my*mz;
-#if (capability < capabilityMin)
-	grid  = grid0[0]*grid0[1];
-	block = block0[0]*block0[1];
-#else
-	grid  = grid0.x*grid0.y;
-	block = block0.x*block0.y;
-#endif
+
+	grid  = my / sPencils *  mz;
+	block = mx * sPencils;
+
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
 	cudaDeviceSynchronize();
 
@@ -65,13 +62,9 @@ __device__ void reduceToMin(myprec *gOut, myprec *var) {
 
 
 	total = mx*my*mz;
-#if (capability < capabilityMin)
-	grid  = grid0[0]*grid0[1];
-	block = block0[0]*block0[1];
-#else
-	grid  = grid0.x*grid0.y;
-	block = block0.x*block0.y;
-#endif
+
+	grid  = my / sPencils *  mz;
+	block = mx * sPencils;
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
 	cudaDeviceSynchronize();
@@ -112,13 +105,10 @@ __device__ void volumeIntegral(myprec *gOut, myprec *var) {
 __device__ void reduceToOne(myprec *gOut, myprec *var) {
 
 	total = mx*my*mz;
-#if (capability < capabilityMin)
-	grid  = grid0[0]*grid0[1];
-	block = block0[0]*block0[1];
-#else
-	grid  = grid0.x*grid0.y;
-	block = block0.x*block0.y;
-#endif
+
+	grid  = my / sPencils *  mz;
+	block = mx * sPencils;
+
 
 	checkCudaDev( cudaMalloc((void**)&wrkM ,grid*sizeof(myprec)) );
 	cudaDeviceSynchronize();
