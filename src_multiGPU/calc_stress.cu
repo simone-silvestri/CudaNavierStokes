@@ -7,21 +7,9 @@
 #include "cuda_math.h"
 #include "boundary.h"
 
-__device__ myprec *d_workSX;
-__device__ myprec *d_workSY;
-__device__ myprec *d_workSZ;
 
-
-__global__ void initStress() {
-        checkCudaDev( cudaMalloc((void**)&d_workSX,mx*my*mz*sizeof(myprec)) );
-        checkCudaDev( cudaMalloc((void**)&d_workSY,mx*my*mz*sizeof(myprec)) );
-        checkCudaDev( cudaMalloc((void**)&d_workSZ,mx*my*mz*sizeof(myprec)) );
-}
-
-__global__ void clearStress() {
-        checkCudaDev( cudaFree(d_workSX) );
-        checkCudaDev( cudaFree(d_workSY) );
-        checkCudaDev( cudaFree(d_workSZ) );
+__global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
+	*a = 0.99*(*b) - 0.5*(*a/(*c)-1);
 }
 
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w) {
@@ -88,28 +76,41 @@ __global__ void calcDil(myprec *dil) {
 
 }
 
-__global__ void calcPressureGrad(myprec *dpdz, myprec *r, myprec *w) {
-	myprec dpdz_prev = *dpdz;
-	volumeIntegral(dpdz,r);
-	myprec rbulk = *dpdz;
+void calcPressureGrad(myprec *dpdz, myprec *r, myprec *w) {
 
+	myprec *workA, *dpdz_prev, *rbulk;
 	dim3 gr0  = dim3(my / sPencils, mz, 1);
 	dim3 bl0 = dim3(mx, sPencils, 1);
 
-	deviceMul<<<gr0,bl0>>>(d_workSX,r,w);
-	volumeIntegral(dpdz,d_workSX);
-	*dpdz = *dpdz/rbulk;
-	*dpdz = 0.99*dpdz_prev - 0.5*(*dpdz - 1.0);
+	checkCuda( cudaMalloc((void**)&workA,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&dpdz_prev,     sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&rbulk    ,     sizeof(myprec)) );
+
+	deviceCpyOne<<<1,1>>>(dpdz_prev,dpdz);
+	hostVolumeIntegral(rbulk,r);
+	deviceMul<<<gr0,bl0>>>(workA,r,w);
+	hostVolumeIntegral(dpdz,workA);
+
+	deviceCalcPress<<<1,1>>>(dpdz,dpdz_prev,rbulk);
+
+	checkCuda( cudaFree(workA) );
+	checkCuda( cudaFree(dpdz_prev) );
+	checkCuda( cudaFree(rbulk) );
 }
 
-__global__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
+void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu) {
 
-	dim3 gr0  = dim3(my / sPencils, mz, 1);
+	myprec *workA;
+
+	dim3 gr0 = dim3(my / sPencils, mz, 1);
 	dim3 bl0 = dim3(mx, sPencils, 1);
-	deviceCalcDt<<<gr0,bl0>>>(d_workSX,r,u,v,w,e,mu);
+    checkCuda( cudaMalloc((void**)&workA,mx*my*mz*sizeof(myprec)) );
+    deviceCalcDt<<<gr0,bl0>>>(workA,r,u,v,w,e,mu);
 
 	cudaDeviceSynchronize();
-	reduceToMin(dt,d_workSX);
+	hostReduceToMin(dt,workA);
+
+	checkCuda( cudaFree(workA) );
 	cudaDeviceSynchronize();
 }
 
@@ -135,29 +136,21 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
 
 }
 
-__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *kin, myprec *enst) {
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e) {
 
-	*kin  = 0;
-	*enst = 0;
-
+	myprec *workA, *rbulk;
 	dim3 gr0  = dim3(my / sPencils, mz, 1);
 	dim3 bl0 = dim3(mx, sPencils, 1);
 
-	deviceSca<<<gr0,bl0>>>(d_workSX,u,v,w,u,v,w);
-	deviceMul<<<gr0,bl0>>>(d_workSX,r,d_workSX);
+	checkCuda( cudaMalloc((void**)&workA,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&rbulk    ,     sizeof(myprec)) );
 
-	cudaDeviceSynchronize();
-	volumeIntegral(kin,d_workSX);
-	*kin *= 1.0/Lx/Ly/Lz/2.0;
+	hostVolumeIntegral(rbulk,r);
+	deviceMul<<<gr0,bl0>>>(workA,r,w);
+	hostVolumeIntegral(par1,workA);
+	deviceDivOne<<<1,1>>>(par1,par1,rbulk);
+	hostVolumeIntegral(par2,e);
 
-	deviceSub<<<gr0,bl0>>>(d_workSX,sij[5],sij[7]);
-	deviceSub<<<gr0,bl0>>>(d_workSY,sij[6],sij[2]);
-	deviceSub<<<gr0,bl0>>>(d_workSZ,sij[1],sij[3]);
-
-	deviceSca<<<gr0,bl0>>>(d_workSX,d_workSX,d_workSY,d_workSZ,d_workSX,d_workSY,d_workSZ);
-	deviceMul<<<gr0,bl0>>>(d_workSX,r,d_workSX);
-
-	cudaDeviceSynchronize();
-	volumeIntegral(enst,d_workSX);
-	*enst = *enst/Lx/Ly/Lz/Re;
+	checkCuda( cudaFree(workA) );
+	checkCuda( cudaFree(rbulk) );
 }

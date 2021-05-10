@@ -11,6 +11,10 @@ __global__ void deviceSum(myprec *a, myprec *b, myprec *c) {
 	a[id.g] = b[id.g] + c[id.g];
 }
 
+__global__ void deviceSumOne(myprec *a, myprec *b, myprec *c) {
+	*a = *b + *c;
+}
+
 __global__ void deviceSub(myprec *a, myprec *b, myprec *c) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	a[id.g] = b[id.g] - c[id.g];
@@ -31,9 +35,17 @@ __global__ void deviceDiv(myprec *a, myprec *b, myprec *c) {
 	a[id.g] = b[id.g]/c[id.g];
 }
 
+__global__ void deviceDivOne(myprec *a, myprec *b, myprec *c) {
+	*a = *b/(*c);
+}
+
 __global__ void deviceCpy(myprec *a, myprec *b) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	a[id.g] = b[id.g];
+}
+
+__global__ void deviceCpyOne(myprec *a, myprec *b) {
+	*a = *b;
 }
 
 __device__ void reduceToMax(myprec *gOut, myprec *var) {
@@ -250,3 +262,62 @@ __device__ unsigned int findPreviousPowerOf2(unsigned int n)
 
     return n;
 }
+
+unsigned int hostFindPreviousPowerOf2(unsigned int n)
+{
+    while (n & n - 1) {
+        n = n & n - 1;        // unset rightmost bit
+    }
+
+    return n;
+}
+
+void hostReduceToMin(myprec *gOut, myprec *var) {
+
+	myprec *dwrkM;
+
+	int tot = mx*my*mz;
+
+	int gr  = my / sPencils *  mz;
+	int bl = mx * sPencils;
+
+	checkCuda( cudaMalloc((void**)&dwrkM ,gr*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	bl = hostFindPreviousPowerOf2(bl);
+
+	minOfThreads<<< gr, bl, bl*sizeof(myprec)>>>(dwrkM, var,  tot);
+	cudaDeviceSynchronize();
+	minOfThreads<<< 1 , bl, bl*sizeof(myprec)>>>(dwrkM, dwrkM, gr);
+	cudaDeviceSynchronize();
+
+	deviceCpyOne<<<1,1>>>(gOut,&dwrkM[0]);
+
+	checkCuda( cudaFree(dwrkM  ) );
+
+}
+
+void hostVolumeIntegral(myprec *gOut, myprec *var) {
+
+	myprec *dwrkM;
+
+	int tot = mx*my*mz;
+
+	int gr  = my *  mz;
+	int bl = mx ;
+
+	checkCuda( cudaMalloc((void**)&dwrkM ,gr*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	bl = hostFindPreviousPowerOf2(bl);
+
+	integrateThreads<<<gr, bl, bl*sizeof(myprec)>>>(dwrkM, var , tot);
+	cudaDeviceSynchronize();
+	reduceThreads<<<   1 , bl, bl*sizeof(myprec)>>>(dwrkM, dwrkM, gr);
+	cudaDeviceSynchronize();
+
+	deviceCpyOne<<<1,1>>>(gOut,&dwrkM[0]);
+
+	checkCuda( cudaFree(dwrkM  ) );
+}
+

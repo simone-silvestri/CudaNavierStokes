@@ -42,7 +42,7 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 #if mx==1 || my==1 
 const int sPencils = 1;
 #else
-#if mx > 255 ||  my>255 || mz>255
+#if mx > 255 ||  my>512 || mz>512
 const int sPencils = 1;  // small # pencils
 #else
 const int sPencils = 2;
@@ -79,6 +79,39 @@ extern myprec *d_u;
 extern myprec *d_v;
 extern myprec *d_w;
 extern myprec *d_e;
+
+extern myprec *d_rO;
+extern myprec *d_eO;
+extern myprec *d_uO;
+extern myprec *d_vO;
+extern myprec *d_wO;
+
+extern myprec *d_h;
+extern myprec *d_t;
+extern myprec *d_p;
+extern myprec *d_m;
+extern myprec *d_l;
+
+extern myprec *d_dil;
+
+extern myprec *d_rhsr1[3];
+extern myprec *d_rhsu1[3];
+extern myprec *d_rhsv1[3];
+extern myprec *d_rhsw1[3];
+extern myprec *d_rhse1[3];
+
+extern myprec *d_rhsr2[3];
+extern myprec *d_rhsu2[3];
+extern myprec *d_rhsv2[3];
+extern myprec *d_rhsw2[3];
+extern myprec *d_rhse2[3];
+
+extern myprec *d_rhsr3[3];
+extern myprec *d_rhsu3[3];
+extern myprec *d_rhsv3[3];
+extern myprec *d_rhsw3[3];
+extern myprec *d_rhse3[3];
+
 
 extern myprec *dtC,*dpdz;
 

@@ -445,3 +445,273 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 #endif
 	__syncthreads();
 }
+
+__global__ void RHSDeviceSharedFlxY_new(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dil, myprec *dpdz) {
+
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidYFlx();
+
+	int si = id.j + stencilSize;       // local i for shared memory access + halo offset
+	int sj = id.tiy;                   // local j for shared memory access
+
+	myprec rYtmp=0;
+	myprec uYtmp=0;
+	myprec vYtmp=0;
+	myprec wYtmp=0;
+	myprec eYtmp=0;
+
+	myprec wrk1=0;
+	myprec wrk2=0;
+
+	__shared__ myprec s_u[sPencils][my+stencilSize*2];
+	__shared__ myprec s_v[sPencils][my+stencilSize*2];
+	__shared__ myprec s_w[sPencils][my+stencilSize*2];
+	__shared__ myprec s_dil[sPencils][my+stencilSize*2];
+	__shared__ myprec s_prop[sPencils][my+stencilSize*2];
+
+	s_u[sj][si] = u[id.g];
+	s_v[sj][si] = v[id.g];
+	s_w[sj][si] = w[id.g];
+	s_dil[sj][si] = dil[id.g];
+	s_prop[sj][si] = mu[id.g];
+	__syncthreads();
+
+	// fill in periodic images in shared memory array
+	if (id.j < stencilSize) {
+		perBCy(s_u[sj],si);	perBCy(s_v[sj],si); perBCy(s_w[sj],si);
+		perBCy(s_prop[sj],si); perBCy(s_dil[sj],si);
+	}
+	__syncthreads();
+
+	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
+	uYtmp = (    sij[3][id.g] + sij[1][id.g]        );
+	vYtmp = (2 * sij[4][id.g] - 2./3.*s_dil[sj][si] );
+	wYtmp = (    sij[5][id.g] + sij[7][id.g]        );
+
+	//adding the viscous dissipation part duidy*mu*siy
+	eYtmp = s_prop[sj][si]*(uYtmp*sij[3][id.g] + vYtmp*sij[4][id.g] + wYtmp*sij[5][id.g]);
+
+	//Adding here the terms d (mu) dy * syj;
+	derDevSharedV1y(&wrk2,s_prop[sj],si); //wrk2 = d (mu) dy
+    uYtmp *= wrk2;
+	vYtmp *= wrk2;
+	wYtmp *= wrk2;
+
+	// viscous fluxes derivative
+	derDevSharedV2y(&wrk1,s_u[sj],si);
+	uYtmp = uYtmp + wrk1*s_prop[sj][si];
+	derDevSharedV2y(&wrk1,s_v[sj],si);
+	vYtmp = vYtmp + wrk1*s_prop[sj][si];
+	derDevSharedV2y(&wrk1,s_w[sj],si);
+	wYtmp = wYtmp + wrk1*s_prop[sj][si];
+
+	//adding the viscous dissipation part ui*(mu * d2duidy2 + dmudy * siy)
+	eYtmp = eYtmp + s_u[sj][si]*uYtmp + s_v[sj][si]*vYtmp + s_w[sj][si]*wYtmp;
+
+	//dilation derivatives
+	derDevSharedV1y(&wrk2,s_dil[sj],si);
+	vYtmp = vYtmp + s_prop[sj][si]*wrk2/3.0;
+	eYtmp = eYtmp + s_prop[sj][si]*wrk2/3.0*s_v[sj][si];
+
+	// pressure derivatives
+	s_dil[sj][si] = p[id.g];
+	__syncthreads();
+	if (id.j < stencilSize) {
+		perBCy(s_dil[sj],si);
+	}
+	__syncthreads();
+	derDevShared1y(&wrk1,s_dil[sj],si);
+	vYtmp = vYtmp - wrk1;
+
+	// fourier terms
+	s_prop[sj][si] = lam[id.g];
+	s_dil[sj][si]  = t[id.g];
+	__syncthreads();
+	if (id.j < stencilSize) {
+		perBCy(s_dil[sj],si); perBCy(s_prop[sj],si);
+	}
+	__syncthreads();
+
+	derDevSharedV2y(&wrk1,s_dil[sj],si);
+	eYtmp = eYtmp + wrk1*s_prop[sj][si];
+	derDevSharedV1y(&wrk2,s_prop[sj],si); //wrk2 = d (lam) dy
+	derDevSharedV1y(&wrk1,s_dil[sj] ,si); //wrk1 = d (t) dy
+	eYtmp = eYtmp + wrk1*wrk2;
+
+	//Adding here the terms - d (ru phi) dy;
+	s_prop[sj][si] = r[id.g];
+	s_dil[sj][si]  = h[id.g];
+	__syncthreads();
+	if (id.j < stencilSize) {
+		perBCy(s_dil[sj],si); perBCy(s_prop[sj],si);
+	}
+	__syncthreads();
+	fluxQuadSharedy(&wrk1,s_prop[sj],s_v[sj],si);
+	rYtmp = wrk1;
+	__syncthreads();
+	fluxCubeSharedy(&wrk1,s_prop[sj],s_v[sj],s_u[sj],si);
+	uYtmp = uYtmp + wrk1;
+	__syncthreads();
+	fluxCubeSharedy(&wrk1,s_prop[sj],s_v[sj],s_v[sj],si);
+	vYtmp = vYtmp + wrk1;
+	__syncthreads();
+	fluxCubeSharedy(&wrk1,s_prop[sj],s_v[sj],s_w[sj],si);
+	wYtmp = wYtmp + wrk1;
+	__syncthreads();
+	fluxCubeSharedy(&wrk1,s_prop[sj],s_v[sj],s_dil[sj],si);
+	eYtmp = eYtmp + wrk1;
+	__syncthreads();
+
+#if useStreams
+	rY[id.g] = rYtmp;
+	uY[id.g] = uYtmp;
+	vY[id.g] = vYtmp;
+	wY[id.g] = wYtmp;
+	eY[id.g] = eYtmp;
+#else
+	rY[id.g] += rYtmp;
+	uY[id.g] += uYtmp;
+	vY[id.g] += vYtmp;
+	wY[id.g] += wYtmp;
+	eY[id.g] += eYtmp;
+#endif
+	__syncthreads();
+}
+
+__global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dil, myprec *dpdz) {
+
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	id.mkidZFlx();
+
+	int si = id.k + stencilSize;       // local i for shared memory access + halo offset
+	int sj = id.tiy;                   // local j for shared memory access
+
+	myprec rZtmp=0;
+	myprec uZtmp=0;
+	myprec vZtmp=0;
+	myprec wZtmp=0;
+	myprec eZtmp=0;
+
+	myprec wrk1=0;
+	myprec wrk2=0;
+
+	__shared__ myprec s_u[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_v[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_w[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_dil[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_prop[sPencils][mz+stencilSize*2];
+
+	s_u[sj][si] = u[id.g];
+	s_v[sj][si] = v[id.g];
+	s_w[sj][si] = w[id.g];
+	s_dil[sj][si] = dil[id.g];
+	s_prop[sj][si] = mu[id.g];
+	__syncthreads();
+
+	// fill in periodic images in shared memory array
+	if (id.k < stencilSize) {
+		perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
+		perBCz(s_prop[sj],si); perBCz(s_dil[sj],si);
+	}
+	__syncthreads();
+
+	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
+	uZtmp = (    sij[6][id.g] + sij[2][id.g]        );
+	vZtmp = (    sij[7][id.g] + sij[5][id.g]        );
+	wZtmp = (2 * sij[8][id.g] - 2./3.*s_dil[sj][si] );
+
+	//adding the viscous dissipation part duidz*mu*siz
+	eZtmp = s_prop[sj][si]*(uZtmp*sij[6][id.g] + vZtmp*sij[7][id.g] + wZtmp*sij[8][id.g]);
+
+	//Adding here the terms d (mu) dz * szj;
+	derDevSharedV1z(&wrk2,s_prop[sj],si); //wrk2 = d (mu) dz
+    uZtmp *= wrk2;
+	vZtmp *= wrk2;
+	wZtmp *= wrk2;
+
+	// viscous fluxes derivative
+	derDevSharedV2z(&wrk1,s_u[sj],si);
+	uZtmp = uZtmp + wrk1*s_prop[sj][si];
+	derDevSharedV2z(&wrk1,s_v[sj],si);
+	vZtmp = vZtmp + wrk1*s_prop[sj][si];
+	derDevSharedV2z(&wrk1,s_w[sj],si);
+	wZtmp = wZtmp + wrk1*s_prop[sj][si];
+
+	//adding the viscous dissipation part ui*(mu * d2duidz2 + dmudz * siz)
+	eZtmp = eZtmp + s_u[sj][si]*uZtmp + s_v[sj][si]*vZtmp + s_w[sj][si]*wZtmp;
+
+	//dilation derivatives
+	derDevSharedV1z(&wrk2,s_dil[sj],si);
+	wZtmp = wZtmp + s_prop[sj][si]*wrk2/3.0;
+	eZtmp = eZtmp + s_prop[sj][si]*wrk2/3.0*s_w[sj][si];
+
+	// pressure derivatives
+	s_dil[sj][si] = p[id.g];
+	__syncthreads();
+	if (id.k < stencilSize) {
+		perBCz(s_dil[sj],si);
+	}
+	__syncthreads();
+	derDevShared1z(&wrk1,s_dil[sj],si);
+	wZtmp = wZtmp - wrk1;
+
+	// fourier terms
+	s_prop[sj][si] = lam[id.g];
+	s_dil[sj][si]  = t[id.g];
+	__syncthreads();
+	if (id.k < stencilSize) {
+		perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
+	}
+	__syncthreads();
+
+	derDevSharedV2z(&wrk1,s_dil[sj],si);
+	eZtmp = eZtmp + wrk1*s_prop[sj][si];
+	derDevSharedV1z(&wrk2,s_prop[sj],si); //wrk2 = d (lam) dz
+	derDevSharedV1z(&wrk1,s_dil[sj],si); //wrk1 = d (t) dz
+	eZtmp = eZtmp + wrk1*wrk2;
+
+	//Adding here the terms - d (ru phi) dz;
+	s_prop[sj][si] = r[id.g];
+	s_dil[sj][si]  = h[id.g];
+	__syncthreads();
+	if (id.k < stencilSize) {
+		perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
+	}
+	__syncthreads();
+	fluxQuadSharedz(&wrk1,s_prop[sj],s_w[sj],si);
+	rZtmp = wrk1;
+	__syncthreads();
+	fluxCubeSharedz(&wrk1,s_prop[sj],s_w[sj],s_u[sj],si);
+	uZtmp = uZtmp + wrk1;
+	__syncthreads();
+	fluxCubeSharedz(&wrk1,s_prop[sj],s_w[sj],s_v[sj],si);
+	vZtmp = vZtmp + wrk1;
+	__syncthreads();
+	fluxCubeSharedz(&wrk1,s_prop[sj],s_w[sj],s_w[sj],si);
+	wZtmp = wZtmp + wrk1;
+	__syncthreads();
+	fluxCubeSharedz(&wrk1,s_prop[sj],s_w[sj],s_dil[sj],si);
+	eZtmp = eZtmp + wrk1;
+	__syncthreads();
+
+#if useStreams
+	rZ[id.g] = rZtmp;
+	uZ[id.g] = uZtmp;
+	vZ[id.g] = vZtmp;
+	wZ[id.g] = wZtmp + *dpdz;
+	eZ[id.g] = eZtmp + *dpdz*s_w[sj][si] ;
+#else
+	rZ[id.g] += rZtmp;
+	uZ[id.g] += uZtmp;
+	vZ[id.g] += vZtmp;
+	wZ[id.g] += wZtmp + *dpdz;
+	eZ[id.g] += eZtmp + *dpdz*s_w[sj][si] ;
+#endif
+	__syncthreads();
+}

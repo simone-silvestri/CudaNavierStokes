@@ -59,6 +59,12 @@ void copyField(int direction);
 void checkGpuMem();
 void runSimulation(myprec *kin, myprec *enst, myprec *time);
 
+void initSolver();
+void clearSolver();
+void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
+void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e);
+
 //global functions
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
@@ -69,6 +75,14 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz);
 __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dil, myprec *dpdz);
+__global__ void RHSDeviceSharedFlxY_new(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dil, myprec *dpdz);
+__global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz);
@@ -85,9 +99,6 @@ __global__ void clearStress();
 __global__ void initRHS();
 __global__ void clearRHS();
 __device__ void threadBlockDeviceSynchronize(void);
-__global__ void calcIntegrals(myprec *r, myprec *u, myprec *v, myprec *w, myprec *kin, myprec *enst);
-__global__ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-__global__ void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);

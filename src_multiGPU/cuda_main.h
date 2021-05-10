@@ -46,22 +46,20 @@ myprec *d_rhsv3[3];
 myprec *d_rhsw3[3];
 myprec *d_rhse3[3];
 
-__device__ myprec sij[9][mx*my*mz];
-
 myprec *dtC,*dpdz;
 
-__global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt);
-__global__ void eulerSumR(myprec *a, myprec *b, myprec *c, myprec *r, myprec *dt);
+__device__ myprec sij[9][mx*my*mz];
 
-__global__ void eulerSum3(myprec *a, myprec *b, myprec *c1, myprec *c2, myprec *dt);
-__global__ void eulerSum3R(myprec *a, myprec *b, myprec *c1, myprec *c2, myprec *r, myprec *dt);
+__global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt, int i);
+__global__ void eulerSumR(myprec *a, myprec *b, myprec *c, myprec *r, myprec *dt, int i);
 
-__global__ void rk3final(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *dt);
-__global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *r, myprec *dt);
+__global__ void eulerSum3(myprec *a, myprec *b, myprec *c1, myprec *c2, myprec *dt, int i);
+__global__ void eulerSum3R(myprec *a, myprec *b, myprec *c1, myprec *c2, myprec *r, myprec *dt, int i);
+
+__global__ void rk3final(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *dt, int i);
+__global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *r, myprec *dt, int i);
 
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
 
-void initSolver();
-void clearSolver();
 
 #endif /* RHS_H_ */

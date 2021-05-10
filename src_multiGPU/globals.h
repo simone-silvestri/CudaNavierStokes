@@ -18,7 +18,7 @@
 #define mx       160
 #define my       192
 #define mz       192
-#define nsteps   100
+#define nsteps   1001
 #define nfiles	 1
 #define CFL      0.7f
 
@@ -39,8 +39,8 @@ const int restartFile = 800;
 
 const double stretch = 3.0;
 
-#define capabilityMin 100
-#define checkCFLcondition 10
+#define checkCFLcondition 100
+#define checkBulk 1000
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 
@@ -71,6 +71,12 @@ const double coeffVS[] = { 1.0/90.0, -3.0/20.0,  3.0/2.0, -49.0/18.0};
 #elif stencilVisc==4
 const double coeffVF[] = { 1.0/280.0, -4.0/105.0,  1.0/5.0, -4.0/5.0};
 const double coeffVS[] = {-1.0/560.0,  8.0/315.0, -1.0/5.0,  8.0/5.0,  -205.0/72.0};
+#endif
+
+#if useStreams
+	const int fin = 3;
+#else
+	const int fin = 1;
 #endif
 
 extern double dt, h_dpdz;

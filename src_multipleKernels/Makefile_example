@@ -2,11 +2,9 @@
 # It can be different from the folder in which you want to compile and run the mesh generator. 
 # In the current directory ./ you only need to have the main.cu and this Makefile
 
-GEN = /usr
+MPI = /usr/
 
-#MPI = /usr/local/openmpi-4.1.1
-
-CUDA = /usr/local/cuda
+CUDA = /usr/local/cuda-10.1
 
 GPU_ARCHITECTURE = 70
 
@@ -21,7 +19,7 @@ ifeq ($(ARCH),GPU)
 gpu_usage=1
 endif
 
-SRC=./src_multiGPU/
+SRC=./src_multipleKernels/
 OBJ=./obj/
 
 # Define compiler and optimizer's flags
@@ -31,16 +29,17 @@ FLAG_ARCH = -Dcapability=$(GPU_ARCHITECTURE)
 
 LIBS = -lm 
 
+
+ifeq ($(ARCH),GPU)
 FLAG2 = --use_fast_math
 MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
-INC = -I$(CUDA)/include -I$(GEN)/include
-#INC += -I$(MPI)/include
-LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda ## -lcudart 
-#LIB += -L$(MPI)/lib
+INC = -I$(CUDA)/include -I$(MPI)/include
+LIB = -L$(CUDA)/lib64 -L$(MPI)/lib -lc -lstdc++ -lcuda ## -lcudart 
 NVCC = nvcc $(DBG) -lineinfo -rdc=true #--ptxas-options=-v  
 ifeq ($(DBG),)
 NVCC += -O5  
+endif
 endif
 
 CC = $(NVCC)
@@ -48,7 +47,7 @@ CFLAGS = $(INC) $(LIB)
 
 TARGET = ns
 
-MPICC = mpic++ -O5
+
 
 ifeq ($(ARCH),GPU)
 OBJ_CUDA = $(OBJ)cuda_main.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o 
@@ -62,10 +61,10 @@ OBJECTS = $(OBJ_CUDA) $(OBJ_SRC)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) 
-	$(MPICC) $(CFLAGS) $(FLAG_GPU) $(FLAG_ARCH) -o $(TARGET) $(OBJECTS) $(LIBS) -lcudart 
+	$(CC) $(CFLAGS) $(FLAG_GPU) $(FLAG_ARCH) -o $(TARGET) $(OBJECTS) $(LIBS) -lcudart 
 
-$(OBJ)main.o: $(SRC)main.cpp
-	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cpp $(CFLAGS) -o $(OBJ)main.o #-lcudart
+$(OBJ)main.o: $(SRC)main.cu
+	$(CC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cu $(CFLAGS) -o $(OBJ)main.o -lcudart
 	
 $(OBJ)init.o: $(SRC)init.cu
 	$(CC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)init.cu $(CFLAGS) -o $(OBJ)init.o

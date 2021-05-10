@@ -42,7 +42,9 @@ void setDerivativeParameters()
   myprec *h_xp  = new myprec[mx];
   myprec *h_dxv = new myprec[mx];
 
-  myprec h_dpdz = 0.00372;
+  myprec h_dpdz;
+  if(forcing)  h_dpdz = 0.00372;
+  if(!forcing) h_dpdz = 0.0;
 
   checkCuda( cudaMalloc((void**)&dtC ,sizeof(myprec)) );
   checkCuda( cudaMalloc((void**)&dpdz,sizeof(myprec)) );
@@ -177,7 +179,6 @@ void copyThreadGridsToDevice() {
 	  block0= d_block[0];
 }
 
-
 void copyField(int direction) {
 
   myprec *fr  = new myprec[mx*my*mz];
@@ -230,6 +231,86 @@ void copyField(int direction) {
 
 }
 
+void initSolver() {
+
+    for (int i=0; i<fin; i++) {
+    	checkCuda( cudaMalloc((void**)&d_rhsr1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsu1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsv1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsw1[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhse1[i],mx*my*mz*sizeof(myprec)) );
+
+    	checkCuda( cudaMalloc((void**)&d_rhsr2[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsu2[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsv2[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsw2[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhse2[i],mx*my*mz*sizeof(myprec)) );
+
+    	checkCuda( cudaMalloc((void**)&d_rhsr3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsu3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsv3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhsw3[i],mx*my*mz*sizeof(myprec)) );
+    	checkCuda( cudaMalloc((void**)&d_rhse3[i],mx*my*mz*sizeof(myprec)) );
+    }
+
+	checkCuda( cudaMalloc((void**)&d_r, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_u, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_v, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_w, mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_e, mx*my*mz*sizeof(myprec)) );
+
+	checkCuda( cudaMalloc((void**)&d_h,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_t,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_p,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_m,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_l,mx*my*mz*sizeof(myprec)) );
+
+	checkCuda( cudaMalloc((void**)&d_rO,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_eO,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_uO,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_vO,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_wO,mx*my*mz*sizeof(myprec)) );
+
+	checkCuda( cudaMalloc((void**)&d_dil,mx*my*mz*sizeof(myprec)) );
+
+}
+
+void clearSolver() {
+
+	for(int i=0; i<fin; i++) {
+		checkCuda( cudaFree(d_rhsr1[i]) );
+		checkCuda( cudaFree(d_rhsu1[i]) );
+		checkCuda( cudaFree(d_rhsv1[i]) );
+		checkCuda( cudaFree(d_rhsw1[i]) );
+		checkCuda( cudaFree(d_rhse1[i]) );
+
+		checkCuda( cudaFree(d_rhsr2[i]) );
+		checkCuda( cudaFree(d_rhsu2[i]) );
+		checkCuda( cudaFree(d_rhsv2[i]) );
+		checkCuda( cudaFree(d_rhsw2[i]) );
+		checkCuda( cudaFree(d_rhse2[i]) );
+
+		checkCuda( cudaFree(d_rhsr3[i]) );
+		checkCuda( cudaFree(d_rhsu3[i]) );
+		checkCuda( cudaFree(d_rhsv3[i]) );
+		checkCuda( cudaFree(d_rhsw3[i]) );
+		checkCuda( cudaFree(d_rhse3[i]) );
+	}
+	checkCuda( cudaFree(d_h) );
+	checkCuda( cudaFree(d_t) );
+	checkCuda( cudaFree(d_p) );
+	checkCuda( cudaFree(d_m) );
+	checkCuda( cudaFree(d_l) );
+
+	checkCuda( cudaFree(d_rO) );
+	checkCuda( cudaFree(d_eO) );
+	checkCuda( cudaFree(d_uO) );
+	checkCuda( cudaFree(d_vO) );
+	checkCuda( cudaFree(d_wO) );
+
+	checkCuda( cudaFree(d_dil) );
+
+}
 
 void checkGpuMem() {
 
