@@ -5,7 +5,6 @@
 #include "globals.h"
 #include <stdio.h>
 #include <assert.h>
-#define myprec double
 
 
 // Convenience function for checking CUDA runtime API results

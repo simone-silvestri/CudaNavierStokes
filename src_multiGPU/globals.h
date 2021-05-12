@@ -8,6 +8,11 @@
 #include <stdio.h>
 
 //Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
+#define myprec double
+#define MPI_myprec MPI_DOUBLE
+
+#define pRow 1
+#define pCol 1
 
 #define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 4  // the order is double the stencilVisc (viscous fluxes stencil)
@@ -15,9 +20,9 @@
 #define Lx       (2.0)
 #define Ly       (2.0*M_PI)
 #define Lz       (4.0*M_PI)
-#define mx       160
-#define my       192
-#define mz       192
+#define mx_tot   512
+#define my_tot   512
+#define mz_tot   512
 #define nsteps   1001
 #define nfiles	 1
 #define CFL      0.7f
@@ -44,6 +49,10 @@ const double stretch = 3.0;
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); }) 
+
+#define mx (mx_tot)
+#define my (my_tot/pRow)
+#define mz (mz_tot/pCol)
 
 #if stencilSize==1
 const double coeffF[] = {-1.0/2.0};
@@ -81,7 +90,7 @@ const double coeffVS[] = {-1.0/560.0,  8.0/315.0, -1.0/5.0,  8.0/5.0,  -205.0/72
 
 extern double dt, h_dpdz;
 
-extern double dx,x[mx],xp[mx],xpp[mx],y[my],z[mz];
+extern double dx,x[mx],xp[mx],xpp[mx],y[my_tot],z[mz_tot];
 
 extern double r[mx*my*mz];
 extern double u[mx*my*mz];

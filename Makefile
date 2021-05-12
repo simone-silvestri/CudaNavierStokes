@@ -48,16 +48,19 @@ CFLAGS = $(INC) $(LIB)
 
 TARGET = ns
 
-MPICC = mpic++ -O5
+MPICC = mpic++ -mcmodel=large 
+ifeq ($(DBG),)
+MPICC += -O5 
+endif
 
 ifeq ($(ARCH),GPU)
 OBJ_CUDA = $(OBJ)cuda_main.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o 
 endif
 
 # List of objects
-OBJ_SRC = $(OBJ)main.o $(OBJ)init.o
+OBJ_SRC = $(OBJ)main.o $(OBJ)comm.o $(OBJ)init.o ##$(OBJ)init.o
 
-OBJECTS = $(OBJ_CUDA) $(OBJ_SRC)
+OBJECTS =  $(OBJ_SRC) ##$(OBJ_CUDA)
 
 all: $(TARGET)
 
@@ -67,8 +70,11 @@ $(TARGET): $(OBJECTS)
 $(OBJ)main.o: $(SRC)main.cpp
 	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cpp $(CFLAGS) -o $(OBJ)main.o #-lcudart
 	
-$(OBJ)init.o: $(SRC)init.cu
-	$(CC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)init.cu $(CFLAGS) -o $(OBJ)init.o
+$(OBJ)comm.o: $(SRC)comm.cpp
+	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)comm.cpp $(CFLAGS) -o $(OBJ)comm.o #-lcudart
+	
+$(OBJ)init.o: $(SRC)init.cpp
+	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)init.cpp $(CFLAGS) -o $(OBJ)init.o
 	
 ifeq ($(ARCH),GPU)
 $(OBJ)cuda_main.o: $(SRC)cuda_main.cu

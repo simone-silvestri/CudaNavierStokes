@@ -4,14 +4,14 @@
 #include <cmath>
 #include <algorithm>
 #include "mpi.h"
-#include <chrono>
 #include "globals.h"
+#include "comm.h"
 
 using namespace std;
 
 double dt, h_dpdz;
 
-double dx,x[mx],xp[mx],xpp[mx],y[my],z[mz];
+double dx,x[mx],xp[mx],xpp[mx],y[my_tot],z[mz_tot];
 
 double r[mx*my*mz];
 double u[mx*my*mz];
@@ -19,32 +19,42 @@ double v[mx*my*mz];
 double w[mx*my*mz];
 double e[mx*my*mz];
 
-
 int main(int argc, char** argv) {
 
-	int myRank;
+	int myRank, nProcs;
 
-	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	double begin = MPI_Wtime();
 
     int ierr;
 
     ierr = MPI_Init(&argc, &argv);
-    printf("Hello world\n");
+    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    ierr = MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
 
-    ierr = MPI_Finalize();
+    if(nProcs != pRow*pCol) {
+    	if(myRank==0) {
+    		printf("Error! -> nProcs different that pRow*pCol");
+    	}
+    	ierr = MPI_Barrier(MPI_COMM_WORLD);
+    	exit(1);
+    }
 
+    Communicator rk;
+    rk.myRank(myRank);
+    splitComm(&rk);
+    initGrid(rk);
+    begin = MPI_Wtime();
+    initField(801,rk);
+    ierr = MPI_Barrier(MPI_COMM_WORLD);
 
-	// ==== Call function 'call_me_maybe' from CUDA file multiply.cu: ==========
-
-	//    initGrid();
 //    if(restartFile<0) {
 //    	if(forcing) {
-//    		initChannel();
+//    		initChannel(rk);
 //    	} else {
-//    		initCHIT();
+//    		initCHIT(rk);
 //    	}
 //    } else {
-//    	initFile(restartFile); }
+//    	initField(restartFile,rk); }
 //    calcdt();
 //    writeFields(0);
 //    printRes();
@@ -103,19 +113,17 @@ int main(int argc, char** argv) {
 //    		fprintf(fp,"%lf %lf %lf %lf %lf %lf %lf\n",x[i],z[k],r[idx(i,0,k)],u[idx(i,0,k)],v[idx(i,0,k)],w[idx(i,0,k)],e[idx(i,0,k)]);
 //    fclose(fp);
 
+//
+//    double end = MPI_Wtime();
+//
+//    cout << "The total time is: " << end - begin << "\n";
+//
+//    double timePerTimeStep = (end - begin)/(nfiles*nsteps);
+//
+//    cout << "The simulation time per time step is: " << timePerTimeStep << "\n";
+//
+//    cout << "Simulation is finished! \n";
 
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    cout << "Elapsed Time = " << std::chrono::duration_cast<std::chrono::seconds>     (end - begin).count() << "[s]" << std::endl;
-
-    double timePerTimeStep = ((double) (std::chrono::duration_cast<std::chrono::seconds>  (end - begin).count()))/(nfiles*nsteps);
-
-    cout << "The simulation time per time step is: " << timePerTimeStep << "\n";
-
-    cout << "Simulation is finished! \n";
-
-    MPI_Finalize();
+    ierr = MPI_Finalize();
 	return 0;
 }
-
-
