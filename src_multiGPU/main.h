@@ -9,7 +9,7 @@
 
 class Communicator {
 public:
-	int rank, jp, jm, kp, km;
+	int nodeRank, rank, jp, jm, kp, km;
 	int jstart,jend,kstart,kend;
 	void myRank(int rk) {
 		rank = rk;

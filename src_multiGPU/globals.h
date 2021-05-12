@@ -11,8 +11,8 @@
 #define myprec double
 #define MPI_myprec MPI_DOUBLE
 
-#define pRow 1
-#define pCol 1
+#define pRow 2
+#define pCol 2
 
 #define stencilSize 4  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 4  // the order is double the stencilVisc (viscous fluxes stencil)

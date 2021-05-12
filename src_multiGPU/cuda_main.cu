@@ -4,9 +4,11 @@
 #include "cuda_main.h"
 #include "cuda_math.h"
 
-void runSimulation(myprec *par1, myprec *par2, myprec *time) {
+void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
 	myprec h_dt,h_dpdz;
+
+	cudaSetDevice(rk.nodeRank);
 
 	/* allocating temporary arrays and streams */
 	void (*RHSDeviceDir[3])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*,

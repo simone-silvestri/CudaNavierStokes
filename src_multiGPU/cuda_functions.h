@@ -57,7 +57,7 @@ class Indices {
 void setDerivativeParameters();
 void copyField(int direction);
 void checkGpuMem();
-void runSimulation(myprec *kin, myprec *enst, myprec *time);
+void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);
 
 void initSolver();
 void clearSolver();

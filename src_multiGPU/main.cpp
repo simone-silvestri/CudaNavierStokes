@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 //    FILE *fp = fopen("solution.txt","w+");
 //    for(int file = 1; file<nfiles+1; file++) {
 //
-//    	runSimulation(dpar1,dpar2,dtime);  //running the simulation on the GPU
+//    	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
 //    	copyField(1);			  //copying back partial results to CPU
 //
 //    	writeFields(file);
