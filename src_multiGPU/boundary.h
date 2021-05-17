@@ -14,6 +14,8 @@ const myprec TwallBot = 1.0;
 extern __device__ __forceinline__ void perBCx(myprec *s_f, int si);
 extern __device__ __forceinline__ void perBCy(myprec *s_f, int si);
 extern __device__ __forceinline__ void perBCz(myprec *s_f, int si);
+extern __device__ __forceinline__ void haloBCy(myprec *s_f, myprec *f, int si, Indices id);
+extern __device__ __forceinline__ void haloBCz(myprec *s_f, myprec *f, int si, Indices id);
 extern __device__ __forceinline__ void wallBCxExt(myprec *s_f, int si, const myprec Bctop, const myprec Bcbot);
 extern __device__ __forceinline__ void wallBCxMir(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxVel(myprec *s_f, int si);
@@ -36,6 +38,16 @@ __device__ __forceinline__ __attribute__((always_inline)) void perBCy(myprec *s_
 __device__ __forceinline__ __attribute__((always_inline)) void perBCz(myprec *s_f, int si) {
 	s_f[si-stencilSize]  = s_f[si+mz-stencilSize];
 	s_f[si+mz]           = s_f[si];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void haloBCy(myprec *s_f, myprec *f, int si, Indices id) {
+	s_f[si-stencilSize]  = f[mx*my*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
+	s_f[si+my]           = f[mx*my*mz + stencilSize*mx*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void haloBCz(myprec *s_f, myprec *f, int si, Indices id) {
+	s_f[si-stencilSize]  = f[mx*my*mz + 2*stencilSize*mx*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+	s_f[si+my]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void wallBCxExt(myprec *s_f, int si, myprec Bctop, myprec Bcbot) {

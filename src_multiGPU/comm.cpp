@@ -13,6 +13,66 @@
     } \
 }
 
+myprec *senYp,*senYm,*senZp,*senZm;
+myprec *rcvYp,*rcvYm,*rcvZp,*rcvZm;
+
+myprec *senYp5,*senYm5,*senZp5,*senZm5;
+myprec *rcvYp5,*rcvYm5,*rcvZp5,*rcvZm5;
+
+void updateHalo(myprec *var, Communicator rk) {
+
+	int ierr;
+	MPI_Status status;
+
+	fillBoundaries(senYm,senYp,senZm,senZp,var,0);
+
+	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+					    rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+						 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senYp, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			            rcvYp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+						 MPI_COMM_WORLD,&status);
+
+	ierr = MPI_Sendrecv(senZm, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+					    rcvZm, my*mx*stencilSize, MPI_myprec, rk.km, 0,
+						 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senZp, my*mx*stencilSize, MPI_myprec, rk.km, 0,
+					    rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+						 MPI_COMM_WORLD,&status);
+
+	fillBoundaries(rcvYm,rcvYp,rcvZm,rcvZp,var,1);
+}
+
+void updateHaloAll(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk) {
+	updateHalo(r,rk);
+	updateHalo(u,rk);
+	updateHalo(v,rk);
+	updateHalo(w,rk);
+	updateHalo(e,rk);
+}
+
+void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk) {
+	int ierr;
+	MPI_Status status;
+	fillBoundariesFive(senYm5,senYp5,senZm5,senZp5,r,u,v,w,e,0);
+
+	ierr = MPI_Sendrecv(senYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+					    rcvYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+						 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			            rcvYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+						 MPI_COMM_WORLD,&status);
+
+	ierr = MPI_Sendrecv(senZm5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+					    rcvZm5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
+						 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senZp5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
+					    rcvZp5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+						 MPI_COMM_WORLD,&status);
+
+	fillBoundariesFive(rcvYm5,rcvYp5,rcvZm5,rcvZp5,r,u,v,w,e,1);
+}
+
 long int nameToHash(char *name, int length) {
 	long int hash = 0;
 	for (int i=0; i<length; i++) {
@@ -76,51 +136,6 @@ void splitComm(Communicator *rk) {
     ierr = MPI_Comm_split(MPI_COMM_WORLD, hash, rk->rank, &comm_node);
     ierr = MPI_Comm_rank(comm_node , &rk->nodeRank);
     ierr = MPI_Barrier(MPI_COMM_WORLD);
-
-    for (int p=0; p<pRow*pCol; p++) {
-    	if(rk->rank==p) printf("rank -> %d \t rank in node -> %d \t proc name -> %s \t hash -> %ld\n",rk->rank,rk->nodeRank,procname,hash);
-    	sleep(1);
-    }
-	ierr = MPI_Barrier(MPI_COMM_WORLD);
-}
-
-void updateHalo(Boundaries *bc, myprec *var, Communicator rk) {
-
-	int ierr;
-	MPI_Status status;
-	myprec senYp[mz*mx*stencilSize];
-	myprec senYm[mz*mx*stencilSize];
-	myprec senZp[my*mx*stencilSize];
-	myprec senZm[my*mx*stencilSize];
-
-	for(int k=0; k<mz; k++)
-		for (int i=0; i<mx; i++)
-			for (int it=0; it<stencilSize; it++) {
-				senYp[it + i*stencilSize + k*mx*stencilSize] = var[i + it*mx + k*mx*my];
-				senYm[it + i*stencilSize + k*mx*stencilSize] = var[i + (my - it - 1)*mx + k*mx*my];
-			}
-
-	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-					   bc->jm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-						 MPI_COMM_WORLD,&status);
-	ierr = MPI_Sendrecv(senYp, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-			           bc->jp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-						 MPI_COMM_WORLD,&status);
-
-	for(int j=0; j<my; j++)
-		for (int i=0; i<mx; i++)
-			for (int it=0; it<stencilSize; it++) {
-				senZp[it + i*stencilSize + j*mx*stencilSize] = var[i + j*mx + it*mx*my];
-				senZm[it + i*stencilSize + j*mx*stencilSize] = var[i + j*mx + (mz - it - 1)*mx*my];
-			}
-
-	ierr = MPI_Sendrecv(senZm, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-					   bc->km, my*mx*stencilSize, MPI_myprec, rk.km, 0,
-						 MPI_COMM_WORLD,&status);
-	ierr = MPI_Sendrecv(senZp, my*mx*stencilSize, MPI_myprec, rk.km, 0,
-					   bc->kp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-						 MPI_COMM_WORLD,&status);
-
 }
 
 void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {
@@ -198,3 +213,78 @@ void readFileMPI(char filename, int timestep,  double *var, Communicator rk) {
     			var[i + (j-rk.jstart)*mx + (k-rk.kstart)*mx*my] = var_tot[i + j * mx_tot + k * mx_tot * my_tot];
     delete [] var_tot;
 }
+
+void reduceArray(int rcvCore, double *sendArr, int sizeArr, Communicator rk) {
+	int ierr;
+	double tmpArr[sizeArr];
+
+	ierr = MPI_Reduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_SUM, rcvCore, MPI_COMM_WORLD);
+
+	if(rk.rank == rcvCore) {
+		for(int i=0; i<sizeArr; i++)
+			sendArr[i] = tmpArr[i]/(pRow*pCol);
+	}
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void allReduceArray(double *sendArr, int sizeArr) {
+	int ierr;
+	double tmpArr[sizeArr];
+
+	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+	for(int i=0; i<sizeArr; i++)
+		sendArr[i] = tmpArr[i]/(pRow*pCol);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void broadCastArray(int bcstCore, double *sendArr, int sizeArr, Communicator rk) {
+	int ierr;
+
+	ierr = MPI_Bcast(sendArr, sizeArr, MPI_DOUBLE, bcstCore, MPI_COMM_WORLD);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void mpiBarrier() {
+	int ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void initHalo() {
+		senYm = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
+		senYp = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
+		senZm = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
+		senZp = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
+		rcvYm = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
+		rcvYp = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
+		rcvZm = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
+		rcvZp = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
+		senYm5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
+		senYp5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
+		senZm5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
+		senZp5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
+		rcvYm5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
+		rcvYp5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
+		rcvZm5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
+		rcvZp5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
+}
+
+void destroyHalo() {
+		free(senYm);
+		free(senYp);
+		free(senZm);
+		free(senZp);
+		free(rcvYm);
+		free(rcvYp);
+		free(rcvZm);
+		free(rcvZp);
+		free(senYm5);
+		free(senYp5);
+		free(senZm5);
+		free(senZp5);
+		free(rcvYm5);
+		free(rcvYp5);
+		free(rcvZm5);
+		free(rcvZp5);
+}
+
+

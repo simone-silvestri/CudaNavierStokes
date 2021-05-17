@@ -6,7 +6,7 @@ GEN = /usr
 
 #MPI = /usr/local/openmpi-4.1.1
 
-CUDA = /usr/local/cuda
+CUDA = /usr/local/cuda-11.2
 
 GPU_ARCHITECTURE = 70
 
@@ -36,7 +36,7 @@ MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include -I$(GEN)/include
 #INC += -I$(MPI)/include
-LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda ## -lcudart 
+LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda -lcudart -lcudadevrt 
 #LIB += -L$(MPI)/lib
 NVCC = nvcc $(DBG) -lineinfo -rdc=true #--ptxas-options=-v  
 ifeq ($(DBG),)
@@ -53,30 +53,31 @@ ifeq ($(DBG),)
 MPICC += -O5 
 endif
 
-ifeq ($(ARCH),GPU)
-OBJ_CUDA = $(OBJ)cuda_main.o $(OBJ)cuda_utils.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)cuda_math.o 
-endif
-
 # List of objects
-OBJ_SRC = $(OBJ)main.o $(OBJ)comm.o $(OBJ)init.o ##$(OBJ)init.o
-
-OBJECTS =  $(OBJ_SRC) ##$(OBJ_CUDA)
+OBJ_SRC = $(OBJ)main.o $(OBJ)comm.o $(OBJ)init.o 
+OBJ_CUDA= $(OBJ)cuda_utils.o $(OBJ)cuda_math.o $(OBJ)cuda_main.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o 
+OBJ_LINK= $(OBJ)cuda_link.o 
+OBJECTS =  $(OBJ_SRC) $(OBJ_CUDA) $(OBJ_LINK)
 
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) 
-	$(MPICC) $(CFLAGS) $(FLAG_GPU) $(FLAG_ARCH) -o $(TARGET) $(OBJECTS) $(LIBS) -lcudart 
+	$(MPICC) $(CFLAGS) $(FLAG_GPU) $(FLAG_ARCH) -o $(TARGET) $(OBJECTS) $(LIBS) -lcudart  -lcudadevrt 
+
+#MPIC++ compilation src files
 
 $(OBJ)main.o: $(SRC)main.cpp
-	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cpp $(CFLAGS) -o $(OBJ)main.o #-lcudart
+	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)main.cpp $(CFLAGS) -o $(OBJ)main.o 
 	
 $(OBJ)comm.o: $(SRC)comm.cpp
-	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)comm.cpp $(CFLAGS) -o $(OBJ)comm.o #-lcudart
+	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)comm.cpp $(CFLAGS) -o $(OBJ)comm.o 
 	
 $(OBJ)init.o: $(SRC)init.cpp
 	$(MPICC) $(FLAG_GPU) -std=c++11 $(FLAG_ARCH) -c $(SRC)init.cpp $(CFLAGS) -o $(OBJ)init.o
-	
-ifeq ($(ARCH),GPU)
+
+#NVCC compilation src files (with link)
+
+#compiling step (OBJ_CUDA)	
 $(OBJ)cuda_main.o: $(SRC)cuda_main.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_main.cu $(FLAG2) -o $(OBJ)cuda_main.o
 
@@ -88,13 +89,17 @@ $(OBJ)cuda_rhs.o: $(SRC)cuda_rhs.cu
 
 $(OBJ)cuda_math.o: $(SRC)cuda_math.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_math.cu $(FLAG2) -o $(OBJ)cuda_math.o
-
+	
 $(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_utils.cu $(FLAG2) -o $(OBJ)cuda_utils.o
-
+	
 $(OBJ)cuda_derivs.o: $(SRC)cuda_derivs.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
-endif
+
+#linking step (OBJ_LINK)	
+$(OBJ)cuda_link.o: $(OBJ_CUDA)
+	$(NVCC) -dlink $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(OBJ_CUDA) $(FLAG2) -o $(OBJ)cuda_link.o
+	
 
 clean:
 		rm -rf $(TARGET) $(OBJ)*.o

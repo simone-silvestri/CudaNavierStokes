@@ -54,13 +54,6 @@ class Indices {
      }
 };
 
-void setDerivativeParameters();
-void copyField(int direction);
-void checkGpuMem();
-void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);
-
-void initSolver();
-void clearSolver();
 void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
 void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e);

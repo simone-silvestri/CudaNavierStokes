@@ -3,12 +3,11 @@
 #include "cuda_globals.h"
 #include "cuda_main.h"
 #include "cuda_math.h"
+#include "comm.h"
 
 void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
 	myprec h_dt,h_dpdz;
-
-	cudaSetDevice(rk.nodeRank);
 
 	/* allocating temporary arrays and streams */
 	void (*RHSDeviceDir[3])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*,
@@ -25,7 +24,8 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
     for (int istep = 0; istep < nsteps; istep++) {
 
-    	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk);
+    	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
 
     	if(istep%checkCFLcondition==0) {
@@ -54,6 +54,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
+    	if(multiGPU) updateHalo(d_dil,rk);
 
 #if useStreams
     	for (int d = 0; d < 3; d++)
@@ -75,13 +76,15 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	cudaDeviceSynchronize();
 
     	//rk step 2
-    	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk);
+    	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
 		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w);
 		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w);
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
+    	if(multiGPU) updateHalo(d_dil,rk);
 #if useStreams
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -102,13 +105,15 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	cudaDeviceSynchronize();
 
     	//rk step 3
-    	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk);
+    	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
 		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w);
 		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w);
     	cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
+    	if(multiGPU) updateHalo(d_dil,rk);
 #if useStreams
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -212,3 +217,51 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
     __syncthreads();
 
 }
+
+
+void solverWrapper(Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
+
+    myprec *dpar1, *dpar2, *dtime;
+    myprec *hpar1 = new myprec[nsteps];
+    myprec *hpar2 = new myprec[nsteps];
+    myprec *htime = new myprec[nsteps];
+
+    checkCuda( cudaMalloc((void**)&dpar1, nsteps*sizeof(myprec)) );
+    checkCuda( cudaMalloc((void**)&dpar2, nsteps*sizeof(myprec)) );
+    checkCuda( cudaMalloc((void**)&dtime, nsteps*sizeof(myprec)) );
+
+    // Increase GPU default limits to accomodate the computations
+    size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
+    cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
+
+    FILE *fp = fopen("solution.txt","w+");
+    for(int file = 1; file<nfiles+1; file++) {
+
+    	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
+    	copyField(1);			  //copying back partial results to CPU
+
+    	writeField(file,rk);
+
+    	cudaDeviceSynchronize();
+
+    	checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+    	checkCuda( cudaMemcpy(hpar1, dpar1, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+    	checkCuda( cudaMemcpy(hpar2, dpar2, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+
+    	calcAvgChan(rk);
+
+    	printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
+    	for(int t=0; t<nsteps-1; t++)
+    		fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
+    }
+    fclose(fp);
+
+    clearSolver();
+    cudaDeviceReset();
+}
+
+
+
+

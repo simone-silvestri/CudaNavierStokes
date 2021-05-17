@@ -48,6 +48,9 @@ myprec *d_rhse3[3];
 
 myprec *dtC,*dpdz;
 
+myprec *djm, *djp, *dkm, *dkp;
+myprec *djm5,*djp5,*dkm5,*dkp5;
+
 __device__ myprec sij[9][mx*my*mz];
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt, int i);

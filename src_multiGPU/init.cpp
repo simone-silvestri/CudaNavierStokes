@@ -113,6 +113,13 @@ void initChannel(Communicator rk) {
 				e[idx(i,j,k)] = P0/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 
+    for(int i=0; i<mx; i++)
+    	for(int j=0; j<my; j++) {
+    		for(int k=0; k<mz/2; k++)
+    			u[idx(i,j,k)] = 4.0;
+    		for(int k=mz/2; k<mz; k++)
+    			u[idx(i,j,k)] = 10.0;
+    	}
 }
 
 void initCHIT(Communicator rk) {
@@ -143,43 +150,60 @@ void calcAvgChan(Communicator rk) {
 	double um[mx],vm[mx],wm[mx],rm[mx],em[mx];
 	double uf[mx],vf[mx],wf[mx],rf[mx],ef[mx];
 
+	for (int i=0; i<mx; i++) {
+		rm[i] = 0.0;
+		um[i] = 0.0;
+		vm[i] = 0.0;
+		wm[i] = 0.0;
+		em[i] = 0.0;
+		rf[i] = 0.0;
+		uf[i] = 0.0;
+		vf[i] = 0.0;
+		wf[i] = 0.0;
+		ef[i] = 0.0;
+		for (int k=0; k<mz; k++)
+			for (int j=0; j<my; j++) {
+				rm[i] += r[idx(i,j,k)]/my/mz;
+				um[i] += r[idx(i,j,k)]*u[idx(i,j,k)]/my/mz;
+				vm[i] += r[idx(i,j,k)]*v[idx(i,j,k)]/my/mz;
+				wm[i] += r[idx(i,j,k)]*w[idx(i,j,k)]/my/mz;
+				em[i] += e[idx(i,j,k)]/my/mz;
+			}
+	}
+
+	allReduceArray(rm,mx);
+	allReduceArray(um,mx);
+	allReduceArray(vm,mx);
+	allReduceArray(wm,mx);
+	allReduceArray(em,mx);
+
+	for (int i=0; i<mx; i++) {
+		um[i] /= rm[i];
+		vm[i] /= rm[i];
+		wm[i] /= rm[i];
+		for (int k=0; k<mz; k++)
+			for (int j=0; j<my; j++) {
+				rf[i] += (r[idx(i,j,k)]-rm[i])*(r[idx(i,j,k)]-rm[i])/my/mz;
+				uf[i] += (u[idx(i,j,k)]-um[i])*(u[idx(i,j,k)]-um[i])/my/mz;
+				vf[i] += (v[idx(i,j,k)]-vm[i])*(v[idx(i,j,k)]-vm[i])/my/mz;
+				wf[i] += (w[idx(i,j,k)]-wm[i])*(w[idx(i,j,k)]-wm[i])/my/mz;
+				ef[i] += (e[idx(i,j,k)]-em[i])*(e[idx(i,j,k)]-em[i])/my/mz;
+			}
+	}
+
+	reduceArray(0,rf,mx,rk);
+	reduceArray(0,uf,mx,rk);
+	reduceArray(0,vf,mx,rk);
+	reduceArray(0,wf,mx,rk);
+	reduceArray(0,ef,mx,rk);
+
 	if(rk.rank==0) {
 		FILE *fp = fopen("prof.txt","w+");
-		for (int i=0; i<mx; i++) {
-			rm[i] = 0.0;
-			um[i] = 0.0;
-			vm[i] = 0.0;
-			wm[i] = 0.0;
-			em[i] = 0.0;
-			rf[i] = 0.0;
-			uf[i] = 0.0;
-			vf[i] = 0.0;
-			wf[i] = 0.0;
-			ef[i] = 0.0;
-			for (int k=0; k<mz; k++)
-				for (int j=0; j<my; j++) {
-					rm[i] += r[idx(i,j,k)]/my/mz;
-					um[i] += r[idx(i,j,k)]*u[idx(i,j,k)]/my/mz;
-					vm[i] += r[idx(i,j,k)]*v[idx(i,j,k)]/my/mz;
-					wm[i] += r[idx(i,j,k)]*w[idx(i,j,k)]/my/mz;
-					em[i] += e[idx(i,j,k)]/my/mz;
-				}
-			um[i] /= rm[i];
-			vm[i] /= rm[i];
-			wm[i] /= rm[i];
-			for (int k=0; k<mz; k++)
-				for (int j=0; j<my; j++) {
-					rf[i] += (r[idx(i,j,k)]-rm[i])*(r[idx(i,j,k)]-rm[i])/my/mz;
-					uf[i] += (u[idx(i,j,k)]-um[i])*(u[idx(i,j,k)]-um[i])/my/mz;
-					vf[i] += (v[idx(i,j,k)]-vm[i])*(v[idx(i,j,k)]-vm[i])/my/mz;
-					wf[i] += (w[idx(i,j,k)]-wm[i])*(w[idx(i,j,k)]-wm[i])/my/mz;
-					ef[i] += (e[idx(i,j,k)]-em[i])*(e[idx(i,j,k)]-em[i])/my/mz;
-				}
+		for (int i=0; i<mx; i++)
 			fprintf(fp,"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",x[i],rm[i],um[i],vm[i],wm[i],em[i],rf[i],uf[i],vf[i],wf[i],ef[i]);
-
-		}
 		fclose(fp);
 	}
+	mpiBarrier();
 }
 
 void printRes(Communicator rk) {
@@ -197,9 +221,9 @@ void printRes(Communicator rk) {
 
 			    double ub[stencilSize*2+1];
 			    for (int i=stencilSize; i<stencilSize*2+1; i++)
-			    	ub[i] = w[i-stencilSize];
+			    	ub[i] = w[i-stencilSize + j*mx + k*my*mx];
 			    for (int i=0; i<stencilSize; i++)
-			    	ub[i] = w[stencilSize-i-1];
+			    	ub[i] = w[stencilSize-i-1 + j*mx + k*my*mx];
 
 			    double dudx = 0;
 			    for (int i=0; i<stencilSize; i++)
@@ -212,17 +236,22 @@ void printRes(Communicator rk) {
 		}
 
 	Ret = Ret/my/mz;
-	printf("\n");
-	printf("The average friction Reynolds number is: \t %lf\n",Ret);
-	printf("Resolutions are: \n");
-	printf("wall-normal: \t %lf\n",(x[0]+x[1])/2*Ret);
-	printf("span-wise: \t %lf\n",(y[1]-y[0])*Ret);
-	printf("stream-wise: \t %lf\n",(z[1]-z[0])*Ret);
-	printf("\n");
+
+	reduceArray(0,&Ret,1,rk);
+
+	if(rk.rank==0) {
+		printf("\n");
+		printf("The average friction Reynolds number is: \t %lf\n",Ret);
+		printf("Resolutions are: \n");
+		printf("wall-normal: \t %lf\n",(x[0]+x[1])/2*Ret);
+		printf("span-wise: \t %lf\n",(y[1]-y[0])*Ret);
+		printf("stream-wise: \t %lf\n",(z[1]-z[0])*Ret);
+		printf("\n");
 
 
-	printf("the initial dt and dpdz are : %lf   and    %lf\n",dt,h_dpdz);
-	printf("\n");
+		printf("the initial dt and dpdz are : %lf   and    %lf\n",dt,h_dpdz);
+		printf("\n");
+	}
 }
 
 void derivGrid(double *d2f, double *df, double *f, double dx) {
@@ -244,4 +273,53 @@ void derivGrid(double *d2f, double *df, double *f, double dx) {
 			d2f[i] += coeffS[it]*(fbound[i+it]+fbound[i+stencilSize*2-it])/dx/dx;
 		}
 	}
+}
+
+void calcdt(Communicator rk) {
+	double dx;
+	double dy = y[1] - y[0];
+	double dz = z[1] - z[0];
+	double dx2;
+	double dy2 = dy*dy;
+	double dz2 = dz*dz;
+	double dtConvInv = 0.0;
+	double dtViscInv = 0.0;
+	for (int gt = 0; gt<mx*my*mz; gt++) {
+		double ien = e[gt]/r[gt] - 0.5*(u[gt]*u[gt] + v[gt]*v[gt] + w[gt]*w[gt]);
+		double sos = pow(gamma*(gamma-1)*ien,0.5);
+
+		int i = gt%my;
+
+	    if(i==0) {
+	    	dx = (x[i+1] + x[i])/2.0;
+	    } else if (i==mx-1) {
+	    	dx = Lx - (x[i] + x[i-1])/2.0;
+	    } else {
+	    	dx = (x[i+1] - x[i-1])/2.0;
+	    }
+
+	    dx2 = dx*dx;
+
+	    double dtc1, dtv1;
+
+	    dtc1      =  MAX( (abs(u[gt]) + sos)/dx, MAX( (abs(v[gt]) + sos)/dy, (abs(w[gt]) + sos)/dz) );
+	    dtv1      =  MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) );
+		dtConvInv =  MAX( dtConvInv, dtc1 );
+		dtViscInv =  MAX( dtViscInv, dtv1 );
+	}
+	dt = CFL/MAX(dtConvInv, dtViscInv);
+
+	allReduceArray(&dt,1);
+	mpiBarrier();
+}
+
+void restartWrapper(int restartFile, Communicator rk) {
+    if(restartFile<0) {
+    	if(forcing) {
+    		initChannel(rk);
+    	} else {
+    		initCHIT(rk);
+    	}
+    } else {
+    	initField(restartFile,rk); }
 }

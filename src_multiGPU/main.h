@@ -26,7 +26,19 @@ void printRes(Communicator rk);
 extern void initCHIT(Communicator rk);
 extern void initGrid(Communicator rk);
 extern void initChannel(Communicator rk);
-extern void calcdt();
+extern void calcdt(Communicator rk);
 void calcAvgChan(Communicator rk);
+void setDerivativeParameters(Communicator rk);
+void copyField(int direction);
+void checkGpuMem();
+void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);
+void initSolver();
+void clearSolver();
+void solverWrapper(Communicator rk);
+void restartWrapper(int restartFile, Communicator rk);
+void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction);
+void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction);
+void initHalo();
+void destroyHalo();
 
 #endif
