@@ -29,8 +29,6 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
 
-// host routine to set constant data
-
 void setDerivativeParameters(Communicator rk)
 {
 
@@ -462,7 +460,7 @@ __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction) 
 		int it = threadIdx.y;
 		int i  = threadIdx.x;
 		var[mx*my*mz + 2*stencilSize*mx*mz                     + it + i*stencilSize + j*mx*stencilSize] = m[it + i*stencilSize + j*mx*stencilSize];
-		var[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + it + i*stencilSize + j*mx*stencilSize] = p[it + i*stencilSize + j*mx*stencilSize];
+		var[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + it + i*stencilSize + j*mx*stencilSize] = p[it + i*stencilSize + j*mx*stencilSize];
 
 		__syncthreads();
 	}
@@ -552,15 +550,15 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 		int i  = threadIdx.x;
 		int gl = it + i*stencilSize + j*mx*stencilSize;
 		r[mx*my*mz + 2*stencilSize*mx*mz                     + gl] = m[gl];
-		r[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + gl] = p[gl];
+		r[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + gl] = p[gl];
 		u[mx*my*mz + 2*stencilSize*mx*mz                     + gl] = m[gl +   stencilSize*mx*my];
-		u[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + gl] = p[gl +   stencilSize*mx*my];
+		u[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + gl] = p[gl +   stencilSize*mx*my];
 		v[mx*my*mz + 2*stencilSize*mx*mz                     + gl] = m[gl + 2*stencilSize*mx*my];
-		v[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + gl] = p[gl + 2*stencilSize*mx*my];
+		v[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + gl] = p[gl + 2*stencilSize*mx*my];
 		w[mx*my*mz + 2*stencilSize*mx*mz                     + gl] = m[gl + 3*stencilSize*mx*my];
-		w[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + gl] = p[gl + 3*stencilSize*mx*my];
+		w[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + gl] = p[gl + 3*stencilSize*mx*my];
 		e[mx*my*mz + 2*stencilSize*mx*mz                     + gl] = m[gl + 4*stencilSize*mx*my];
-		e[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + gl] = p[gl + 4*stencilSize*mx*my];
+		e[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + gl] = p[gl + 4*stencilSize*mx*my];
 		__syncthreads();
 	}
 }

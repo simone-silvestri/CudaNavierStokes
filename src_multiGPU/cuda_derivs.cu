@@ -14,7 +14,6 @@
 #include "cuda_functions.h"
 #include "cuda_globals.h"
 
-
 __device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
 
@@ -373,8 +372,14 @@ __device__ void derDev1yL(myprec *df, myprec *f, Indices id)
 
   int sj = id.tiy + stencilSize;
   if (sj < stencilSize*2) {
-     s_f[sj-stencilSize][si]  = s_f[sj+my-stencilSize][si];
-     s_f[sj+my][si] = s_f[sj][si];
+	  if(multiGPU) {
+		  int j = sj - stencilSize;
+		  s_f[sj-stencilSize][si]  = f[mx*my*mz + j + i*stencilSize + k*mx*stencilSize];
+		  s_f[sj+my][si]           = f[mx*my*mz + stencilSize*mx*mz + j + i*stencilSize + k*mx*stencilSize];
+	  } else {
+		  s_f[sj-stencilSize][si]  = s_f[sj+my-stencilSize][si];
+		  s_f[sj+my][si] 		   = s_f[sj][si];
+	  }
   }
 
   __syncthreads();
@@ -408,8 +413,14 @@ __device__ void derDev1zL(myprec *df, myprec *f, Indices id)
 
   int sk = id.tiy + stencilSize;
   if (sk < stencilSize*2) {
-     s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
-     s_f[sk+mz][si] = s_f[sk][si];
+	  if(multiGPU) {
+		  int k = sk - stencilSize;
+		  s_f[sk-stencilSize][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
+		  s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
+	  } else {
+		  s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
+		  s_f[sk+mz][si]           = s_f[sk][si];
+	  }
   }
 
   __syncthreads();
@@ -443,10 +454,15 @@ __device__ void derDevV1yL(myprec *df, myprec *f, Indices id)
 
   int sj = id.tiy + stencilVisc;
   if (sj < stencilVisc*2) {
-     s_f[sj-stencilVisc][si]  = s_f[sj+my-stencilVisc][si];
-     s_f[sj+my][si] = s_f[sj][si];
+	  if(multiGPU) {
+		  int j = sj - stencilVisc;
+		  s_f[sj-stencilVisc][si]  = f[mx*my*mz + j + i*stencilSize + k*mx*stencilSize];
+		  s_f[sj+my][si]           = f[mx*my*mz + stencilSize*mx*mz + j + i*stencilSize + k*mx*stencilSize];
+	  } else {
+		  s_f[sj-stencilVisc][si]  = s_f[sj+my-stencilVisc][si];
+		  s_f[sj+my][si] 		   = s_f[sj][si];
+	  }
   }
-
   __syncthreads();
 
   for (int j = id.tiy; j < my; j += id.bdy) {
@@ -478,8 +494,14 @@ __device__ void derDevV1zL(myprec *df, myprec *f, Indices id)
 
   int sk = id.tiy + stencilVisc;
   if (sk < stencilVisc*2) {
-     s_f[sk-stencilVisc][si]  = s_f[sk+mz-stencilVisc][si];
-     s_f[sk+mz][si] = s_f[sk][si];
+	  if(multiGPU) {
+		  int k = sk - stencilVisc;
+		  s_f[sk-stencilVisc][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
+		  s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
+	  } else {
+		  s_f[sk-stencilVisc][si]  = s_f[sk+mz-stencilVisc][si];
+		  s_f[sk+mz][si]           = s_f[sk][si];
+	  }
   }
 
   __syncthreads();

@@ -51,7 +51,7 @@ myprec *dtC,*dpdz;
 myprec *djm, *djp, *dkm, *dkp;
 myprec *djm5,*djp5,*dkm5,*dkp5;
 
-void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz);
+void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk);
 
 __device__ myprec sij[9][mx*my*mz];
 

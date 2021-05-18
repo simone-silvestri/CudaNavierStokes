@@ -29,7 +29,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	cudaDeviceSynchronize();
 
     	if(istep%checkCFLcondition==0) {
-    		calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz);
+    		calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
     	}
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
@@ -207,6 +207,12 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
     pre[gt]   = rho[gt]*Rgas*tem[gt];
     ht[gt]    = (ret[gt] + pre[gt])*invrho;
 
+
+    if(pre[gt] == 0)
+    {
+    	printf("DEbug!!\n");
+    }
+
     myprec suth = pow(tem[gt],viscexp);
     mu[gt]      = suth/Re;
     lam[gt]     = suth/Re/Pr/Ec;
@@ -214,7 +220,7 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 
 }
 
-void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz) {
+void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk) {
 	calcTimeStep(dtC,d_r,d_u,d_v,d_w,d_e,d_m);
 	cudaMemcpy(h_dt  , dtC , sizeof(myprec), cudaMemcpyDeviceToHost);
 	allReduceToMin(h_dt,1);
@@ -227,7 +233,7 @@ void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, m
     	mpiBarrier();
     	cudaMemcpy(dpdz, h_dpdz, sizeof(myprec), cudaMemcpyHostToDevice);
     }
-	printf("step number %d with %lf %lf\n",istep,*h_dt,*h_dpdz);
+	if(rk.rank==0) printf("step number %d with %lf %lf\n",istep,*h_dt,*h_dpdz);
 }
 
 void solverWrapper(Communicator rk) {
@@ -246,8 +252,8 @@ void solverWrapper(Communicator rk) {
     // Increase GPU default limits to accomodate the computations
     size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
     cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
-
-    FILE *fp = fopen("solution.txt","w+");
+    FILE *fp;
+    if(rk.rank==0) fp = fopen("solution.txt","w+");
     for(int file = 1; file<nfiles+1; file++) {
 
     	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
@@ -263,11 +269,14 @@ void solverWrapper(Communicator rk) {
 
     	calcAvgChan(rk);
 
-    	printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
-    	for(int t=0; t<nsteps-1; t++)
-    		fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
+    	if(rk.rank==0) {
+    		printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
+    		for(int t=0; t<nsteps-1; t++)
+    			fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
+    	}
+    	mpiBarrier();
     }
-    fclose(fp);
+    if(rk.rank==0) fclose(fp);
 
     clearSolver();
     cudaDeviceReset();

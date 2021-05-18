@@ -629,11 +629,12 @@ __global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, mypr
 
 	// fill in periodic images in shared memory array
 	if (id.k < stencilSize) {
+		if(multiGPU) {
 			haloBCz(s_u[sj],u,si,id);	  haloBCz(s_v[sj],v,si,id); haloBCz(s_w[sj],w,si,id);
-			//haloBCz(s_prop[sj],mu,si,id);
-			//perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
-			haloBCz(s_dil[sj],dil,si,id);
-			perBCz(s_prop[sj],si); //perBCz(s_dil[sj],si);
+			haloBCz(s_prop[sj],mu,si,id); haloBCz(s_dil[sj],dil,si,id);
+		} else {
+			perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
+			perBCz(s_prop[sj],si); perBCz(s_dil[sj],si); }
 	}
 	__syncthreads();
 
@@ -671,10 +672,10 @@ __global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, mypr
 	s_dil[sj][si] = p[id.g];
 	__syncthreads();
 	if (id.k < stencilSize) {
-//		if(!multiGPU) {  ///was with a !
-//			haloBCz(s_dil[sj],p,si,id);
-//		} else {
-			perBCz(s_dil[sj],si);
+		if(multiGPU) {
+			haloBCz(s_dil[sj],p,si,id);
+		} else {
+			perBCz(s_dil[sj],si); }
 	}
 	__syncthreads();
 	derDevShared1z(&wrk1,s_dil[sj],si);
@@ -685,10 +686,10 @@ __global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, mypr
 	s_dil[sj][si]  = t[id.g];
 	__syncthreads();
 	if (id.k < stencilSize) {
-//		if(!multiGPU) {
-//			haloBCz(s_dil[sj],t,si,id); haloBCz(s_prop[sj],lam,si,id);
-//		} else {
-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
+		if(multiGPU) {
+			haloBCz(s_dil[sj],t,si,id); haloBCz(s_prop[sj],lam,si,id);
+		} else {
+			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
 	}
 	__syncthreads();
 
@@ -703,10 +704,10 @@ __global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, mypr
 	s_dil[sj][si]  = h[id.g];
 	__syncthreads();
 	if (id.k < stencilSize) {
-//		if(!multiGPU) {  ///was with a !
-//			haloBCz(s_dil[sj],h,si,id); haloBCz(s_prop[sj],r,si,id);
-//		} else {
-			perBCz(s_dil[sj],si); haloBCz(s_prop[sj],r,si,id);// perBCz(s_prop[sj],si);
+		if(multiGPU) {
+			haloBCz(s_dil[sj],h,si,id); haloBCz(s_prop[sj],r,si,id);
+		} else {
+			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
 	}
 	__syncthreads();
 	fluxQuadSharedz(&wrk1,s_prop[sj],s_w[sj],si);
