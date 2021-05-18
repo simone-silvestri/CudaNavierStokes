@@ -28,7 +28,7 @@
 #define nfiles	 1
 #define CFL      0.7f
 
-const int restartFile = 800;
+const int restartFile = -1;
 
 #define Re       3000.f
 #define Pr       0.7f
@@ -58,7 +58,7 @@ const double stretch = 3.0;
 #if pRow*pCol>1
 const int multiGPU = 1;
 #else
-const int multiGPU = 1;
+const int multiGPU = 0;
 #endif
 
 #if stencilSize==1

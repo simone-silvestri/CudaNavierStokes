@@ -113,13 +113,6 @@ void initChannel(Communicator rk) {
 				e[idx(i,j,k)] = P0/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 
-    for(int i=0; i<mx; i++)
-    	for(int j=0; j<my; j++) {
-    		for(int k=0; k<mz/2; k++)
-    			u[idx(i,j,k)] = 4.0;
-    		for(int k=mz/2; k<mz; k++)
-    			u[idx(i,j,k)] = 10.0;
-    	}
 }
 
 void initCHIT(Communicator rk) {

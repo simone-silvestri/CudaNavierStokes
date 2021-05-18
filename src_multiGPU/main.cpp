@@ -23,13 +23,13 @@ int main(int argc, char** argv) {
 
 	int myRank, nProcs;
 
-	double begin = MPI_Wtime();
-
     int ierr;
 
     ierr = MPI_Init(&argc, &argv);
     ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     ierr = MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
+
+    double begin = MPI_Wtime();
 
     if(nProcs != pRow*pCol) {
     	if(myRank==0) {
