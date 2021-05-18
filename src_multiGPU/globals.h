@@ -58,7 +58,7 @@ const double stretch = 3.0;
 #if pRow*pCol>1
 const int multiGPU = 1;
 #else
-const int multiGPU = 0;
+const int multiGPU = 1;
 #endif
 
 #if stencilSize==1

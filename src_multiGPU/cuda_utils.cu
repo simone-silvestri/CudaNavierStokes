@@ -189,7 +189,6 @@ void copyThreadGridsToDevice() {
 
 	  gridBC  = dim3((my+2*stencilSize) / sPencils, (mz+2*stencilSize), 1);
 	  blockBC = dim3(mx, sPencils, 1);
-
 }
 
 void copyField(int direction) {
@@ -437,7 +436,7 @@ __global__ void fillBCValuesY(myprec *m, myprec *p, myprec *var, int direction) 
 		int it = threadIdx.y;
 		int i  = threadIdx.x;
 		p[it + i*stencilSize + k*mx*stencilSize] = var[i + it*mx + k*mx*my];
-		m[it + i*stencilSize + k*mx*stencilSize] = var[i + (my - it - 1)*mx + k*mx*my];
+		m[it + i*stencilSize + k*mx*stencilSize] = var[i + (my - stencilSize + it)*mx + k*mx*my];
 		__syncthreads();
 	} else {
 		int k  = blockIdx.x;
@@ -456,7 +455,7 @@ __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction) 
 		int it = threadIdx.y;
 		int i  = threadIdx.x;
 		p[it + i*stencilSize + j*mx*stencilSize] = var[i + j*mx + it*mx*my];
-		m[it + i*stencilSize + j*mx*stencilSize] = var[i + j*mx + (mz - it - 1)*mx*my];
+		m[it + i*stencilSize + j*mx*stencilSize] = var[i + j*mx + (mz - stencilSize + it)*mx*my];
 		__syncthreads();
 	} else {
 		int j  = blockIdx.x;
@@ -499,15 +498,15 @@ __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 		int it = threadIdx.y;
 		int i  = threadIdx.x;
 		int gl = it + i*stencilSize + k*mx*stencilSize;
-		m[gl]                       = r[i + (my - it - 1)*mx + k*mx*my];
+		m[gl]                       = r[i + (my - stencilSize + it)*mx + k*mx*my];
 		p[gl]                       = r[i + it*mx + k*mx*my];
-		m[gl +   stencilSize*mx*mz] = u[i + (my - it - 1)*mx + k*mx*my];
+		m[gl +   stencilSize*mx*mz] = u[i + (my - stencilSize + it)*mx + k*mx*my];
 		p[gl +   stencilSize*mx*mz] = u[i + it*mx + k*mx*my];
-		m[gl + 2*stencilSize*mx*mz] = v[i + (my - it - 1)*mx + k*mx*my];
+		m[gl + 2*stencilSize*mx*mz] = v[i + (my - stencilSize + it)*mx + k*mx*my];
 		p[gl + 2*stencilSize*mx*mz] = v[i + it*mx + k*mx*my];
-		m[gl + 3*stencilSize*mx*mz] = w[i + (my - it - 1)*mx + k*mx*my];
+		m[gl + 3*stencilSize*mx*mz] = w[i + (my - stencilSize + it)*mx + k*mx*my];
 		p[gl + 3*stencilSize*mx*mz] = w[i + it*mx + k*mx*my];
-		m[gl + 4*stencilSize*mx*mz] = e[i + (my - it - 1)*mx + k*mx*my];
+		m[gl + 4*stencilSize*mx*mz] = e[i + (my - stencilSize + it)*mx + k*mx*my];
 		p[gl + 4*stencilSize*mx*mz] = e[i + it*mx + k*mx*my];
 		__syncthreads();
 	} else {
@@ -536,15 +535,15 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 		int it = threadIdx.y;
 		int i  = threadIdx.x;
 		int gl = it + i*stencilSize + j*mx*stencilSize;
-		m[gl]                       = r[i + j*mx + (mz - it - 1)*mx*my];
+		m[gl]                       = r[i + j*mx + (mz - stencilSize + it)*mx*my];
 		p[gl]                       = r[i + j*mx + it*mx*my];
-		m[gl +   stencilSize*mx*my] = u[i + j*mx + (mz - it - 1)*mx*my];
+		m[gl +   stencilSize*mx*my] = u[i + j*mx + (mz - stencilSize + it)*mx*my];
 		p[gl +   stencilSize*mx*my] = u[i + j*mx + it*mx*my];
-		m[gl + 2*stencilSize*mx*my] = v[i + j*mx + (mz - it - 1)*mx*my];
+		m[gl + 2*stencilSize*mx*my] = v[i + j*mx + (mz - stencilSize + it)*mx*my];
 		p[gl + 2*stencilSize*mx*my] = v[i + j*mx + it*mx*my];
-		m[gl + 3*stencilSize*mx*my] = w[i + j*mx + (mz - it - 1)*mx*my];
+		m[gl + 3*stencilSize*mx*my] = w[i + j*mx + (mz - stencilSize + it)*mx*my];
 		p[gl + 3*stencilSize*mx*my] = w[i + j*mx + it*mx*my];
-		m[gl + 4*stencilSize*mx*my] = e[i + j*mx + (mz - it - 1)*mx*my];
+		m[gl + 4*stencilSize*mx*my] = e[i + j*mx + (mz - stencilSize + it)*mx*my];
 		p[gl + 4*stencilSize*mx*my] = e[i + j*mx + it*mx*my];
 		__syncthreads();
 	} else {

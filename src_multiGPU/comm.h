@@ -18,6 +18,7 @@ void readFileMPI(char filename, int timestep, double *var, Communicator rk);
 void saveFileMPI(char filename, int timestep, double *var, Communicator rk);
 void reduceArray(int rcvCore, double *sendArr, int sizeArr, Communicator rk);
 void allReduceArray(double *sendArr, int sizeArr);
+void allReduceToMin(double *sendArr, int sizeArr);
 void broadCastArray(int bcstCore, double *sendArr, int sizeArr, Communicator rk);
 void mpiBarrier();
 

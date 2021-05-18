@@ -227,6 +227,16 @@ void reduceArray(int rcvCore, double *sendArr, int sizeArr, Communicator rk) {
 	ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 
+void allReduceToMin(double *sendArr, int sizeArr) {
+	int ierr;
+	double tmpArr[sizeArr];
+
+	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	for(int i=0; i<sizeArr; i++)
+		sendArr[i] = tmpArr[i];
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
 void allReduceArray(double *sendArr, int sizeArr) {
 	int ierr;
 	double tmpArr[sizeArr];

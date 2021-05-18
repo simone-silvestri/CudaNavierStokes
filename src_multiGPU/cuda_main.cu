@@ -24,16 +24,12 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
     for (int istep = 0; istep < nsteps; istep++) {
 
-    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk);
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
     	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
 
     	if(istep%checkCFLcondition==0) {
-    		calcTimeStep(dtC,d_r,d_u,d_v,d_w,d_e,d_m);
-    		if(forcing)  calcPressureGrad(dpdz,d_r,d_w);
-    		cudaMemcpy(&h_dt  , dtC , sizeof(myprec), cudaMemcpyDeviceToHost);
-    		cudaMemcpy(&h_dpdz, dpdz, sizeof(myprec), cudaMemcpyDeviceToHost);
-    		printf("step number %d with %lf %lf\n",istep,h_dt,h_dpdz);
+    		calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz);
     	}
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
@@ -54,7 +50,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
-    	if(multiGPU) updateHalo(d_dil,rk);
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 
 #if useStreams
     	for (int d = 0; d < 3; d++)
@@ -76,7 +72,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	cudaDeviceSynchronize();
 
     	//rk step 2
-    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk);
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
     	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
 		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w);
@@ -84,7 +80,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
-    	if(multiGPU) updateHalo(d_dil,rk);
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 #if useStreams
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -105,7 +101,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	cudaDeviceSynchronize();
 
     	//rk step 3
-    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk);
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
     	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
 		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w);
@@ -113,7 +109,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
-    	if(multiGPU) updateHalo(d_dil,rk);
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 #if useStreams
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -218,6 +214,21 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 
 }
 
+void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz) {
+	calcTimeStep(dtC,d_r,d_u,d_v,d_w,d_e,d_m);
+	cudaMemcpy(h_dt  , dtC , sizeof(myprec), cudaMemcpyDeviceToHost);
+	allReduceToMin(h_dt,1);
+	mpiBarrier();
+	cudaMemcpy(dtC , h_dt  , sizeof(myprec), cudaMemcpyHostToDevice);
+    if(forcing) {
+    	calcPressureGrad(dpdz,d_r,d_w);
+    	cudaMemcpy(h_dpdz, dpdz, sizeof(myprec), cudaMemcpyDeviceToHost);
+    	allReduceArray(h_dpdz,1);
+    	mpiBarrier();
+    	cudaMemcpy(dpdz, h_dpdz, sizeof(myprec), cudaMemcpyHostToDevice);
+    }
+	printf("step number %d with %lf %lf\n",istep,*h_dt,*h_dpdz);
+}
 
 void solverWrapper(Communicator rk) {
 
@@ -242,7 +253,7 @@ void solverWrapper(Communicator rk) {
     	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
     	copyField(1);			  //copying back partial results to CPU
 
-    	writeField(file,rk);
+    	writeField(2,rk);
 
     	cudaDeviceSynchronize();
 

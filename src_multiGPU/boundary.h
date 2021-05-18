@@ -47,7 +47,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void haloBCy(myprec *s
 
 __device__ __forceinline__ __attribute__((always_inline)) void haloBCz(myprec *s_f, myprec *f, int si, Indices id) {
 	s_f[si-stencilSize]  = f[mx*my*mz + 2*stencilSize*mx*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
-	s_f[si+my]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+	s_f[si+mz]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*my*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void wallBCxExt(myprec *s_f, int si, myprec Bctop, myprec Bcbot) {
