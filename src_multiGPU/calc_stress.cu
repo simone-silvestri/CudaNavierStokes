@@ -136,7 +136,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
 
 }
 
-void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e) {
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Communicator rk) {
 
 	myprec *workA, *rbulk;
 	dim3 gr0  = dim3(my / sPencils, mz, 1);

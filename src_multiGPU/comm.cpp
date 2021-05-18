@@ -136,6 +136,7 @@ void splitComm(Communicator *rk) {
     ierr = MPI_Comm_split(MPI_COMM_WORLD, hash, rk->rank, &comm_node);
     ierr = MPI_Comm_rank(comm_node , &rk->nodeRank);
     ierr = MPI_Barrier(MPI_COMM_WORLD);
+    printf("rank number %d, gpu number %d\n",rk->rank,rk->nodeRank);
 }
 
 void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {

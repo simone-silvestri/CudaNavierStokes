@@ -21,7 +21,7 @@ __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_
 dim3 d_block[5], grid0, gridBC;
 dim3 d_grid[5], block0, blockBC;
 
-void copyThreadGridsToDevice();
+void copyThreadGridsToDevice(Communicator rk);
 __global__ void fillBCValuesY(myprec *m, myprec *p, myprec *var, int direction);
 __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction);
 __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction);
@@ -140,7 +140,7 @@ void setDerivativeParameters(Communicator rk)
 	checkCuda( cudaMemcpyToSymbol(d_xp  ,  h_xp  ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(d_dxv ,  h_dxv ,mx*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 
-	copyThreadGridsToDevice();
+	copyThreadGridsToDevice(rk);
 
 	delete [] h_coeffF;
 	delete [] h_coeffS;
@@ -153,7 +153,7 @@ void setDerivativeParameters(Communicator rk)
 	delete [] h_dxv;
 }
 
-void copyThreadGridsToDevice() {
+void copyThreadGridsToDevice(Communicator rk) {
 
 	  // X-grid
 	  d_grid[0]  = dim3(my / sPencils, mz, 1);
@@ -173,15 +173,15 @@ void copyThreadGridsToDevice() {
 	  d_grid[2]  = dim3(mx / sPencils, my, 1);
 	  d_block[2] = dim3(mz , sPencils, 1); //if not using shared change!!
 
-
-	  printf("Grid configuration:\n");
-	  printf("Grid 0: {%d, %d, %d} blocks. Blocks 0: {%d, %d, %d} threads.\n",d_grid[0].x, d_grid[0].y, d_grid[0].z, d_block[0].x, d_block[0].y, d_block[0].z);
-	  printf("Grid 1: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",d_grid[1].x, d_grid[1].y, d_grid[1].z, d_block[1].x, d_block[1].y, d_block[1].z);
-	  printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",d_grid[2].x, d_grid[2].y, d_grid[2].z, d_block[2].x, d_block[2].y, d_block[2].z);
-	  printf("Grid 3: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",d_grid[3].x, d_grid[3].y, d_grid[3].z, d_block[3].x, d_block[3].y, d_block[3].z);
-	  printf("Grid 4: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",d_grid[4].x, d_grid[4].y, d_grid[4].z, d_block[4].x, d_block[4].y, d_block[4].z);
-	  printf("\n");
-
+	  if(rk.rank==0) {
+		  printf("Grid configuration:\n");
+		  printf("Grid 0: {%d, %d, %d} blocks. Blocks 0: {%d, %d, %d} threads.\n",d_grid[0].x, d_grid[0].y, d_grid[0].z, d_block[0].x, d_block[0].y, d_block[0].z);
+		  printf("Grid 1: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",d_grid[1].x, d_grid[1].y, d_grid[1].z, d_block[1].x, d_block[1].y, d_block[1].z);
+		  printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",d_grid[2].x, d_grid[2].y, d_grid[2].z, d_block[2].x, d_block[2].y, d_block[2].z);
+		  printf("Grid 3: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",d_grid[3].x, d_grid[3].y, d_grid[3].z, d_block[3].x, d_block[3].y, d_block[3].z);
+		  printf("Grid 4: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",d_grid[4].x, d_grid[4].y, d_grid[4].z, d_block[4].x, d_block[4].y, d_block[4].z);
+		  printf("\n");
+	  }
 	  grid0 = d_grid[0];
 	  block0= d_block[0];
 
@@ -403,7 +403,6 @@ void clearSolver() {
 
 }
 
-
 void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction) {
 
 	dim3 gridY = dim3(mz,1,1);
@@ -427,7 +426,6 @@ void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var,
 	}
 }
 
-
 __global__ void fillBCValuesY(myprec *m, myprec *p, myprec *var, int direction) {
 	if(direction == 0) {
 		int k  = blockIdx.x;
@@ -445,7 +443,6 @@ __global__ void fillBCValuesY(myprec *m, myprec *p, myprec *var, int direction) 
 		__syncthreads();
 	}
 }
-
 
 __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction) {
 	if(direction == 0) {
@@ -465,7 +462,6 @@ __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction) 
 		__syncthreads();
 	}
 }
-
 
 void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction) {
 
@@ -526,7 +522,6 @@ __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 	}
 }
 
-
 __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction) {
 	if(direction == 0) {
 		int j  = blockIdx.x;
@@ -562,7 +557,6 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 		__syncthreads();
 	}
 }
-
 
 void checkGpuMem() {
 
