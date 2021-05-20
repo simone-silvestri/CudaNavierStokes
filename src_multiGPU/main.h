@@ -28,7 +28,7 @@ extern void initGrid(Communicator rk);
 extern void initChannel(Communicator rk);
 extern void calcdt(Communicator rk);
 void calcAvgChan(Communicator rk);
-void setDerivativeParameters(Communicator rk);
+void setGPUParameters(Communicator rk);
 void copyField(int direction);
 void checkGpuMem();
 void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);

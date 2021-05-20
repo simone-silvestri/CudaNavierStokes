@@ -80,6 +80,8 @@ void initGrid(Communicator rk) {
 		fwrite(z , mz_tot , sizeof(double) , fb );
 		fclose(fb);
 	}
+
+	mpiBarrier();
 }
 
 void initChannel(Communicator rk) {

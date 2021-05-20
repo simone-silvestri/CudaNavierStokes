@@ -68,7 +68,7 @@ extern __constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
 extern __constant__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
 extern __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
-extern __device__ myprec sij[9][mx*my*mz];
+extern __device__ myprec gij[9][mx*my*mz];
 
 extern dim3 d_block[5], grid0;
 extern dim3 d_grid[5], block0;

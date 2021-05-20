@@ -43,14 +43,6 @@ void updateHalo(myprec *var, Communicator rk) {
 	fillBoundaries(rcvYm,rcvYp,rcvZm,rcvZp,var,1);
 }
 
-void updateHaloAll(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk) {
-	updateHalo(r,rk);
-	updateHalo(u,rk);
-	updateHalo(v,rk);
-	updateHalo(w,rk);
-	updateHalo(e,rk);
-}
-
 void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk) {
 	int ierr;
 	MPI_Status status;
@@ -81,7 +73,9 @@ long int nameToHash(char *name, int length) {
 	return hash;
 }
 
-void splitComm(Communicator *rk) {
+void splitComm(Communicator *rk, int myRank) {
+
+    rk->myRank(myRank);
 
 	const int dimens[]  = {pRow,pCol};
 	const int periods[] = {1,1};
@@ -246,6 +240,17 @@ void allReduceArray(double *sendArr, int sizeArr) {
 
 	for(int i=0; i<sizeArr; i++)
 		sendArr[i] = tmpArr[i]/(pRow*pCol);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void allReduceSum(double *sendArr, int sizeArr) {
+	int ierr;
+	double tmpArr[sizeArr];
+
+	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+	for(int i=0; i<sizeArr; i++)
+		sendArr[i] = tmpArr[i];
 	ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 

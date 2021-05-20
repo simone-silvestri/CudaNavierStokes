@@ -4,7 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
-#include "../src/globals.h"
+#include "../src_multiGPU/globals.h"
 
 using namespace std;
 
@@ -85,6 +85,9 @@ int denom;
 void calcState();
 void addMean(Variables *var);
 void addFluc(Variables *var, Variables mean);
+void initFile(int timestep);
+void initGrid();
+void printRes();
 
 int main(int argc, char** argv) {
 

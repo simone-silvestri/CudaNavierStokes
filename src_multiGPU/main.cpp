@@ -39,31 +39,30 @@ int main(int argc, char** argv) {
     	exit(1);
     }
 
-    //Initializing the 2D processor grid and the mesh
+    //Initialize the 2D processor grid
     Communicator rk;
-    rk.myRank(myRank);
-    splitComm(&rk);
-    initGrid(rk);
-    ierr = MPI_Barrier(MPI_COMM_WORLD);
+    splitComm(&rk,myRank);
 
-    //Initializing the solution
+    //Initialize the computational mesh
+    initGrid(rk);
+
+    //Initialize the solution field
     restartWrapper(restartFile,rk);
 
-    //Output of initial solution
+    //Output the initial field
     calcdt(rk);
     printRes(rk);
     calcAvgChan(rk);
-    writeField(0,rk);
+//    writeField(restartFile+1,rk);
 
-    //Setting GPU parameters and pointers and copying the solution onto the GPU
-    setDerivativeParameters(rk);
+    //Set GPU parameters and copying the solution onto the GPU
+    setGPUParameters(rk);
     initSolver();
     initHalo();
     copyField(0);
 
-    //Running the solver
+    //Run the solver
     solverWrapper(rk);
-    destroyHalo();
 
     double end = MPI_Wtime();
     cout << "The total time is: " << end - begin << "\n";

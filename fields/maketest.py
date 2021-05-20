@@ -13,7 +13,7 @@ z = np.fromfile('z.bin', dtype=precision)
 
 writexmf("fieldtest.xmf", precision, \
          x, y, z, \
-         np.arange(0,3,1), 1.0, \
+         np.arange(800,1001,1), 1.0, \
          ['r',\
 	  'u',\
 	  'v',\

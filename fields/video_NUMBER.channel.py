@@ -51,7 +51,7 @@ SetActiveView(renderView1)
 # ----------------------------------------------------------------
 
 # create a new 'XDMF Reader'
-fieldNUMBERxmf = XDMFReader(FileNames=['/home/simone/Dropbox/cuda-solvers/fields2/field.NUMBER.xmf'])
+fieldNUMBERxmf = XDMFReader(FileNames=['/home/simone/Dropbox/cuda-solvers/fields/field.NUMBER.xmf'])
 fieldNUMBERxmf.PointArrayStatus = ['u', 'v', 'w']
 fieldNUMBERxmf.GridStatus = ['T0000000']
 

@@ -52,22 +52,22 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//wray step 1
     	cudaDeviceSynchronize();
-		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,sij);
-		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w,sij);
-		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w,sij);
+		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,gij);
+		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w,gij);
+		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
 
     	if(istep%checkCFLcondition==0) {
-    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+    		calcIntegrals(d_r,d_u,d_v,d_w,gij,&kin[istep],&enst[istep]);
     		enst[istep] = dpdz;
     	}
     	cudaDeviceSynchronize();
 
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
 
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil,dpdz);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil,dpdz);
     	cudaDeviceSynchronize();
     	wraySum<<<grid0,block0>>>(d_r,d_rhsr1,d_rhsr1,0.0,8.0/15.0,&dtC);
     	cudaDeviceSynchronize();
@@ -79,14 +79,14 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//wray step 2
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,sij);
-		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w,sij);
-		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w,sij);
+		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,gij);
+		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w,gij);
+		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w,gij);
 		cudaDeviceSynchronize();
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil,dpdz);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil,dpdz);
     	cudaDeviceSynchronize();
     	wraySum<<<grid0,block0>>>(d_r,d_rhsr1,d_rhsr2,17.0/60.0,5.0/12.0,&dtC);
     	cudaDeviceSynchronize();
@@ -98,14 +98,14 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//wray step 3
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,sij);
-		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w,sij);
-		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w,sij);
+		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w,gij);
+		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w,gij);
+		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil,dpdz);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil,dpdz);
     	cudaDeviceSynchronize();
     	wraySum<<<grid0,block0>>>(d_r,d_rhsr2,d_rhsr1,-5.0/12.0,3.0/4.0,&dtC);
     	cudaDeviceSynchronize();
@@ -188,22 +188,22 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	/* rk step 1 */
     	cudaDeviceSynchronize();
-    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
-    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
-    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,gij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,gij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
 
     	if(istep%checkCFLcondition==0) {
-    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+    		calcIntegrals(d_r,d_u,d_v,d_w,gij,&kin[istep],&enst[istep]);
     		enst[istep] = dpdz;
     	}
     	cudaDeviceSynchronize();
 
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
 
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil,dpdz);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil,dpdz);
     	cudaDeviceSynchronize();
     	wraySum<<<gr0,bl0>>>(d_r,d_rhsr1,d_rhsr1,0.0,8.0/15.0,&dtC);
     	cudaDeviceSynchronize();
@@ -215,14 +215,14 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//rk step 2
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
-    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
-    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,gij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,gij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil,dpdz);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil,dpdz);
     	cudaDeviceSynchronize();
     	wraySum<<<gr0,bl0>>>(d_r,d_rhsr1,d_rhsr2,17.0/60.0,5.0/12.0,&dtC);
     	cudaDeviceSynchronize();
@@ -235,14 +235,14 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 
     	//rk step 3
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,sij);
-    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,sij);
-    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,sij);
+    	calcStressX<<<gr[0],bl[0],0,s[0]>>>(d_u,d_v,d_w,gij);
+    	calcStressY<<<gr[3],bl[3],0,s[1]>>>(d_u,d_v,d_w,gij);
+    	calcStressZ<<<gr[4],bl[4],0,s[2]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil,dpdz);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil,dpdz);
     	cudaDeviceSynchronize();
     	wraySum<<<gr0,bl0>>>(d_r,d_rhsr2,d_rhsr1,-5.0/12.0,3.0/4.0,&dtC);
     	cudaDeviceSynchronize();
@@ -331,7 +331,7 @@ __device__ void initSolver() {
 
 	checkCudaDev( cudaMalloc((void**)&d_dil,mx*my*mz*sizeof(myprec)) );
 	for (int i=0; i<9; i++)
-    	checkCudaDev( cudaMalloc((void**)&sij[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&gij[i],mx*my*mz*sizeof(myprec)) );
 
 }
 
@@ -363,6 +363,6 @@ __device__ void clearSolver() {
 
 	checkCudaDev( cudaFree(d_dil) );
 	for (int i=0; i<9; i++)
-    	checkCudaDev( cudaFree(sij[i]) );
+    	checkCudaDev( cudaFree(gij[i]) );
 
 }

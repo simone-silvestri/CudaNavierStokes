@@ -41,9 +41,9 @@ __global__ void calcStressX(myprec *u, myprec *v, myprec *w) {
 	__syncthreads();
 
 	myprec wrk1;
-	derDevShared1x(&wrk1,s_u[sj],si); sij[0][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_v[sj],si); sij[1][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_w[sj],si); sij[2][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_u[sj],si); gij[0][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_v[sj],si); gij[1][id.g] = wrk1;
+	derDevShared1x(&wrk1,s_w[sj],si); gij[2][id.g] = wrk1;
 
 }
 
@@ -51,18 +51,18 @@ __global__ void calcStressY(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDev1yL(sij[3],u,id);
-	derDev1yL(sij[4],v,id);
-	derDev1yL(sij[5],w,id);
+	derDev1yL(gij[3],u,id);
+	derDev1yL(gij[4],v,id);
+	derDev1yL(gij[5],w,id);
 }
 
 __global__ void calcStressZ(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDev1zL(sij[6],u,id);
-	derDev1zL(sij[7],v,id);
-	derDev1zL(sij[8],w,id);
+	derDev1zL(gij[6],u,id);
+	derDev1zL(gij[7],v,id);
+	derDev1zL(gij[8],w,id);
 }
 
 __global__ void calcDil(myprec *dil) {
@@ -72,7 +72,7 @@ __global__ void calcDil(myprec *dil) {
 
 	//Stress goes with RHS old
 
-	dil[id.g] = sij[0][id.g] + sij[4][id.g] + sij[8][id.g];
+	dil[id.g] = gij[0][id.g] + gij[4][id.g] + gij[8][id.g];
 
 }
 

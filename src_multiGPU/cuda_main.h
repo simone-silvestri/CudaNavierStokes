@@ -53,7 +53,7 @@ myprec *djm5,*djp5,*dkm5,*dkp5;
 
 void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk);
 
-__device__ myprec sij[9][mx*my*mz];
+__device__ myprec gij[9][mx*my*mz];
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt, int i);
 __global__ void eulerSumR(myprec *a, myprec *b, myprec *c, myprec *r, myprec *dt, int i);
@@ -63,8 +63,5 @@ __global__ void eulerSum3R(myprec *a, myprec *b, myprec *c1, myprec *c2, myprec 
 
 __global__ void rk3final(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *dt, int i);
 __global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *r, myprec *dt, int i);
-
-__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
-
 
 #endif /* RHS_H_ */

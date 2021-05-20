@@ -8,9 +8,6 @@
 #ifndef BOUNDARY_H_
 #define BOUNDARY_H_
 
-const myprec TwallTop = 1.0;
-const myprec TwallBot = 1.0;
-
 extern __device__ __forceinline__ void perBCx(myprec *s_f, int si);
 extern __device__ __forceinline__ void perBCy(myprec *s_f, int si);
 extern __device__ __forceinline__ void perBCz(myprec *s_f, int si);

@@ -38,6 +38,9 @@ const int restartFile = -1;
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
 
+const myprec TwallTop = 1.0;
+const myprec TwallBot = 1.0;
+
 #define forcing       (true)
 #define periodicX     (false)
 #define nonUniformX   (true)
@@ -46,7 +49,7 @@ const int restartFile = -1;
 const double stretch = 3.0;
 
 #define checkCFLcondition 100
-#define checkBulk 1000
+#define checkBulk 100
 
 #define mx (mx_tot)
 #define my (my_tot/pRow)

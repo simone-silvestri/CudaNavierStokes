@@ -14,8 +14,8 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 							myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*);
 
 	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
-	RHSDeviceDir[1] = RHSDeviceSharedFlxY_new;
-	RHSDeviceDir[2] = RHSDeviceSharedFlxZ_new;
+	RHSDeviceDir[1] = RHSDeviceSharedFlxY;
+	RHSDeviceDir[2] = RHSDeviceSharedFlxZ;
 
 	cudaStream_t s[3];
     for (int i=0; i<3; i++) {
@@ -24,16 +24,10 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
     for (int istep = 0; istep < nsteps; istep++) {
 
-    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
-    	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
-    	cudaDeviceSynchronize();
-
-    	if(istep%checkCFLcondition==0) {
-    		calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
-    	}
+    	if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
-    	if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_w,d_e);
+    	if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_w,d_e,rk);
 
     	deviceMul<<<grid0,block0,0,s[0]>>>(d_uO,d_r,d_u);
     	deviceMul<<<grid0,block0,0,s[1]>>>(d_vO,d_r,d_v);
@@ -41,17 +35,19 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	deviceCpy<<<grid0,block0>>>(d_rO,d_r);
     	deviceCpy<<<grid0,block0>>>(d_eO,d_e);
 
-    	/* rk step 1 */
+    	//Starting the Runge-Kutta Steps
+
+    	//runge kutta step 1
+    	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
+    	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
 		calcStressY<<<d_grid[3],d_block[3],0,s[1]>>>(d_u,d_v,d_w);
 		calcStressZ<<<d_grid[4],d_block[4],0,s[2]>>>(d_u,d_v,d_w);
     	cudaDeviceSynchronize();
-
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
-
 #if useStreams
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -71,7 +67,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     		eulerSumR<<<grid0,block0,0,s[2]>>>(d_w,d_wO,d_rhsw1[d],d_r,dtC,d);    	}
     	cudaDeviceSynchronize();
 
-    	//rk step 2
+    	//runge kutta step 2
     	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
     	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
@@ -100,7 +96,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 			eulerSum3R<<<grid0,block0,0,s[2]>>>(d_w,d_wO,d_rhsw1[d],d_rhsw2[d],d_r,dtC,d); }
     	cudaDeviceSynchronize();
 
-    	//rk step 3
+    	//runge kutta step 3
     	if(multiGPU) updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
     	calcState<<<gridBC,blockBC>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 		calcStressX<<<d_grid[0],d_block[0],0,s[0]>>>(d_u,d_v,d_w);
@@ -239,7 +235,7 @@ void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, m
 void solverWrapper(Communicator rk) {
 
 	cudaSetDevice(rk.nodeRank);
-
+	int start;
     myprec *dpar1, *dpar2, *dtime;
     myprec *hpar1 = new myprec[nsteps];
     myprec *hpar2 = new myprec[nsteps];
@@ -253,13 +249,20 @@ void solverWrapper(Communicator rk) {
     size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
     cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
     FILE *fp;
+
+    if(restartFile<0) {
+    	start=0;
+    } else {
+    	start=restartFile;
+    }
+
     if(rk.rank==0) fp = fopen("solution.txt","w+");
-    for(int file = 1; file<nfiles+1; file++) {
+    for(int file = start+1; file<nfiles+start+1; file++) {
 
     	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
     	copyField(1);			  //copying back partial results to CPU
 
-    	writeField(2,rk);
+    	writeField(file,rk);
 
     	cudaDeviceSynchronize();
 
@@ -279,6 +282,7 @@ void solverWrapper(Communicator rk) {
     if(rk.rank==0) fclose(fp);
 
     clearSolver();
+    destroyHalo();
     cudaDeviceReset();
 }
 

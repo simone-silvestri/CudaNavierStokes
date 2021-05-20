@@ -4,8 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
-#include "../src/globals.h"
-#include "../src/main.h"
+#include "../src_multiGPU/globals.h"
 
 void derivGrid(double *d2f, double *df, double *f, double dx);
 
@@ -151,9 +150,9 @@ void printRes() {
 
 			    double ub[stencilSize*2+1];
 			    for (int i=stencilSize; i<stencilSize*2+1; i++)
-			    	ub[i] = w[i-stencilSize];
+			    	ub[i] = w[i-stencilSize + j*mx + k*mx+my];
 			    for (int i=0; i<stencilSize; i++)
-			    	ub[i] = w[stencilSize-i-1];
+			    	ub[i] = w[stencilSize-i-1 + j*mx + k*mx+my];
 
 			    double dudx = 0;
 			    for (int i=0; i<stencilSize; i++)

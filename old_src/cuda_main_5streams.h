@@ -54,7 +54,7 @@ __device__ myprec *d_rhsw4[5];
 __device__ myprec *d_rhse4[5];
 #endif
 
-__device__ myprec *sij[9];
+__device__ myprec *gij[9];
 
 __device__ myprec dt2,dtC;
 

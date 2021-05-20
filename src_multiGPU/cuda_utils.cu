@@ -29,7 +29,7 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
 
-void setDerivativeParameters(Communicator rk)
+void setGPUParameters(Communicator rk)
 {
 
 	// Setting the appropriate GPU (using number of cores per node = number of GPUs per node)
@@ -220,6 +220,7 @@ void copyField(int direction) {
      checkCuda( cudaMemcpy(d_fe, fe, bytes, cudaMemcpyHostToDevice) );
 
      initDevice<<<grid0, block0>>>(d_fr,d_fu,d_fv,d_fw,d_fe,d_r,d_u,d_v,d_w,d_e);
+ 	 calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
 
   } else if (direction == 1) {
      checkCuda( cudaMemset(d_fr, 0, bytes) );
@@ -229,7 +230,6 @@ void copyField(int direction) {
      checkCuda( cudaMemset(d_fe, 0, bytes) );
 
      getResults<<<grid0, block0>>>(d_fr,d_fu,d_fv,d_fw,d_fe,d_r,d_u,d_v,d_w,d_e);
-
 
      checkCuda( cudaMemcpy(fr, d_fr, bytes, cudaMemcpyDeviceToHost) );
      checkCuda( cudaMemcpy(fu, d_fu, bytes, cudaMemcpyDeviceToHost) );
@@ -484,6 +484,33 @@ void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *
 		fillBCValuesYFive<<<gridY,block>>>(djm5,djp5,r,u,v,w,e,1);
 		fillBCValuesZFive<<<gridZ,block>>>(dkm5,dkp5,r,u,v,w,e,1);
 	}
+}
+
+__global__ void fillBCValuesXChannel(myprec *r, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *t, myprec *m, myprec *l) {
+		int k   = blockIdx.x;
+		int j   = threadIdx.y;
+		int it  = threadIdx.x;
+		int add = mx*my*mz + 2*stencilSize*mx*(mz+my);
+		int gl  = it + j*stencilSize + k*my*stencilSize;
+		r[add                     + gl] = r[2*stencilSize-it-1];
+		r[add + stencilSize*my*mz + gl] = r[2*stencilSize-it-1];
+		u[add                     + gl] = u[2*stencilSize-it-1];
+		u[add + stencilSize*my*mz + gl] = u[2*stencilSize-it-1];
+		v[add                     + gl] = v[2*stencilSize-it-1];
+		v[add + stencilSize*my*mz + gl] = v[2*stencilSize-it-1];
+		w[add                     + gl] = w[2*stencilSize-it-1];
+		w[add + stencilSize*my*mz + gl] = w[2*stencilSize-it-1];
+		p[add                     + gl] = p[2*stencilSize-it-1];
+		p[add + stencilSize*my*mz + gl] = p[2*stencilSize-it-1];
+		t[add                     + gl] = t[2*stencilSize-it-1];
+		t[add + stencilSize*my*mz + gl] = t[2*stencilSize-it-1];
+		h[add                     + gl] = h[2*stencilSize-it-1];
+		h[add + stencilSize*my*mz + gl] = h[2*stencilSize-it-1];
+		m[add                     + gl] = m[2*stencilSize-it-1];
+		m[add + stencilSize*my*mz + gl] = m[2*stencilSize-it-1];
+		l[add                     + gl] = l[2*stencilSize-it-1];
+		l[add + stencilSize*my*mz + gl] = l[2*stencilSize-it-1];
+		__syncthreads();
 }
 
 __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction) {

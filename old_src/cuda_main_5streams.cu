@@ -55,19 +55,19 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	/* rk step 1 */
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
 
     	if(istep%checkCFLcondition==0) {
-    		calcIntegrals(d_r,d_u,d_v,d_w,sij,&kin[istep],&enst[istep]);
+    		calcIntegrals(d_r,d_u,d_v,d_w,gij,&kin[istep],&enst[istep]);
     	}
     	cudaDeviceSynchronize();
 
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
 
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
     	eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr1,&dt2);
     	cudaDeviceSynchronize();
@@ -80,12 +80,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	//rk step 2
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
 #if rk==4
     	eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr2,&dt2);
@@ -108,12 +108,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	//rk step 3
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
 #if rk==4
     	eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr3,&dtC);
@@ -128,12 +128,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<grid0,block0>>>(sij,d_dil);
+    	calcDil<<<grid0,block0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
     	rk4final<<<grid0,block0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,d_rhsr3,d_rhsr4,&dtC);
     	cudaDeviceSynchronize();
@@ -224,7 +224,7 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	/* rk step 1 */
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
 
 //    	if(istep%checkCFLcondition==0) {
@@ -232,11 +232,11 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
 //    	}
     	cudaDeviceSynchronize();
 
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
 
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
     	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,&dt2);
     	cudaDeviceSynchronize();
@@ -249,12 +249,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	//rk step 2
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
 #if rk==4
     	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr2,&dt2);
@@ -277,12 +277,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	//rk step 3
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
 #if rk==4
     	eulerSum<<<gr0,bl0>>>(d_r,d_rO,d_rhsr3,&dtC);
@@ -297,12 +297,12 @@ __global__ void runDevice(myprec *kin, myprec *enst, myprec *time) {
     	calcState<<<gr0,bl0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
-    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,sij);
+    		calcStresDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_u,d_v,d_w,gij);
     	cudaDeviceSynchronize();
-    	calcDil<<<gr0,bl0>>>(sij,d_dil);
+    	calcDil<<<gr0,bl0>>>(gij,d_dil);
     	cudaDeviceSynchronize();
     	for (int d = 0; d < 5; d++)
-    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,sij,d_dil);
+    		RHSDeviceDir[d]<<<gr[d],bl[d],0,s[d]>>>(d_rhsr4[d],d_rhsu4[d],d_rhsv4[d],d_rhsw4[d],d_rhse4[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij,d_dil);
     	cudaDeviceSynchronize();
     	rk4final<<<gr0,bl0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,d_rhsr3,d_rhsr4,&dtC);
     	cudaDeviceSynchronize();
@@ -457,7 +457,7 @@ __device__ void initSolver() {
 
 	checkCudaDev( cudaMalloc((void**)&d_dil,mx*my*mz*sizeof(myprec)) );
 	for (int i=0; i<9; i++)
-    	checkCudaDev( cudaMalloc((void**)&sij[i],mx*my*mz*sizeof(myprec)) );
+    	checkCudaDev( cudaMalloc((void**)&gij[i],mx*my*mz*sizeof(myprec)) );
 
 }
 
@@ -503,6 +503,6 @@ __device__ void clearSolver() {
 
 	checkCudaDev( cudaFree(d_dil) );
 	for (int i=0; i<9; i++)
-    	checkCudaDev( cudaFree(sij[i]) );
+    	checkCudaDev( cudaFree(gij[i]) );
 
 }

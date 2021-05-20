@@ -56,7 +56,7 @@ class Indices {
 
 void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
-void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e);
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Communicator rk);
 
 //global functions
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
@@ -71,27 +71,19 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz);
-__global__ void RHSDeviceSharedFlxY_new(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz);
-__global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz);
 
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w);
 __global__ void calcStressZ(myprec *u, myprec *v, myprec *w);
 __global__ void calcDil(myprec *dil);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
+__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
 
 //device functions
 __global__ void initStress();
 __global__ void clearStress();
 __global__ void initRHS();
 __global__ void clearRHS();
-__device__ void threadBlockDeviceSynchronize(void);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);

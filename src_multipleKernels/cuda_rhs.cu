@@ -78,9 +78,9 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	s_m[sj][si] = mu[id.g];
 	s_l[sj][si] = lam[id.g];
 #if !periodicX
-	s_s0[sj][si]= sij[0][id.g];
-	s_s4[sj][si]= sij[4][id.g];
-	s_s8[sj][si]= sij[8][id.g];
+	s_s0[sj][si]= gij[0][id.g];
+	s_s4[sj][si]= gij[4][id.g];
+	s_s8[sj][si]= gij[8][id.g];
 #endif
 	s_dil[sj][si] = dil[id.g];
 	__syncthreads();
@@ -105,12 +105,12 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uXtmp = ( 2 * sij[0][id.g] - 2./3.*s_dil[sj][si] );
-	vXtmp = (     sij[1][id.g] + sij[3][id.g]  );
-	wXtmp = (     sij[2][id.g] + sij[6][id.g]  );
+	uXtmp = ( 2 * gij[0][id.g] - 2./3.*s_dil[sj][si] );
+	vXtmp = (     gij[1][id.g] + gij[3][id.g]  );
+	wXtmp = (     gij[2][id.g] + gij[6][id.g]  );
 
 	//adding the viscous dissipation part duidx*mu*six
-	eXtmp = s_m[sj][si]*(uXtmp*sij[0][id.g] + vXtmp*sij[1][id.g] + wXtmp*sij[2][id.g]);
+	eXtmp = s_m[sj][si]*(uXtmp*gij[0][id.g] + vXtmp*gij[1][id.g] + wXtmp*gij[2][id.g]);
 
 	//Adding here the terms d (mu) dx * sxj; (lambda in case of h in rhse);
 	derDevSharedV1x(&wrk2,s_m[sj],si); //wrk2 = d (mu) dx
@@ -220,9 +220,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	s_m[sj][si] = mu[id.g];
 	s_l[sj][si] = lam[id.g];
 	s_dil[sj][si] = dil[id.g];
-	s_s3[sj][si] = sij[3][id.g];
-	s_s4[sj][si] = sij[4][id.g];
-	s_s5[sj][si] = sij[5][id.g];
+	s_s3[sj][si] = gij[3][id.g];
+	s_s4[sj][si] = gij[4][id.g];
+	s_s5[sj][si] = gij[5][id.g];
 	__syncthreads();
 
 	// fill in periodic images in shared memory array
@@ -236,9 +236,9 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uYtmp = (     s_s3[sj][si] + sij[1][id.g]        ) ;
+	uYtmp = (     s_s3[sj][si] + gij[1][id.g]        ) ;
 	vYtmp = ( 2 * s_s4[sj][si] - 2./3.*s_dil[sj][si] ) ;
-	wYtmp = (     s_s5[sj][si] + sij[7][id.g]        ) ;
+	wYtmp = (     s_s5[sj][si] + gij[7][id.g]        ) ;
 
 	//adding the viscous dissipation part duidy*mu*siy
 	eYtmp = s_m[sj][si]*(uYtmp*s_s3[sj][si] + vYtmp*s_s4[sj][si] + wYtmp*s_s5[sj][si]);
@@ -354,9 +354,9 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	s_p[sj][si] = p[id.g];
 	s_m[sj][si] = mu[id.g];
 	s_l[sj][si] = lam[id.g];
-	s_s6[sj][si] = sij[6][id.g];
-	s_s7[sj][si] = sij[7][id.g];
-	s_s8[sj][si] = sij[8][id.g];
+	s_s6[sj][si] = gij[6][id.g];
+	s_s7[sj][si] = gij[7][id.g];
+	s_s8[sj][si] = gij[8][id.g];
 	s_dil[sj][si] = dil[id.g];
 	__syncthreads();
 
@@ -372,8 +372,8 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uZtmp = (    s_s6[sj][si] + sij[2][id.g]        );
-	vZtmp = (    s_s7[sj][si] + sij[5][id.g]        );
+	uZtmp = (    s_s6[sj][si] + gij[2][id.g]        );
+	vZtmp = (    s_s7[sj][si] + gij[5][id.g]        );
 	wZtmp = (2 * s_s8[sj][si] - 2./3.*s_dil[sj][si] );
 
 	//adding the viscous dissipation part duidz*mu*siz
@@ -487,12 +487,12 @@ __global__ void RHSDeviceSharedFlxY_new(myprec *rY, myprec *uY, myprec *vY, mypr
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uYtmp = (    sij[3][id.g] + sij[1][id.g]        );
-	vYtmp = (2 * sij[4][id.g] - 2./3.*s_dil[sj][si] );
-	wYtmp = (    sij[5][id.g] + sij[7][id.g]        );
+	uYtmp = (    gij[3][id.g] + gij[1][id.g]        );
+	vYtmp = (2 * gij[4][id.g] - 2./3.*s_dil[sj][si] );
+	wYtmp = (    gij[5][id.g] + gij[7][id.g]        );
 
 	//adding the viscous dissipation part duidy*mu*siy
-	eYtmp = s_prop[sj][si]*(uYtmp*sij[3][id.g] + vYtmp*sij[4][id.g] + wYtmp*sij[5][id.g]);
+	eYtmp = s_prop[sj][si]*(uYtmp*gij[3][id.g] + vYtmp*gij[4][id.g] + wYtmp*gij[5][id.g]);
 
 	//Adding here the terms d (mu) dy * syj;
 	derDevSharedV1y(&wrk2,s_prop[sj],si); //wrk2 = d (mu) dy
@@ -622,12 +622,12 @@ __global__ void RHSDeviceSharedFlxZ_new(myprec *rZ, myprec *uZ, myprec *vZ, mypr
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uZtmp = (    sij[6][id.g] + sij[2][id.g]        );
-	vZtmp = (    sij[7][id.g] + sij[5][id.g]        );
-	wZtmp = (2 * sij[8][id.g] - 2./3.*s_dil[sj][si] );
+	uZtmp = (    gij[6][id.g] + gij[2][id.g]        );
+	vZtmp = (    gij[7][id.g] + gij[5][id.g]        );
+	wZtmp = (2 * gij[8][id.g] - 2./3.*s_dil[sj][si] );
 
 	//adding the viscous dissipation part duidz*mu*siz
-	eZtmp = s_prop[sj][si]*(uZtmp*sij[6][id.g] + vZtmp*sij[7][id.g] + wZtmp*sij[8][id.g]);
+	eZtmp = s_prop[sj][si]*(uZtmp*gij[6][id.g] + vZtmp*gij[7][id.g] + wZtmp*gij[8][id.g]);
 
 	//Adding here the terms d (mu) dz * szj;
 	derDevSharedV1z(&wrk2,s_prop[sj],si); //wrk2 = d (mu) dz
