@@ -55,7 +55,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		if(multiGPU) deviceCpy<<<grid0,block0,0,s[9]>>>(d_r,d_r);
+		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[9]>>>();
 		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -77,7 +77,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 			deviceCpy<<<grid0,block0,0,s[2]>>>(d_v,d_v);
 			deviceCpy<<<grid0,block0,0,s[3]>>>(d_w,d_w); }
 
-    	//runge kutta step 2
+		//runge kutta step 2
 		calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0);
 		calcStressX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
 		calcStressY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
@@ -98,7 +98,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		if(multiGPU) deviceCpy<<<grid0,block0,0,s[9]>>>(d_r,d_r);
+		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[9]>>>();
 		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -141,7 +141,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		if(multiGPU) deviceCpy<<<grid0,block0,0,s[9]>>>(d_r,d_r);
+		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[9]>>>();
 		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
