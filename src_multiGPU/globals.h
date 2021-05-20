@@ -24,7 +24,7 @@
 #define mx_tot   160
 #define my_tot   192
 #define mz_tot   192
-#define nsteps   1001
+#define nsteps   11
 #define nfiles	 1
 #define CFL      0.7f
 

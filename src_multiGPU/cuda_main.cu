@@ -50,12 +50,14 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
-    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 #if useStreams
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		RHSDeviceDir[0]<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+		if(multiGPU) deviceCpy<<<grid0,block0,0,s[9]>>>(d_r,d_r);
+		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
@@ -91,12 +93,14 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
-    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 #if useStreams
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		RHSDeviceDir[0]<<<d_grid[0],d_block[0]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+		if(multiGPU) deviceCpy<<<grid0,block0,0,s[9]>>>(d_r,d_r);
+		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
@@ -132,12 +136,14 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
     	cudaDeviceSynchronize();
-    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 #if useStreams
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		RHSDeviceDir[0]<<<d_grid[0],d_block[0]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+		if(multiGPU) deviceCpy<<<grid0,block0,0,s[9]>>>(d_r,d_r);
+		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
