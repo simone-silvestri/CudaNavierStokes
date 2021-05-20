@@ -18,8 +18,8 @@ __constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
 __constant__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
 __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
-dim3 d_block[5], grid0, gridBC;
-dim3 d_grid[5], block0, blockBC;
+dim3 d_block[5], grid0, gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
+dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
 
 void copyThreadGridsToDevice(Communicator rk);
 __global__ void fillBCValuesY(myprec *m, myprec *p, myprec *var, int direction);
@@ -173,20 +173,34 @@ void copyThreadGridsToDevice(Communicator rk) {
 	  d_grid[2]  = dim3(mx / sPencils, my, 1);
 	  d_block[2] = dim3(mz , sPencils, 1); //if not using shared change!!
 
-	  if(rk.rank==0) {
-		  printf("Grid configuration:\n");
-		  printf("Grid 0: {%d, %d, %d} blocks. Blocks 0: {%d, %d, %d} threads.\n",d_grid[0].x, d_grid[0].y, d_grid[0].z, d_block[0].x, d_block[0].y, d_block[0].z);
-		  printf("Grid 1: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",d_grid[1].x, d_grid[1].y, d_grid[1].z, d_block[1].x, d_block[1].y, d_block[1].z);
-		  printf("Grid 2: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",d_grid[2].x, d_grid[2].y, d_grid[2].z, d_block[2].x, d_block[2].y, d_block[2].z);
-		  printf("Grid 3: {%d, %d, %d} blocks. Blocks 1: {%d, %d, %d} threads.\n",d_grid[3].x, d_grid[3].y, d_grid[3].z, d_block[3].x, d_block[3].y, d_block[3].z);
-		  printf("Grid 4: {%d, %d, %d} blocks. Blocks 2: {%d, %d, %d} threads.\n",d_grid[4].x, d_grid[4].y, d_grid[4].z, d_block[4].x, d_block[4].y, d_block[4].z);
-		  printf("\n");
-	  }
 	  grid0 = d_grid[0];
 	  block0= d_block[0];
 
 	  gridBC  = dim3((my+2*stencilSize) / sPencils, (mz+2*stencilSize), 1);
 	  blockBC = dim3(mx, sPencils, 1);
+
+	  gridHalo  = dim3((my+mz) / sPencils, 2*stencilSize, 1);
+	  blockHalo = dim3(mx, sPencils, 1);
+
+	  gridHaloY  = dim3(mx / sPencils, mz, 1);
+	  blockHaloY = dim3(stencilSize, sPencils, 1);
+
+	  gridHaloZ  = dim3(mx / sPencils, my, 1);
+	  blockHaloZ = dim3(stencilSize, sPencils, 1);
+
+	  if(rk.rank==0) {
+		  printf("Grid configuration:\n");
+		  printf("Grid 0:  {%d, %d, %d} blocks. Blocks 0:  {%d, %d, %d} threads.\n",d_grid[0].x, d_grid[0].y, d_grid[0].z, d_block[0].x, d_block[0].y, d_block[0].z);
+		  printf("Grid 1:  {%d, %d, %d} blocks. Blocks 1:  {%d, %d, %d} threads.\n",d_grid[1].x, d_grid[1].y, d_grid[1].z, d_block[1].x, d_block[1].y, d_block[1].z);
+		  printf("Grid 2:  {%d, %d, %d} blocks. Blocks 2:  {%d, %d, %d} threads.\n",d_grid[2].x, d_grid[2].y, d_grid[2].z, d_block[2].x, d_block[2].y, d_block[2].z);
+		  printf("Grid 3:  {%d, %d, %d} blocks. Blocks 3:  {%d, %d, %d} threads.\n",d_grid[3].x, d_grid[3].y, d_grid[3].z, d_block[3].x, d_block[3].y, d_block[3].z);
+		  printf("Grid 4:  {%d, %d, %d} blocks. Blocks 4:  {%d, %d, %d} threads.\n",d_grid[4].x, d_grid[4].y, d_grid[4].z, d_block[4].x, d_block[4].y, d_block[4].z);
+		  printf("Grid BC: {%d, %d, %d} blocks. Blocks BC: {%d, %d, %d} threads.\n",gridBC.x, gridBC.y, gridBC.z, blockBC.x, blockBC.y, blockBC.z);
+		  printf("Grid H:  {%d, %d, %d} blocks. Blocks H:  {%d, %d, %d} threads.\n",gridHalo.x, gridHalo.y, gridHalo.z, blockHalo.x, blockHalo.y, blockHalo.z);
+		  printf("Grid HY: {%d, %d, %d} blocks. Blocks HY: {%d, %d, %d} threads.\n",gridHaloY.x, gridHaloY.y, gridHaloY.z, blockHaloY.x, blockHaloY.y, blockHaloY.z);
+		  printf("Grid HZ: {%d, %d, %d} blocks. Blocks HZ: {%d, %d, %d} threads.\n",gridHaloZ.x, gridHaloZ.y, gridHaloZ.z, blockHaloZ.x, blockHaloZ.y, blockHaloZ.z);
+		  printf("\n");
+	  }
 }
 
 void copyField(int direction) {
@@ -220,7 +234,7 @@ void copyField(int direction) {
      checkCuda( cudaMemcpy(d_fe, fe, bytes, cudaMemcpyHostToDevice) );
 
      initDevice<<<grid0, block0>>>(d_fr,d_fu,d_fv,d_fw,d_fe,d_r,d_u,d_v,d_w,d_e);
- 	 calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l);
+ 	 calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0);
 
   } else if (direction == 1) {
      checkCuda( cudaMemset(d_fr, 0, bytes) );
@@ -352,6 +366,31 @@ void initSolver() {
 
 	checkCuda( cudaMalloc((void**)&d_dil, bytes) );
 
+	int bytesY = mz*mx*stencilSize*sizeof(myprec);
+	int bytesZ = my*mx*stencilSize*sizeof(myprec);
+	checkCuda( cudaMallocHost(&senYm, bytesY) );
+	checkCuda( cudaMallocHost(&senYp, bytesY) );
+	checkCuda( cudaMallocHost(&rcvYm, bytesY) );
+	checkCuda( cudaMallocHost(&rcvYp, bytesY) );
+	checkCuda( cudaMallocHost(&senZm, bytesZ) );
+	checkCuda( cudaMallocHost(&senZp, bytesZ) );
+	checkCuda( cudaMallocHost(&rcvZm, bytesZ) );
+	checkCuda( cudaMallocHost(&rcvZp, bytesZ) );
+
+	checkCuda( cudaMallocHost(&senYm5, 5*bytesY) );
+	checkCuda( cudaMallocHost(&senYp5, 5*bytesY) );
+	checkCuda( cudaMallocHost(&rcvYm5, 5*bytesY) );
+	checkCuda( cudaMallocHost(&rcvYp5, 5*bytesY) );
+	checkCuda( cudaMallocHost(&senZm5, 5*bytesZ) );
+	checkCuda( cudaMallocHost(&senZp5, 5*bytesZ) );
+	checkCuda( cudaMallocHost(&rcvZm5, 5*bytesZ) );
+	checkCuda( cudaMallocHost(&rcvZp5, 5*bytesZ) );
+
+    for (int i=0; i<16; i++) {
+    	checkCuda( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
+    }
+
+
 }
 
 void clearSolver() {
@@ -401,6 +440,26 @@ void clearSolver() {
 
 	checkCuda( cudaFree(d_dil) );
 
+	checkCuda( cudaFreeHost(senYm)  );
+	checkCuda( cudaFreeHost(senYp)  );
+	checkCuda( cudaFreeHost(senZm)  );
+	checkCuda( cudaFreeHost(senZp)  );
+	checkCuda( cudaFreeHost(rcvYm)  );
+	checkCuda( cudaFreeHost(rcvYp)  );
+	checkCuda( cudaFreeHost(rcvZm)  );
+	checkCuda( cudaFreeHost(rcvZp)  );
+	checkCuda( cudaFreeHost(senYm5) );
+	checkCuda( cudaFreeHost(senYp5) );
+	checkCuda( cudaFreeHost(senZm5) );
+	checkCuda( cudaFreeHost(senZp5) );
+	checkCuda( cudaFreeHost(rcvYm5) );
+	checkCuda( cudaFreeHost(rcvYp5) );
+	checkCuda( cudaFreeHost(rcvZm5) );
+	checkCuda( cudaFreeHost(rcvZp5) );
+
+	for (int i=0; i<16; i++) {
+		checkCuda( cudaStreamDestroy(s[i]) );
+	}
 }
 
 void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction) {
@@ -410,19 +469,31 @@ void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var,
 	dim3 block = dim3(mx,stencilSize,1);
 
 	if(direction == 0) {
-		fillBCValuesY<<<gridY,block>>>(djm,djp,var,0);
-		fillBCValuesZ<<<gridZ,block>>>(dkm,dkp,var,0);
-		checkCuda( cudaMemcpy(jm,djm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
-		checkCuda( cudaMemcpy(jp,djp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
-		checkCuda( cudaMemcpy(km,dkm,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
-		checkCuda( cudaMemcpy(kp,dkp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
+		fillBCValuesY<<<gridY,block,0,s[10]>>>(djm,djp,var,0);
+		fillBCValuesZ<<<gridZ,block,0,s[11]>>>(dkm,dkp,var,0);
+		cudaStreamSynchronize(s[10]);
+		cudaStreamSynchronize(s[11]);
+		checkCuda( cudaMemcpyAsync(jm,djm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[12]) );
+		checkCuda( cudaMemcpyAsync(jp,djp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[13]) );
+		checkCuda( cudaMemcpyAsync(km,dkm,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[14]) );
+		checkCuda( cudaMemcpyAsync(kp,dkp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[15]) );
+		cudaStreamSynchronize(s[12]);
+		cudaStreamSynchronize(s[13]);
+		cudaStreamSynchronize(s[14]);
+		cudaStreamSynchronize(s[15]);
 	} else {
-		checkCuda( cudaMemcpy(djm,jm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		checkCuda( cudaMemcpy(djp,jp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		checkCuda( cudaMemcpy(dkm,km,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		checkCuda( cudaMemcpy(dkp,kp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		fillBCValuesY<<<gridY,block>>>(djm,djp,var,1);
-		fillBCValuesZ<<<gridZ,block>>>(dkm,dkp,var,1);
+		checkCuda( cudaMemcpyAsync(djm,jm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[12]) );
+		checkCuda( cudaMemcpyAsync(djp,jp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[13]) );
+		checkCuda( cudaMemcpyAsync(dkm,km,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[14]) );
+		checkCuda( cudaMemcpyAsync(dkp,kp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[15]) );
+		cudaStreamSynchronize(s[12]);
+		cudaStreamSynchronize(s[13]);
+		cudaStreamSynchronize(s[14]);
+		cudaStreamSynchronize(s[15]);
+		fillBCValuesY<<<gridY,block,0,s[10]>>>(djm,djp,var,1);
+		fillBCValuesZ<<<gridZ,block,0,s[11]>>>(dkm,dkp,var,1);
+		cudaStreamSynchronize(s[10]);
+		cudaStreamSynchronize(s[11]);
 	}
 }
 
@@ -470,19 +541,31 @@ void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *
 	dim3 block = dim3(mx,stencilSize,1);
 
 	if(direction == 0) {
-		fillBCValuesYFive<<<gridY,block>>>(djm5,djp5,r,u,v,w,e,0);
-		fillBCValuesZFive<<<gridZ,block>>>(dkm5,dkp5,r,u,v,w,e,0);
-		checkCuda( cudaMemcpy(jm,djm5,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
-		checkCuda( cudaMemcpy(jp,djp5,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
-		checkCuda( cudaMemcpy(km,dkm5,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
-		checkCuda( cudaMemcpy(kp,dkp5,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost) );
+		fillBCValuesYFive<<<gridY,block,0,s[10]>>>(djm5,djp5,r,u,v,w,e,0);
+		fillBCValuesZFive<<<gridZ,block,0,s[11]>>>(dkm5,dkp5,r,u,v,w,e,0);
+		cudaStreamSynchronize(s[10]);
+		cudaStreamSynchronize(s[11]);
+		checkCuda( cudaMemcpyAsync(jm,djm5,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[12]) );
+		checkCuda( cudaMemcpyAsync(jp,djp5,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[13]) );
+		checkCuda( cudaMemcpyAsync(km,dkm5,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[14]) );
+		checkCuda( cudaMemcpyAsync(kp,dkp5,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[15]) );
+		cudaStreamSynchronize(s[12]);
+		cudaStreamSynchronize(s[13]);
+		cudaStreamSynchronize(s[14]);
+		cudaStreamSynchronize(s[15]);
 	} else {
-		checkCuda( cudaMemcpy(djm5,jm,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		checkCuda( cudaMemcpy(djp5,jp,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		checkCuda( cudaMemcpy(dkm5,km,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		checkCuda( cudaMemcpy(dkp5,kp,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice) );
-		fillBCValuesYFive<<<gridY,block>>>(djm5,djp5,r,u,v,w,e,1);
-		fillBCValuesZFive<<<gridZ,block>>>(dkm5,dkp5,r,u,v,w,e,1);
+		checkCuda( cudaMemcpyAsync(djm5,jm,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[12]) );
+		checkCuda( cudaMemcpyAsync(djp5,jp,5*mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[13]) );
+		checkCuda( cudaMemcpyAsync(dkm5,km,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[14]) );
+		checkCuda( cudaMemcpyAsync(dkp5,kp,5*my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[15]) );
+		cudaStreamSynchronize(s[12]);
+		cudaStreamSynchronize(s[13]);
+		cudaStreamSynchronize(s[14]);
+		cudaStreamSynchronize(s[15]);
+		fillBCValuesYFive<<<gridY,block,0,s[10]>>>(djm5,djp5,r,u,v,w,e,1);
+		fillBCValuesZFive<<<gridZ,block,0,s[11]>>>(dkm5,dkp5,r,u,v,w,e,1);
+		cudaStreamSynchronize(s[10]);
+		cudaStreamSynchronize(s[11]);
 	}
 }
 

@@ -10,6 +10,7 @@
 
 
 __global__ void deviceCpy(myprec *a, myprec *b);
+__global__ void deviceBlocker();
 __global__ void deviceCpyOne(myprec *a, myprec *b);
 __global__ void deviceSum(myprec *a, myprec *b, myprec *c);
 __global__ void deviceSumOne(myprec *a, myprec *b, myprec *c);

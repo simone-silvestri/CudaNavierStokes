@@ -38,7 +38,5 @@ void solverWrapper(Communicator rk);
 void restartWrapper(int restartFile, Communicator rk);
 void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction);
 void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction);
-void initHalo();
-void destroyHalo();
 
 #endif

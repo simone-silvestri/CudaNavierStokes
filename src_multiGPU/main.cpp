@@ -58,7 +58,6 @@ int main(int argc, char** argv) {
     //Set GPU parameters and copying the solution onto the GPU
     setGPUParameters(rk);
     initSolver();
-    initHalo();
     copyField(0);
 
     //Run the solver

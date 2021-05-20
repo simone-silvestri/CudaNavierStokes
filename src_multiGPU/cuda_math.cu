@@ -6,6 +6,9 @@
 __device__ myprec *wrkM;
 __device__ unsigned int block, grid, total;
 
+__global__ void deviceBlocker() {
+}
+
 __global__ void deviceSum(myprec *a, myprec *b, myprec *c) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	a[id.g] = b[id.g] + c[id.g];

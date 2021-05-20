@@ -178,16 +178,21 @@ __device__ void derDev1y(myprec *df, myprec *f, Indices id)
 {
 	__shared__ myprec s_f[my+stencilSize*2][sPencils];
 
-	int si = id.tix;
+	int si = id.i;
 	int sj = id.j + stencilSize;
 
 	s_f[sj][si] = f[id.g];
 
 	__syncthreads();
 
-	if (id.j < stencilSize) {
-		s_f[sj-stencilSize][si]  = s_f[sj+my-stencilSize][si];
-		s_f[sj+my][si]           = s_f[sj][si];
+	if (sj < stencilSize*2) {
+		if(multiGPU) {
+			s_f[sj-stencilSize][si]  = f[mx*my*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
+			s_f[sj+my][si]           = f[mx*my*mz + stencilSize*mx*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
+		} else {
+			s_f[sj-stencilSize][si]  = s_f[sj+my-stencilSize][si];
+			s_f[sj+my][si] 		   = s_f[sj][si];
+		}
 	}
 
 	__syncthreads();
@@ -205,19 +210,23 @@ __device__ void derDev1y(myprec *df, myprec *f, Indices id)
 __device__ void derDev1z(myprec *df, myprec *f, Indices id)
 {
 
-
 	__shared__ myprec s_f[mz+stencilSize*2][sPencils];
 
-	int si = id.tix;
+	int si = id.i;
 	int sk = id.k + stencilSize;
 
 	s_f[sk][si] = f[id.g];
 
 	__syncthreads();
 
-	if (id.k < stencilSize) {
-		s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
-		s_f[sk+mz][si]           = s_f[sk][si];
+	if (sk < stencilSize*2) {
+		if(multiGPU) {
+			s_f[sk-stencilSize][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+			s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+		} else {
+			s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
+			s_f[sk+mz][si]           = s_f[sk][si];
+		}
 	}
 
 	__syncthreads();
@@ -231,6 +240,67 @@ __device__ void derDev1z(myprec *df, myprec *f, Indices id)
 
 	__syncthreads();
 
+}
+
+__device__ void derDev1yBC(myprec *df, myprec *f, Indices id, int direction)
+{
+	__shared__ myprec s_f[stencilSize*3][sPencils];
+
+	int si = id.tiy;
+	int sj = id.tix + stencilSize;
+
+	s_f[sj][si] = f[id.g];
+
+	__syncthreads();
+
+	if(direction==0) {
+		s_f[sj-stencilSize][si]  = f[mx*my*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
+		s_f[sj+stencilSize][si]  = f[id.i + (id.j+stencilSize)*mx + id.k*mx*my];
+	} else {
+		s_f[sj-stencilSize][si]  = f[id.i + (id.j-stencilSize)*mx + id.k*mx*my];
+		s_f[sj+stencilSize][si]  = f[mx*my*mz + stencilSize*mx*mz + id.tix + id.i*stencilSize + id.k*mx*stencilSize];
+	}
+
+	__syncthreads();
+
+	myprec dftemp = 0.0;
+	for (int jt=0; jt<stencilSize; jt++)  {
+		dftemp += dcoeffF[jt]*(s_f[sj+jt-stencilSize][si]-s_f[sj+stencilSize-jt][si])*d_dy;
+	}
+
+	df[id.g] = dftemp;
+	__syncthreads();
+
+}
+
+__device__ void derDev1zBC(myprec *df, myprec *f, Indices id, int direction)
+{
+	__shared__ myprec s_f[stencilSize*3][sPencils];
+
+	int si = id.tiy;
+	int sk = id.tix + stencilSize;
+	s_f[sk][si] = f[id.g];
+
+	__syncthreads();
+
+	if(direction==0) {
+		s_f[sk-stencilSize][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+		s_f[sk+stencilSize][si]  = f[id.i + id.j*mx + (id.k+stencilSize)*mx*my];
+	} else {
+		s_f[sk-stencilSize][si]  = f[id.i + id.j*mx + (id.k-stencilSize)*mx*my];
+		s_f[sk+stencilSize][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + id.tix + id.i*stencilSize + id.j*mx*stencilSize];
+	}
+
+	__syncthreads();
+
+	myprec dftemp = 0.0;
+	for (int kt=0; kt<stencilSize; kt++)  {
+		dftemp += dcoeffF[kt]*(s_f[sk+kt-stencilSize][si]-s_f[sk+stencilSize-kt][si])*d_dz;
+	}
+
+	df[id.g] = dftemp;
+
+	__syncthreads();
 }
 
 __device__ void derDev2x(myprec *d2f, myprec *f, Indices id)

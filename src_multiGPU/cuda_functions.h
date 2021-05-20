@@ -52,6 +52,26 @@ class Indices {
         k  = tix;
         g = i + j*mx + k*mx*my;
      }
+
+    __device__ __host__ void mkidYBC(int dir) {
+        i  = bix*bdy + tiy;
+        if(dir==1) {
+        	j  = my - stencilSize + tix;
+        } else {
+        	j = tix; }
+        k  = biy;
+        g = i + j*mx + k*mx*my;
+     }
+
+    __device__ __host__ void mkidZBC(int dir) {
+        i  = bix*bdy + tiy;
+        j  = biy;
+        if(dir==1) {
+        	k  = mz - stencilSize + tix;
+        } else {
+        	k = tix; }
+        g = i + j*mx + k*mx*my;
+     }
 };
 
 void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
@@ -75,20 +95,18 @@ __global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *
 __global__ void calcStressX(myprec *u, myprec *v, myprec *w);
 __global__ void calcStressY(myprec *u, myprec *v, myprec *w);
 __global__ void calcStressZ(myprec *u, myprec *v, myprec *w);
+__global__ void calcStressYBC(myprec *u, myprec *v, myprec *w, int direction);
+__global__ void calcStressZBC(myprec *u, myprec *v, myprec *w, int direction);
 __global__ void calcDil(myprec *dil);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
-
-//device functions
-__global__ void initStress();
-__global__ void clearStress();
-__global__ void initRHS();
-__global__ void clearRHS();
+__global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam, int bc);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);
 __device__ void derDev1y(myprec *df , myprec *f, Indices id);
 __device__ void derDev1z(myprec *df , myprec *f, Indices id);
+__device__ void derDev1yBC(myprec *df, myprec *f, Indices id, int direction);
+__device__ void derDev1zBC(myprec *df, myprec *f, Indices id, int direction);
 __device__ void derDev2x(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2y(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2z(myprec *d2f , myprec *f, Indices id);

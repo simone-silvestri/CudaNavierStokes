@@ -265,42 +265,4 @@ void mpiBarrier() {
 	int ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void initHalo() {
-		senYm = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
-		senYp = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
-		senZm = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
-		senZp = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
-		rcvYm = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
-		rcvYp = (myprec*)malloc(mz*mx*stencilSize*sizeof(myprec));
-		rcvZm = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
-		rcvZp = (myprec*)malloc(my*mx*stencilSize*sizeof(myprec));
-		senYm5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
-		senYp5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
-		senZm5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
-		senZp5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
-		rcvYm5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
-		rcvYp5 = (myprec*)malloc(5*mz*mx*stencilSize*sizeof(myprec));
-		rcvZm5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
-		rcvZp5 = (myprec*)malloc(5*my*mx*stencilSize*sizeof(myprec));
-}
-
-void destroyHalo() {
-		free(senYm);
-		free(senYp);
-		free(senZm);
-		free(senZp);
-		free(rcvYm);
-		free(rcvYp);
-		free(rcvZm);
-		free(rcvZp);
-		free(senYm5);
-		free(senYp5);
-		free(senZm5);
-		free(senZp5);
-		free(rcvYm5);
-		free(rcvYp5);
-		free(rcvZm5);
-		free(rcvZp5);
-}
-
 

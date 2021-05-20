@@ -66,6 +66,28 @@ __global__ void calcStressZ(myprec *u, myprec *v, myprec *w) {
 	derDev1zL(gij[8],w,id);
 }
 
+__global__ void calcStressYBC(myprec *u, myprec *v, myprec *w, int direction) {
+
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+
+	id.mkidYBC(direction);
+
+	derDev1yBC(gij[3],u,id,direction);
+	derDev1yBC(gij[4],v,id,direction);
+	derDev1yBC(gij[5],w,id,direction);
+}
+
+__global__ void calcStressZBC(myprec *u, myprec *v, myprec *w, int direction) {
+
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+
+	id.mkidZBC(direction);
+
+	derDev1zBC(gij[6],u,id,direction);
+	derDev1zBC(gij[7],v,id,direction);
+	derDev1zBC(gij[8],w,id,direction);
+}
+
 __global__ void calcDil(myprec *dil) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);

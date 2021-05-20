@@ -69,8 +69,10 @@ extern __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[
 
 extern __device__ myprec gij[9][mx*my*mz];
 
-extern dim3 d_block[5], grid0,  gridBC;
-extern dim3 d_grid[5], block0, blockBC;
+extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
+extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
+
+extern cudaStream_t s[16];
 
 extern myprec *d_r;
 extern myprec *d_u;
@@ -114,5 +116,11 @@ extern myprec *dtC,*dpdz;
 
 extern myprec *djm, *djp, *dkm, *dkp;
 extern myprec *djm5,*djp5,*dkm5,*dkp5;
+
+extern myprec *senYp,*senYm,*senZp,*senZm;
+extern myprec *rcvYp,*rcvYm,*rcvZp,*rcvZm;
+
+extern myprec *senYp5,*senYm5,*senZp5,*senZm5;
+extern myprec *rcvYp5,*rcvYm5,*rcvZp5,*rcvZm5;
 
 #endif
