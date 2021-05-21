@@ -21,6 +21,8 @@ extern __device__ __forceinline__ void wallBCxVisc(myprec *s_f, myprec *u, mypre
 		myprec *s0 , myprec *s1,  myprec *s2 , myprec *s3,
 		myprec *s6 , myprec *dil, myprec *m  , int si);
 extern __device__ __forceinline__ void  stateBoundPT(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l);
+extern __device__ __forceinline__ void rhBoundPT(myprec *r, myprec *h, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si);
+extern __device__ __forceinline__ void mlBoundPT(myprec *m, myprec *l, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si);
 
 __device__ __forceinline__ __attribute__((always_inline)) void perBCx(myprec *s_f, int si) {
 	s_f[si-stencilSize]  = s_f[si+mx-stencilSize];
@@ -89,5 +91,35 @@ __device__ __forceinline__ __attribute__((always_inline)) void stateBoundPT(mypr
     m[idx]   = suth/Re;
     l[idx]   = suth/Re/Pr/Ec;
 }
+
+__device__ __forceinline__ __attribute__((always_inline)) void rhBoundPT(myprec *r, myprec *h, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si)
+{
+	int idx = si-stencilSize;
+
+    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+    		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
+    r[idx]  = p[idx]/(Rgas*t[idx]);
+
+    idx = si+mx;
+    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+        		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
+    r[idx]  = p[idx]/(Rgas*t[idx]);
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void mlBoundPT(myprec *m, myprec *l, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si)
+{
+	int idx = si-stencilSize;
+
+    myprec suth = pow(t[idx],viscexp);
+    m[idx]   = suth/Re;
+    l[idx]   = suth/Re/Pr/Ec;
+
+    idx = si+mx;
+
+    suth = pow(t[idx],viscexp);
+    m[idx]   = suth/Re;
+    l[idx]   = suth/Re/Pr/Ec;
+}
+
 
 #endif /* BOUNDARY_H_ */

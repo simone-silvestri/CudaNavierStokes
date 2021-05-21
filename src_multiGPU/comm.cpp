@@ -185,7 +185,7 @@ void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {
 }
 
 void readFileMPI(char filename, int timestep,  double *var, Communicator rk) {
-	double *var_tot = new myprec[mx_tot*my_tot*mz_tot];
+	double *var_tot = new double[mx_tot*my_tot*mz_tot];
 	int ierr;
 	int lSize = mx_tot*my_tot*mz_tot;
 
@@ -209,11 +209,11 @@ void readFileMPI(char filename, int timestep,  double *var, Communicator rk) {
     delete [] var_tot;
 }
 
-void reduceArray(int rcvCore, double *sendArr, int sizeArr, Communicator rk) {
+void reduceArray(int rcvCore, myprec *sendArr, int sizeArr, Communicator rk) {
 	int ierr;
-	double tmpArr[sizeArr];
+	myprec tmpArr[sizeArr];
 
-	ierr = MPI_Reduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_SUM, rcvCore, MPI_COMM_WORLD);
+	ierr = MPI_Reduce(sendArr, tmpArr, sizeArr, MPI_myprec, MPI_SUM, rcvCore, MPI_COMM_WORLD);
 
 	if(rk.rank == rcvCore) {
 		for(int i=0; i<sizeArr; i++)
@@ -222,17 +222,28 @@ void reduceArray(int rcvCore, double *sendArr, int sizeArr, Communicator rk) {
 	ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void allReduceToMin(double *sendArr, int sizeArr) {
+void allReduceToMin(myprec *sendArr, int sizeArr) {
 	int ierr;
-	double tmpArr[sizeArr];
+	myprec tmpArr[sizeArr];
 
-	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_myprec, MPI_MIN, MPI_COMM_WORLD);
 	for(int i=0; i<sizeArr; i++)
 		sendArr[i] = tmpArr[i];
 	ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void allReduceArray(double *sendArr, int sizeArr) {
+void allReduceArray(myprec *sendArr, int sizeArr) {
+	int ierr;
+	myprec tmpArr[sizeArr];
+
+	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_myprec, MPI_SUM, MPI_COMM_WORLD);
+
+	for(int i=0; i<sizeArr; i++)
+		sendArr[i] = tmpArr[i]/(pRow*pCol);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void allReduceArrayDouble(double *sendArr, int sizeArr) {
 	int ierr;
 	double tmpArr[sizeArr];
 
@@ -243,11 +254,11 @@ void allReduceArray(double *sendArr, int sizeArr) {
 	ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void allReduceSum(double *sendArr, int sizeArr) {
+void allReduceSum(myprec *sendArr, int sizeArr) {
 	int ierr;
-	double tmpArr[sizeArr];
+	myprec tmpArr[sizeArr];
 
-	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	ierr = MPI_Allreduce(sendArr, tmpArr, sizeArr, MPI_myprec, MPI_SUM, MPI_COMM_WORLD);
 
 	for(int i=0; i<sizeArr; i++)
 		sendArr[i] = tmpArr[i];

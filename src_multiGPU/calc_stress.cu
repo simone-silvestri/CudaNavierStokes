@@ -8,7 +8,6 @@
 #include "boundary.h"
 #include "comm.h"
 
-
 __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
 	*a = 0.99*(*b) - 0.5*(*a/(*c)-1);
 }

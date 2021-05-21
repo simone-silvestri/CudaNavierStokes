@@ -21,7 +21,7 @@
 #define Lx       (2.0)
 #define Ly       (2.0*M_PI)
 #define Lz       (4.0*M_PI)
-#define mx_tot   160
+#define mx_tot   512
 #define my_tot   192
 #define mz_tot   192
 #define nsteps   1001
@@ -61,7 +61,7 @@ const double stretch = 3.0;
 #if pRow*pCol>1
 const int multiGPU = 1;
 #else
-const int multiGPU = 0;
+const int multiGPU = 1;
 #endif
 
 #if stencilSize==1

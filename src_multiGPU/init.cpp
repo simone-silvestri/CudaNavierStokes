@@ -166,11 +166,11 @@ void calcAvgChan(Communicator rk) {
 			}
 	}
 
-	allReduceArray(rm,mx);
-	allReduceArray(um,mx);
-	allReduceArray(vm,mx);
-	allReduceArray(wm,mx);
-	allReduceArray(em,mx);
+	allReduceArrayDouble(rm,mx);
+	allReduceArrayDouble(um,mx);
+	allReduceArrayDouble(vm,mx);
+	allReduceArrayDouble(wm,mx);
+	allReduceArrayDouble(em,mx);
 
 	for (int i=0; i<mx; i++) {
 		um[i] /= rm[i];
@@ -186,11 +186,11 @@ void calcAvgChan(Communicator rk) {
 			}
 	}
 
-	reduceArray(0,rf,mx,rk);
-	reduceArray(0,uf,mx,rk);
-	reduceArray(0,vf,mx,rk);
-	reduceArray(0,wf,mx,rk);
-	reduceArray(0,ef,mx,rk);
+	allReduceArrayDouble(rf,mx);
+	allReduceArrayDouble(uf,mx);
+	allReduceArrayDouble(vf,mx);
+	allReduceArrayDouble(wf,mx);
+	allReduceArrayDouble(ef,mx);
 
 	if(rk.rank==0) {
 		FILE *fp = fopen("prof.txt","w+");
@@ -232,7 +232,7 @@ void printRes(Communicator rk) {
 
 	Ret = Ret/my/mz;
 
-	reduceArray(0,&Ret,1,rk);
+	allReduceArrayDouble(&Ret,1);
 
 	if(rk.rank==0) {
 		printf("\n");
@@ -304,7 +304,7 @@ void calcdt(Communicator rk) {
 	}
 	dt = CFL/MAX(dtConvInv, dtViscInv);
 
-	allReduceArray(&dt,1);
+	allReduceArrayDouble(&dt,1);
 	mpiBarrier();
 }
 

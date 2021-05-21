@@ -156,7 +156,6 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     		rk3finalR<<<grid0,block0,0,s[1]>>>(d_v,d_vO,d_rhsv1[d],d_rhsv2[d],d_rhsv3[d],d_r,dtC,d);
     		rk3finalR<<<grid0,block0,0,s[2]>>>(d_w,d_wO,d_rhsw1[d],d_rhsw2[d],d_rhsw3[d],d_r,dtC,d); }
     	cudaDeviceSynchronize();
-
 	}
 }
 

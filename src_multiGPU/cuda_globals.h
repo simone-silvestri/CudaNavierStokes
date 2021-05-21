@@ -41,7 +41,7 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 #if mx==1 || my==1 
 const int sPencils = 1;
 #else
-#if mx > 255 ||  my>512 || mz>512
+#if mx+2*stencilSize > 279 ||  my+2*stencilSize>600 || mz+2*stencilSize>600
 const int sPencils = 1;  // small # pencils
 #else
 const int sPencils = 2;
