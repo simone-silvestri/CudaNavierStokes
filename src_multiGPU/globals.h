@@ -24,7 +24,7 @@
 #define mx_tot   160
 #define my_tot   192
 #define mz_tot   192
-#define nsteps   11
+#define nsteps   1001
 #define nfiles	 1
 #define CFL      0.7f
 
@@ -44,7 +44,7 @@ const myprec TwallBot = 1.0;
 #define forcing       (true)
 #define periodicX     (false)
 #define nonUniformX   (true)
-#define useStreams    (false)   // true might give a little speedup (actually might be harmfull in terms of performance in certain occasions) bad for memory footprint
+#define useStreams    (false)   // true might give a little speedup (it might also be harmful in terms of performance in certain occasions) very bad for memory footprint
 
 const double stretch = 3.0;
 
@@ -61,7 +61,7 @@ const double stretch = 3.0;
 #if pRow*pCol>1
 const int multiGPU = 1;
 #else
-const int multiGPU = 1;
+const int multiGPU = 0;
 #endif
 
 #if stencilSize==1

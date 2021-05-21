@@ -220,28 +220,22 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
 	int blockNumInGrid   = blockIdx.x  + gridDim.x  * blockIdx.y;
 
-	int gt = blockNumInGrid * threadsPerBlock + threadNumInBlock;
+	int gl = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
-	if(bc==1) gt += mx*my*mz;
+	if(bc==1) gl += mx*my*mz;
 
     myprec cvInv = (gamma - 1.0)/Rgas;
 
-    myprec invrho = 1.0/rho[gt];
+    myprec invrho = 1.0/rho[gl];
 
-    myprec en = ret[gt]*invrho - 0.5*(uvel[gt]*uvel[gt] + vvel[gt]*vvel[gt] + wvel[gt]*wvel[gt]);
-    tem[gt]   = cvInv*en;
-    pre[gt]   = rho[gt]*Rgas*tem[gt];
-    ht[gt]    = (ret[gt] + pre[gt])*invrho;
+    myprec en = ret[gl]*invrho - 0.5*(uvel[gl]*uvel[gl] + vvel[gl]*vvel[gl] + wvel[gl]*wvel[gl]);
+    tem[gl]   = cvInv*en;
+    pre[gl]   = rho[gl]*Rgas*tem[gl];
+    ht[gl]    = (ret[gl] + pre[gl])*invrho;
 
-
-    if(pre[gt] == 0)
-    {
-    	printf("DEbug!!\n");
-    }
-
-    myprec suth = pow(tem[gt],viscexp);
-    mu[gt]      = suth/Re;
-    lam[gt]     = suth/Re/Pr/Ec;
+    myprec suth = pow(tem[gl],viscexp);
+    mu[gl]      = suth/Re;
+    lam[gl]     = suth/Re/Pr/Ec;
     __syncthreads();
 
 }
@@ -304,8 +298,8 @@ void solverWrapper(Communicator rk) {
 
     	if(rk.rank==0) {
     		printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
-    		for(int t=0; t<nsteps-1; t++)
-    			fprintf(fp,"%lf %lf %lf %lf\n",htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
+    		for(int t=0; t<nsteps-1; t+=checkCFLcondition)
+    			fprintf(fp,"%d %lf %lf %lf %lf\n",file*nsteps,htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
     	}
     	mpiBarrier();
     }

@@ -53,7 +53,6 @@ int main(int argc, char** argv) {
     calcdt(rk);
     printRes(rk);
     calcAvgChan(rk);
-//    writeField(restartFile+1,rk);
 
     //Set GPU parameters and copying the solution onto the GPU
     setGPUParameters(rk);
