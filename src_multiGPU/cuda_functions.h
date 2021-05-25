@@ -118,22 +118,312 @@ __device__ void derDevV1zL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2xL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2yL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2zL(myprec *d2f, myprec *f, Indices id);
-__device__ void derDevShared1x(myprec *df , myprec *s_f, int si);
-__device__ void derDevShared2x(myprec *d2f, myprec *s_f, int si);
-__device__ void derDevSharedV1x(myprec *df , myprec *s_f, int si);
-__device__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si);
-__device__ void derDevShared1y(myprec *df , myprec *s_f, int si);
-__device__ void derDevShared2y(myprec *d2f, myprec *s_f, int si);
-__device__ void derDevSharedV1y(myprec *df , myprec *s_f, int si);
-__device__ void derDevSharedV2y(myprec *d2f, myprec *s_f, int si);
-__device__ void derDevShared1z(myprec *df , myprec *s_f, int si);
-__device__ void derDevShared2z(myprec *d2f, myprec *s_f, int si);
-__device__ void derDevSharedV1z(myprec *df , myprec *s_f, int si);
-__device__ void derDevSharedV2z(myprec *d2f, myprec *s_f, int si);
-__device__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si);
-__device__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
-__device__ void fluxQuadSharedy(myprec *df, myprec *s_f, myprec *s_g, int si);
-__device__ void fluxCubeSharedy(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
-__device__ void fluxQuadSharedz(myprec *df, myprec *s_f, myprec *s_g, int si);
-__device__ void fluxCubeSharedz(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
+extern __device__ __forceinline__ void derDevShared1x(myprec *df , myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevShared2x(myprec *d2f, myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevSharedV1x(myprec *df , myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevSharedV2x(myprec *d2f, myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevShared1y(myprec *df , myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevShared2y(myprec *d2f, myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevSharedV1y(myprec *df , myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevSharedV2y(myprec *d2f, myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevShared1z(myprec *df , myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevShared2z(myprec *d2f, myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevSharedV1z(myprec *df , myprec *s_f, int si);
+extern __device__ __forceinline__ void derDevSharedV2z(myprec *d2f, myprec *s_f, int si);
+extern __device__ __forceinline__ void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si);
+extern __device__ __forceinline__ void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
+extern __device__ __forceinline__ void fluxQuadSharedy(myprec *df, myprec *s_f, myprec *s_g, int si);
+extern __device__ __forceinline__ void fluxCubeSharedy(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
+extern __device__ __forceinline__ void fluxQuadSharedz(myprec *df, myprec *s_f, myprec *s_g, int si);
+extern __device__ __forceinline__ void fluxCubeSharedz(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si);
+
+__device__ __forceinline__ __attribute__((always_inline)) void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
+{
+
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1]);
+		}
+
+	*df = 0.5*d_dx*(flxm - flxp);
+
+#if nonUniformX
+	*df = (*df)*d_xp[si-stencilSize];
+#endif
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void fluxCubeSharedx(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si)
+{
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1])*(s_h[si-mt-1]+s_h[si-mt+lt-1]);
+		}
+
+	*df = 0.25*d_dx*(flxm - flxp);
+
+#if nonUniformX
+	*df = (*df)*d_xp[si-stencilSize];
+#endif
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void fluxQuadSharedy(myprec *df, myprec *s_f, myprec *s_g, int si)
+{
+
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1]);
+		}
+
+	*df = 0.5*d_dy*(flxm - flxp);
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void fluxCubeSharedy(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si)
+{
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1])*(s_h[si-mt-1]+s_h[si-mt+lt-1]);
+		}
+
+	*df = 0.25*d_dy*(flxm - flxp);
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void fluxQuadSharedz(myprec *df, myprec *s_f, myprec *s_g, int si)
+{
+
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1]);
+		}
+
+	*df = 0.5*d_dz*(flxm - flxp);
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void fluxCubeSharedz(myprec *df, myprec *s_f, myprec *s_g, myprec *s_h, int si)
+{
+
+	myprec flxp,flxm;
+
+	flxp = 0.0;
+	flxm = 0.0;
+	__syncthreads();
+
+	for (int lt=1; lt<stencilSize+1; lt++)
+		for (int mt=0; mt<lt; mt++) {
+			flxp -= dcoeffF[stencilSize-lt]*(s_f[si-mt]+s_f[si-mt+lt])*(s_g[si-mt]+s_g[si-mt+lt])*(s_h[si-mt]+s_h[si-mt+lt]);
+			flxm -= dcoeffF[stencilSize-lt]*(s_f[si-mt-1]+s_f[si-mt+lt-1])*(s_g[si-mt-1]+s_g[si-mt+lt-1])*(s_h[si-mt-1]+s_h[si-mt+lt-1]);
+		}
+
+	*df = 0.25*d_dz*(flxm - flxp);
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevShared1x(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilSize; it++)  {
+		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it]);
+	}
+
+	*df = *df*d_dx;
+
+#if nonUniformX
+	*df = *df*d_xp[si-stencilSize];
+#endif
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevShared2x(myprec *d2f, myprec *s_f, int si)
+{
+
+
+#if nonUniformX
+	*d2f = 0.0;
+	for (int it=0; it<2*stencilSize+1; it++)  {
+		*d2f += dcoeffSx[it*mx+(si-stencilSize)]*(s_f[si+it-stencilSize]);
+	}
+#else
+	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2x;
+	for (int it=0; it<stencilSize; it++)  {
+		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2x;
+	}
+#endif
+
+	__syncthreads();
+
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV1x(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilVisc; it++)  {
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it]);
+	}
+
+	*df = *df*d_dx;
+#if nonUniformX
+	*df = *df*d_xp[si-stencilSize];
+#endif
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV2x(myprec *d2f, myprec *s_f, int si)
+{
+
+#if nonUniformX
+	*d2f = 0.0;
+	for (int it=0; it<2*stencilVisc+1; it++)  {
+		*d2f += dcoeffVSx[it*mx+(si-stencilSize)]*(s_f[si+it-stencilVisc]);
+	}
+#else
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2x;
+	for (int it=0; it<stencilVisc; it++)  {
+		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2x;
+	}
+#endif
+
+	__syncthreads();
+
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevShared1y(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilSize; it++)  {
+		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dy;
+	}
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevShared2y(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2y;
+	for (int it=0; it<stencilSize; it++)  {
+		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2y;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV1y(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilVisc; it++)  {
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it])*d_dy;
+	}
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV2y(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2y;
+	for (int it=0; it<stencilVisc; it++)  {
+		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2y;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevShared1z(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilSize; it++)  {
+		*df += dcoeffF[it]*(s_f[si+it-stencilSize]-s_f[si+stencilSize-it])*d_dz;
+	}
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevShared2z(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffS[stencilSize]*s_f[si]*d_d2z;
+	for (int it=0; it<stencilSize; it++)  {
+		*d2f += dcoeffS[it]*(s_f[si+it-stencilSize]+s_f[si+stencilSize-it])*d_d2z;
+	}
+
+	__syncthreads();
+
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV1z(myprec *df, myprec *s_f, int si)
+{
+	*df = 0.0;
+	for (int it=0; it<stencilVisc; it++)  {
+		*df += dcoeffVF[it]*(s_f[si+it-stencilVisc]-s_f[si+stencilVisc-it])*d_dz;
+	}
+
+	__syncthreads();
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV2z(myprec *d2f, myprec *s_f, int si)
+{
+
+	*d2f = dcoeffVS[stencilVisc]*s_f[si]*d_d2z;
+	for (int it=0; it<stencilVisc; it++)  {
+		*d2f += dcoeffVS[it]*(s_f[si+it-stencilVisc]+s_f[si+stencilVisc-it])*d_d2z;
+	}
+
+	__syncthreads();
+
+}
+
 #endif

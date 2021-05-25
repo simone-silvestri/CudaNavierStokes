@@ -30,7 +30,7 @@ extern void calcdt(Communicator rk);
 void calcAvgChan(Communicator rk);
 void setGPUParameters(Communicator rk);
 void copyField(int direction);
-void checkGpuMem();
+void checkGpuMem(Communicator rk);
 void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);
 void initSolver();
 void clearSolver();

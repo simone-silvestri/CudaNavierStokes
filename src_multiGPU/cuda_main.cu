@@ -5,7 +5,7 @@
 #include "cuda_math.h"
 #include "comm.h"
 
-cudaStream_t s[16];
+cudaStream_t s[9];
 
 void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
@@ -20,7 +20,6 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 	RHSDeviceDir[2] = RHSDeviceSharedFlxZ;
 
     for (int istep = 0; istep < nsteps; istep++) {
-
     	if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
@@ -55,8 +54,8 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr1[d],d_rhsu1[d],d_rhsv1[d],d_rhsw1[d],d_rhse1[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[9]>>>();
-		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();
+		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -98,8 +97,8 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr2[d],d_rhsu2[d],d_rhsv2[d],d_rhsw2[d],d_rhse2[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[9]>>>();
-		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();
+		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[0]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -141,8 +140,8 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	for (int d = 0; d < 3; d++)
     		RHSDeviceDir[d]<<<d_grid[d],d_block[d],0,s[d]>>>(d_rhsr3[d],d_rhsu3[d],d_rhsv3[d],d_rhsw3[d],d_rhse3[d],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #else
-		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[9]>>>();
-		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[9]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();
+		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[0]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
     	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
@@ -268,10 +267,10 @@ void solverWrapper(Communicator rk) {
     checkCuda( cudaMalloc((void**)&dpar2, nsteps*sizeof(myprec)) );
     checkCuda( cudaMalloc((void**)&dtime, nsteps*sizeof(myprec)) );
 
-    // Increase GPU default limits to accomodate the computations
-    size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
-    cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
     FILE *fp;
+
+    //check the memory usage of the GPU
+    checkGpuMem(rk);
 
     if(restartFile<0) {
     	start=0;

@@ -17,12 +17,12 @@
 #define Lz       (4.0*M_PI)
 #define mx       160
 #define my       192
-#define mz       192
+#define mz       256
 #define nsteps   1001
 #define nfiles	 1
 #define CFL      0.7f
 
-const int restartFile = 800;
+const int restartFile = -1;
 
 #define Re       3000.f
 #define Pr       0.7f

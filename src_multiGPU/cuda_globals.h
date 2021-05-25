@@ -72,7 +72,7 @@ extern __device__ myprec gij[9][mx*my*mz];
 extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
 extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
 
-extern cudaStream_t s[16];
+extern cudaStream_t s[9];
 
 extern myprec *d_r;
 extern myprec *d_u;
