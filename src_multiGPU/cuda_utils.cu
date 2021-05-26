@@ -777,14 +777,34 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 
 void checkGpuMem(Communicator rk) {
 
-	float free_m;
+	double free_m, total_m, used_m, fields, totfields;
 	size_t free_t,total_t;
 
 	cudaMemGetInfo(&free_t,&total_t);
 
-	free_m =(uint)free_t/1048576.0 ;
+	free_m  =(double)free_t/1048576.0/1024 ;
+	total_m =(double)total_t/1048576.0/1024 ;
 
-	if(rk.rank==0) printf ( "mem free %zu\t (%f MB mem)\n",free_t,free_m);
+	used_m = total_m - free_m;
 
+	double overhead = 9*sizeof(cudaStream_t);
+	overhead += 20*sizeof(dim3);
+	overhead += (7+mx*(3+2*stencilSize+2*stencilVisc+2)+2*stencilSize+2*stencilVisc)*sizeof(myprec);
+	if(multiGPU) {
+		overhead += sizeof(myprec)*mx*(mz+my)*stencilSize*5*(5+1);
+		overhead += (mx*(my+2*stencilSize)*(mz+2*stencilSize) - mx*my*mz)*sizeof(myprec)*15;
+	}
+
+	fields    = (used_m*1024.0*1024.0*1024.0 -overhead)/(mx*my*mz*sizeof(myprec));
+	totfields = (total_m*1024.0*1024.0*1024.0-overhead)/(mx*my*mz*sizeof(myprec));
+
+	if(rk.rank==0) {
+		printf("Memory usage details: \n");
+		printf("Memory used: %lf GB\n",used_m);
+		printf("Memory free: %lf GB\n",free_m);
+		printf("Number of fields allocatable: %d\n",(int)totfields);
+		printf("Number of fields allocated:   %d\n",(int)fields);
+		printf("\n");
+	}
 }
 

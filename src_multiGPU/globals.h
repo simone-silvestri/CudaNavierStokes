@@ -24,7 +24,7 @@
 #define mx_tot   160
 #define my_tot   192
 #define mz_tot   192
-#define nsteps   1001
+#define nsteps   301
 #define nfiles	 1
 #define CFL      0.7f
 
@@ -61,7 +61,7 @@ const double stretch = 3.0;
 #if pRow*pCol>1
 const int multiGPU = 1;
 #else
-const int multiGPU = 1;
+const int multiGPU = 0;
 #endif
 
 #if stencilSize==1

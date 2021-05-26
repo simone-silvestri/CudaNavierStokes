@@ -63,6 +63,7 @@ void initGrid(Communicator rk) {
 		z[k]=Lz*(0.5+k*1.0)/(mz_tot);  }
 
 	if(rk.rank==0) {
+
 		FILE *fp = fopen("Grid.txt","w+");
 		for (int i=0; i<mx; i++)
 			fprintf(fp,"%d %lf %lf %lf\n",i,x[i],xp[i],xpp[i]);
@@ -238,11 +239,11 @@ void printRes(Communicator rk) {
 		printf("\n");
 		printf("The average friction Reynolds number is: \t %lf\n",Ret);
 		printf("Resolutions are: \n");
-		printf("wall-normal: \t %lf\n",(x[0]+x[1])/2*Ret);
+		printf("wall-normal wall: \t %lf\n",(x[0]+x[1])/2*Ret);
+		printf("wall-normal center: \t %lf\n",(x[mx/2+1]-x[mx/2-1])/2*Ret);
 		printf("span-wise: \t %lf\n",(y[1]-y[0])*Ret);
 		printf("stream-wise: \t %lf\n",(z[1]-z[0])*Ret);
 		printf("\n");
-
 
 		printf("the initial dt and dpdz are : %lf   and    %lf\n",dt,h_dpdz);
 		printf("\n");

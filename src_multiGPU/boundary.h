@@ -17,10 +17,7 @@ extern __device__ __forceinline__ void wallBCxExt(myprec *s_f, int si, const myp
 extern __device__ __forceinline__ void wallBCxMir(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxVel(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxDil(myprec *s_f, myprec *s_u, myprec *s_v, myprec *s_w, int si);
-extern __device__ __forceinline__ void wallBCxVisc(myprec *s_f, myprec *u, myprec *v, myprec *w,
-		myprec *s0 , myprec *s1,  myprec *s2 , myprec *s3,
-		myprec *s6 , myprec *dil, myprec *m  , int si);
-extern __device__ __forceinline__ void  stateBoundPT(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l);
+extern __device__ __forceinline__ void stateBoundPT(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l);
 extern __device__ __forceinline__ void rhBoundPT(myprec *r, myprec *h, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si);
 extern __device__ __forceinline__ void mlBoundPT(myprec *m, myprec *l, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si);
 
@@ -55,7 +52,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void wallBCxExt(myprec
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void wallBCxDil(myprec *s_f, myprec *s_u, myprec *s_v, myprec *s_w, int si) {
-
 	s_f[si-stencilSize]  = s_u[si-stencilSize] +  s_v[si-stencilSize] +  s_w[si-stencilSize];
 	s_f[si+mx]           = s_u[si+mx]          +  s_v[si+mx]          +  s_w[si+mx];
 }
