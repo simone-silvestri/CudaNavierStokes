@@ -31,8 +31,8 @@
  * stream 2 -> viscous terms and pressure terms in Z (in RHSDeviceFullZL) (large pencil grid)
  * stream 3 -> advective fluxes in Y direction (in FLXDeviceY) (small pencil transposed grid)
  * stream 4 -> advective fluxes in Z direction (in FLXDeviceZ) (small pencil transposed grid)*/
-
-__global__ void RHSDeviceSharedFlxX_lowStorage(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+#if mx>=558
+__global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz) {
@@ -169,7 +169,7 @@ __global__ void RHSDeviceSharedFlxX_lowStorage(myprec *rX, myprec *uX, myprec *v
 	wX[id.g] = wXtmp;
 	eX[id.g] = eXtmp;
 }
-
+#else
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
@@ -318,7 +318,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	wX[id.g] = wXtmp;
 	eX[id.g] = eXtmp;
 }
-
+#endif
 __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,

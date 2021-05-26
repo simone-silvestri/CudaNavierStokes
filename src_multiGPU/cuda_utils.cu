@@ -15,8 +15,23 @@ __constant__ myprec dcoeffF[stencilSize];
 __constant__ myprec dcoeffS[stencilSize+1];
 __constant__ myprec dcoeffVF[stencilVisc];
 __constant__ myprec dcoeffVS[stencilVisc+1];
+#if mx<=546 //limit on the GPU constant memory usage (655356 bytes)
 __constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
 __constant__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
+#else
+__device__ myprec dcoeffSx[mx*(2*stencilSize+1)];
+__device__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
+myprec *tmpcoeffSx, *tmpcoeffVSx;
+__global__ void cpyCoefficients(myprec *tmpSx, myprec *tmpVSx) {
+	for(int i=0; i<(mx*(2*stencilSize+1)); i++) {
+			dcoeffSx[i] = tmpSx[i];
+	}
+	for(int i=0; i<(mx*(2*stencilVisc+1)); i++) {
+		dcoeffVSx[i] = tmpVSx[i];
+	}
+}
+#endif
+
 __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
 dim3 d_block[5], grid0, gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
@@ -30,7 +45,6 @@ __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction);
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
-
 
 void setGPUParameters(Communicator rk)
 {
@@ -130,8 +144,18 @@ void setGPUParameters(Communicator rk)
 	checkCuda( cudaMemcpyToSymbol(dcoeffS , h_coeffS , (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(dcoeffVF, h_coeffVF,  stencilVisc   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(dcoeffVS, h_coeffVS, (stencilVisc+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+#if mx<=546 //limit on the GPU constant memory usage (655356 bytes)
 	checkCuda( cudaMemcpyToSymbol(dcoeffSx , h_coeffSx , mx*(2*stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(dcoeffVSx, h_coeffVSx, mx*(2*stencilVisc+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
+#else
+	checkCuda( cudaMalloc((void**)&tmpcoeffSx ,mx*(2*stencilSize+1)*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&tmpcoeffVSx,mx*(2*stencilVisc+1)*sizeof(myprec)) );
+	checkCuda( cudaMemcpy(tmpcoeffSx , h_coeffSx , mx*(2*stencilSize+1)*sizeof(myprec), cudaMemcpyHostToDevice) );
+	checkCuda( cudaMemcpy(tmpcoeffVSx, h_coeffVSx, mx*(2*stencilVisc+1)*sizeof(myprec), cudaMemcpyHostToDevice) );
+	cpyCoefficients<<<1,1>>>(tmpcoeffSx,tmpcoeffVSx);
+	checkCuda( cudaFree(tmpcoeffSx) );
+	checkCuda( cudaFree(tmpcoeffVSx) );
+#endif
 
 	checkCuda( cudaMemcpyToSymbol(d_dx  , &h_dx  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(d_dy  , &h_dy  ,   sizeof(myprec), 0, cudaMemcpyHostToDevice) );
@@ -155,7 +179,6 @@ void setGPUParameters(Communicator rk)
 	delete [] h_xp;
 	delete [] h_dxv;
 }
-
 
 void copyThreadGridsToDevice(Communicator rk) {
 
@@ -210,7 +233,6 @@ void copyThreadGridsToDevice(Communicator rk) {
 	}
 }
 
-
 void sanityCheckThreadGrids(Communicator rk) {
 	if(mx%sPencils!=0) {
 		if(rk.rank==0) {
@@ -226,9 +248,16 @@ void sanityCheckThreadGrids(Communicator rk) {
 		mpiBarrier();
 		exit(1);
 	}
-	if(mz%lPencils!=0) {
+	if(mz%sPencils!=0) {
 		if(rk.rank==0) {
-			printf("Error! -> mz mod lPencils!=0\n");
+			printf("Error! -> mz mod sPencils!=0\n");
+		}
+		mpiBarrier();
+		exit(1);
+	}
+	if(mx%lPencils!=0) {
+		if(rk.rank==0) {
+			printf("Error! -> mx mod lPencils!=0\n");
 		}
 		mpiBarrier();
 		exit(1);
@@ -269,7 +298,6 @@ void sanityCheckThreadGrids(Communicator rk) {
 		exit(1);
 	}
 }
-
 
 void copyField(int direction) {
 
@@ -342,7 +370,6 @@ void copyField(int direction) {
 
 }
 
-
 __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
@@ -358,7 +385,6 @@ __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	e[globalThreadNum]   = d_fe[globalThreadNum];
 }
 
-
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
@@ -373,7 +399,6 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	d_fw[globalThreadNum] = w[globalThreadNum];
 	d_fe[globalThreadNum] = e[globalThreadNum];
 }
-
 
 void initSolver() {
 

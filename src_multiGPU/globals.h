@@ -22,8 +22,8 @@
 #define Ly       (2.0*M_PI)
 #define Lz       (4.0*M_PI)
 #define mx_tot   160
-#define my_tot   256
-#define mz_tot   256
+#define my_tot   192
+#define mz_tot   192
 #define nsteps   1001
 #define nfiles	 1
 #define CFL      0.7f

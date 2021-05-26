@@ -63,8 +63,14 @@ extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
 extern __constant__ myprec dcoeffVF[stencilVisc];
 extern __constant__ myprec dcoeffVS[stencilVisc+1];
+
+#if mx<=546 //limit on the GPU constant memory usage (655356 bytes)
 extern __constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
 extern __constant__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
+#else
+extern __device__ myprec dcoeffSx[mx*(2*stencilSize+1)];
+extern __device__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
+#endif
 extern __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
 extern __device__ myprec gij[9][mx*my*mz];
