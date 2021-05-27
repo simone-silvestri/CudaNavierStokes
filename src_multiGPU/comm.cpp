@@ -19,12 +19,19 @@ myprec *rcvYp,*rcvYm,*rcvZp,*rcvZm;
 myprec *senYp5,*senYm5,*senZp5,*senZm5;
 myprec *rcvYp5,*rcvYm5,*rcvZp5,*rcvZm5;
 
-void updateHalo(myprec *var, Communicator rk) {
+void updateHaloTest(Communicator rk) {
 
 	int ierr;
 	MPI_Status status;
 
-	fillBoundaries(senYm,senYp,senZm,senZp,var,0);
+	for(int i=0; i<mz*mx*stencilSize; i++) {
+		senYm[i] = rk.rank;
+		senYp[i] = rk.rank;
+	}
+	for(int i=0; i<my*mx*stencilSize; i++) {
+		senZm[i] = rk.rank;
+		senZp[i] = rk.rank;
+	}
 
 	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
 					    rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
@@ -40,13 +47,43 @@ void updateHalo(myprec *var, Communicator rk) {
 					    rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
 						 MPI_COMM_WORLD,&status);
 
-	fillBoundaries(rcvYm,rcvYp,rcvZm,rcvZp,var,1);
+	for(int i=0; i<mx*my*mz; i++) {
+		r[i] = rk.rank;
+ 		u[i] = rcvYm[0];
+		v[i] = rcvYp[0];
+		w[i] = rcvZm[0];
+		e[i] = rcvZp[0];
+	}
+}
+
+void updateHalo(myprec *var, Communicator rk) {
+
+	int ierr;
+	MPI_Status status;
+
+	fillBoundaries(senYm,senYp,senZm,senZp,var,0,rk);
+
+	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+					    rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+						 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senYp, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			            rcvYp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+						 MPI_COMM_WORLD,&status);
+
+	ierr = MPI_Sendrecv(senZm, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+					    rcvZm, my*mx*stencilSize, MPI_myprec, rk.km, 0,
+						 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senZp, my*mx*stencilSize, MPI_myprec, rk.km, 0,
+					    rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+						 MPI_COMM_WORLD,&status);
+
+	fillBoundaries(rcvYm,rcvYp,rcvZm,rcvZp,var,1,rk);
 }
 
 void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk) {
 	int ierr;
 	MPI_Status status;
-	fillBoundariesFive(senYm5,senYp5,senZm5,senZp5,r,u,v,w,e,0);
+	fillBoundariesFive(senYm5,senYp5,senZm5,senZp5,r,u,v,w,e,0,rk);
 
 	ierr = MPI_Sendrecv(senYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
 					    rcvYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
@@ -62,7 +99,7 @@ void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Commu
 					    rcvZp5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
 						 MPI_COMM_WORLD,&status);
 
-	fillBoundariesFive(rcvYm5,rcvYp5,rcvZm5,rcvZp5,r,u,v,w,e,1);
+	fillBoundariesFive(rcvYm5,rcvYp5,rcvZm5,rcvZp5,r,u,v,w,e,1,rk);
 }
 
 long int nameToHash(char *name, int length) {
@@ -131,6 +168,7 @@ void splitComm(Communicator *rk, int myRank) {
     ierr = MPI_Comm_rank(comm_node , &rk->nodeRank);
     ierr = MPI_Barrier(MPI_COMM_WORLD);
     printf("rank number %d, gpu number %d\n",rk->rank,rk->nodeRank);
+    mpiBarrier();
 }
 
 void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {

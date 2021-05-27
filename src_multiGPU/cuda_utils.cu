@@ -182,7 +182,6 @@ void setGPUParameters(Communicator rk)
 
 void copyThreadGridsToDevice(Communicator rk) {
 
-
 	sanityCheckThreadGrids(rk);
 
 	// X-grid
@@ -299,7 +298,7 @@ void sanityCheckThreadGrids(Communicator rk) {
 	}
 }
 
-void copyField(int direction) {
+void copyField(int direction, Communicator rk) {
 
   myprec *fr  = new myprec[mx*my*mz];
   myprec *fu  = new myprec[mx*my*mz];
@@ -313,6 +312,8 @@ void copyField(int direction) {
   checkCuda( cudaMalloc((void**)&d_fv, bytes) );
   checkCuda( cudaMalloc((void**)&d_fw, bytes) );
   checkCuda( cudaMalloc((void**)&d_fe, bytes) );
+
+  cudaSetDevice(rk.nodeRank);
 
   if(direction == 0) {
      for (int it=0; it<mx*my*mz; it++)  {
@@ -400,7 +401,9 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	d_fe[globalThreadNum] = e[globalThreadNum];
 }
 
-void initSolver() {
+void initSolver(Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
     // Increase GPU default limits to accomodate the computations
     size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
@@ -497,10 +500,11 @@ void initSolver() {
     	checkCuda( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
     }
 
-
 }
 
-void clearSolver() {
+void clearSolver(Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
 	for(int i=0; i<fin; i++) {
 		checkCuda( cudaFree(d_rhsr1[i]) );
@@ -569,7 +573,9 @@ void clearSolver() {
 	}
 }
 
-void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction) {
+void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction, Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
 	dim3 gridY = dim3(mz,1,1);
 	dim3 gridZ = dim3(my,1,1);
@@ -641,7 +647,9 @@ __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction) 
 	}
 }
 
-void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction) {
+void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction, Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
 	dim3 gridY = dim3(mz,1,1);
 	dim3 gridZ = dim3(my,1,1);
@@ -776,6 +784,8 @@ __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, my
 }
 
 void checkGpuMem(Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
 	double free_m, total_m, used_m, fields, totfields;
 	size_t free_t,total_t;

@@ -275,7 +275,9 @@ unsigned int hostFindPreviousPowerOf2(unsigned int n)
     return n;
 }
 
-void hostReduceToMin(myprec *gOut, myprec *var) {
+void hostReduceToMin(myprec *gOut, myprec *var, Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
 	myprec *dwrkM;
 
@@ -300,7 +302,9 @@ void hostReduceToMin(myprec *gOut, myprec *var) {
 
 }
 
-void hostVolumeIntegral(myprec *gOut, myprec *var) {
+void hostVolumeIntegral(myprec *gOut, myprec *var, Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
 
 	myprec *dwrkM;
 

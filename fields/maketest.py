@@ -1,9 +1,9 @@
-
-
 import numpy as np
 from writexmf import writexmf
 
 
+val1 = input("Enter value1: ")
+val2 = input("Enter value2: ")
 
 precision = 'double'
 
@@ -13,7 +13,7 @@ z = np.fromfile('z.bin', dtype=precision)
 
 writexmf("fieldtest.xmf", precision, \
          x, y, z, \
-         np.arange(800,1001,1), 1.0, \
+         np.arange(val1,val2,1), 1.0, \
          ['r',\
 	  'u',\
 	  'v',\

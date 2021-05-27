@@ -74,8 +74,8 @@ class Indices {
      }
 };
 
-void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
-void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w);
+void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu, Communicator rk);
+void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w, Communicator rk);
 void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Communicator rk);
 
 //global functions

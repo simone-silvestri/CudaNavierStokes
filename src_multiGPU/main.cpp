@@ -56,8 +56,8 @@ int main(int argc, char** argv) {
 
     //Set GPU parameters and copying the solution onto the GPU
     setGPUParameters(rk);
-    initSolver();
-    copyField(0);
+    initSolver(rk);
+    copyField(0,rk);
 
     //Run the solver
     solverWrapper(rk);

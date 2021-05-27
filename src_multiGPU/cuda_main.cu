@@ -9,6 +9,8 @@ cudaStream_t s[9];
 
 void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
+	cudaSetDevice(rk.nodeRank);
+
 	myprec h_dt,h_dpdz;
 
 	/* allocating temporary arrays and streams */
@@ -239,13 +241,15 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 }
 
 void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk) {
-	calcTimeStep(dtC,d_r,d_u,d_v,d_w,d_e,d_m);
+
+	cudaSetDevice(rk.nodeRank);
+	calcTimeStep(dtC,d_r,d_u,d_v,d_w,d_e,d_m,rk);
 	cudaMemcpy(h_dt  , dtC , sizeof(myprec), cudaMemcpyDeviceToHost);
 	allReduceToMin(h_dt,1);
 	mpiBarrier();
 	cudaMemcpy(dtC , h_dt  , sizeof(myprec), cudaMemcpyHostToDevice);
     if(forcing) {
-    	calcPressureGrad(dpdz,d_r,d_w);
+    	calcPressureGrad(dpdz,d_r,d_w,rk);
     	cudaMemcpy(h_dpdz, dpdz, sizeof(myprec), cudaMemcpyDeviceToHost);
     	allReduceArray(h_dpdz,1);
     	mpiBarrier();
@@ -282,7 +286,7 @@ void solverWrapper(Communicator rk) {
     for(int file = start+1; file<nfiles+start+1; file++) {
 
     	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
-    	copyField(1);			  //copying back partial results to CPU
+    	copyField(1,rk);			  //copying back partial results to CPU
 
     	writeField(file,rk);
 
@@ -303,7 +307,7 @@ void solverWrapper(Communicator rk) {
     }
     if(rk.rank==0) fclose(fp);
 
-    clearSolver();
+    clearSolver(rk);
     cudaDeviceReset();
 }
 
