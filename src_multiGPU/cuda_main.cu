@@ -271,42 +271,51 @@ void solverWrapper(Communicator rk) {
     checkCuda( cudaMalloc((void**)&dpar2, nsteps*sizeof(myprec)) );
     checkCuda( cudaMalloc((void**)&dtime, nsteps*sizeof(myprec)) );
 
-    FILE *fp;
 
-    //check the memory usage of the GPU
-    checkGpuMem(rk);
 
-    if(restartFile<0) {
-    	start=0;
-    } else {
-    	start=restartFile;
-    }
+    updateHaloTest(d_r,rk);
+	writeField(file,rk);
 
-    if(rk.rank==0) fp = fopen("solution.txt","w+");
-    for(int file = start+1; file<nfiles+start+1; file++) {
+	cudaDeviceSynchronize();
 
-    	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
-    	copyField(1,rk);			  //copying back partial results to CPU
 
-    	writeField(file,rk);
-
-    	cudaDeviceSynchronize();
-
-    	checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
-    	checkCuda( cudaMemcpy(hpar1, dpar1, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
-    	checkCuda( cudaMemcpy(hpar2, dpar2, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
-
-    	calcAvgChan(rk);
-
-    	if(rk.rank==0) {
-    		printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
-    		for(int t=0; t<nsteps-1; t+=checkCFLcondition)
-    			fprintf(fp,"%d %lf %lf %lf %lf\n",file*(t+1),htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
-    	}
-    	mpiBarrier();
-    }
-    if(rk.rank==0) fclose(fp);
-
+//
+//    FILE *fp;
+//
+//    //check the memory usage of the GPU
+//    checkGpuMem(rk);
+//
+//    if(restartFile<0) {
+//    	start=0;
+//    } else {
+//    	start=restartFile;
+//    }
+//
+//    if(rk.rank==0) fp = fopen("solution.txt","w+");
+//    for(int file = start+1; file<nfiles+start+1; file++) {
+//
+//    	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
+//    	copyField(1,rk);			  //copying back partial results to CPU
+//
+//    	writeField(file,rk);
+//
+//    	cudaDeviceSynchronize();
+//
+//    	checkCuda( cudaMemcpy(htime, dtime, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+//    	checkCuda( cudaMemcpy(hpar1, dpar1, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+//    	checkCuda( cudaMemcpy(hpar2, dpar2, nsteps*sizeof(myprec) , cudaMemcpyDeviceToHost) );
+//
+//    	calcAvgChan(rk);
+//
+//    	if(rk.rank==0) {
+//    		printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
+//    		for(int t=0; t<nsteps-1; t+=checkCFLcondition)
+//    			fprintf(fp,"%d %lf %lf %lf %lf\n",file*(t+1),htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
+//    	}
+//    	mpiBarrier();
+//    }
+//    if(rk.rank==0) fclose(fp);
+//
     clearSolver(rk);
     cudaDeviceReset();
 }

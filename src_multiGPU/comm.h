@@ -11,7 +11,7 @@
 
 void splitComm(Communicator *rk, int myRank);
 void updateHalo(myprec *var, Communicator rk);
-void updateHaloTest(Communicator rk);
+void updateHaloTest(myprec *var, Communicator rk);
 void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk);
 void readFileMPI(char filename, int timestep, double *var, Communicator rk);
 void saveFileMPI(char filename, int timestep, double *var, Communicator rk);

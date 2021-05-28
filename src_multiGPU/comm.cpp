@@ -19,19 +19,12 @@ myprec *rcvYp,*rcvYm,*rcvZp,*rcvZm;
 myprec *senYp5,*senYm5,*senZp5,*senZm5;
 myprec *rcvYp5,*rcvYm5,*rcvZp5,*rcvZm5;
 
-void updateHaloTest(Communicator rk) {
+void updateHaloTest(myprec *var, Communicator rk) {
 
 	int ierr;
 	MPI_Status status;
 
-	for(int i=0; i<mz*mx*stencilSize; i++) {
-		senYm[i] = rk.rank;
-		senYp[i] = rk.rank;
-	}
-	for(int i=0; i<my*mx*stencilSize; i++) {
-		senZm[i] = rk.rank;
-		senZp[i] = rk.rank;
-	}
+	fillBoundaries(senYm,senYp,senZm,senZp,var,0,rk);
 
 	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
 					    rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,

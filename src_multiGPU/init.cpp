@@ -112,7 +112,7 @@ void initChannel(Communicator rk) {
 				v[idx(i,j,k)] = vfluc;
 				w[idx(i,j,k)] = wfluc + wmean;
 
-				r[idx(i,j,k)] = R0;
+				r[idx(i,j,k)] = rk.rank;
 				e[idx(i,j,k)] = P0/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 }
