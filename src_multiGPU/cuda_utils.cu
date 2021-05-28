@@ -300,6 +300,8 @@ void sanityCheckThreadGrids(Communicator rk) {
 
 void copyField(int direction, Communicator rk) {
 
+  cudaSetDevice(rk.nodeRank);
+
   myprec *fr  = new myprec[mx*my*mz];
   myprec *fu  = new myprec[mx*my*mz];
   myprec *fv  = new myprec[mx*my*mz];
@@ -312,8 +314,6 @@ void copyField(int direction, Communicator rk) {
   checkCuda( cudaMalloc((void**)&d_fv, bytes) );
   checkCuda( cudaMalloc((void**)&d_fw, bytes) );
   checkCuda( cudaMalloc((void**)&d_fe, bytes) );
-
-  cudaSetDevice(rk.nodeRank);
 
   if(direction == 0) {
      for (int it=0; it<mx*my*mz; it++)  {
@@ -682,33 +682,6 @@ void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *
 		cudaStreamSynchronize(s[5]);
 		cudaStreamSynchronize(s[6]);
 	}
-}
-
-__global__ void fillBCValuesXChannel(myprec *r, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *t, myprec *m, myprec *l) {
-		int k   = blockIdx.x;
-		int j   = threadIdx.y;
-		int it  = threadIdx.x;
-		int add = mx*my*mz + 2*stencilSize*mx*(mz+my);
-		int gl  = it + j*stencilSize + k*my*stencilSize;
-		r[add                     + gl] = r[2*stencilSize-it-1];
-		r[add + stencilSize*my*mz + gl] = r[2*stencilSize-it-1];
-		u[add                     + gl] = u[2*stencilSize-it-1];
-		u[add + stencilSize*my*mz + gl] = u[2*stencilSize-it-1];
-		v[add                     + gl] = v[2*stencilSize-it-1];
-		v[add + stencilSize*my*mz + gl] = v[2*stencilSize-it-1];
-		w[add                     + gl] = w[2*stencilSize-it-1];
-		w[add + stencilSize*my*mz + gl] = w[2*stencilSize-it-1];
-		p[add                     + gl] = p[2*stencilSize-it-1];
-		p[add + stencilSize*my*mz + gl] = p[2*stencilSize-it-1];
-		t[add                     + gl] = t[2*stencilSize-it-1];
-		t[add + stencilSize*my*mz + gl] = t[2*stencilSize-it-1];
-		h[add                     + gl] = h[2*stencilSize-it-1];
-		h[add + stencilSize*my*mz + gl] = h[2*stencilSize-it-1];
-		m[add                     + gl] = m[2*stencilSize-it-1];
-		m[add + stencilSize*my*mz + gl] = m[2*stencilSize-it-1];
-		l[add                     + gl] = l[2*stencilSize-it-1];
-		l[add + stencilSize*my*mz + gl] = l[2*stencilSize-it-1];
-		__syncthreads();
 }
 
 __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction) {

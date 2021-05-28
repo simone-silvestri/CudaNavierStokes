@@ -301,7 +301,7 @@ void solverWrapper(Communicator rk) {
     	if(rk.rank==0) {
     		printf("file number: %d  \t step: %d  \t time: %lf  \t kin: %lf  \t dpdz: %lf\n",file,file*nsteps,htime[nsteps-1],hpar1[nsteps-1],hpar2[nsteps-1]);
     		for(int t=0; t<nsteps-1; t+=checkCFLcondition)
-    			fprintf(fp,"%d %lf %lf %lf %lf\n",file*nsteps,htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
+    			fprintf(fp,"%d %lf %lf %lf %lf\n",file*(t+1),htime[t],hpar1[t],hpar2[t],htime[t+1]-htime[t]);
     	}
     	mpiBarrier();
     }

@@ -11,26 +11,26 @@
 #include <stdio.h>
 
 //Remember: Run always the code with num-tasks-per-node = num-GPUs-per-node. Otherwise it will not work!
-#define pRow 4
-#define pCol 4
+#define pRow 1
+#define pCol 1
 
 //Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
 #define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
 
-#define Lx       (2.0)
+#define Lx       (2.0*M_PI)
 #define Ly       (2.0*M_PI)
-#define Lz       (4.0*M_PI)
-#define mx_tot   32
-#define my_tot   20
-#define mz_tot   32
-#define nsteps   301
+#define Lz       (2.0*M_PI)
+#define mx_tot   128
+#define my_tot   128
+#define mz_tot   128
+#define nsteps   1001
 #define nfiles	 1
-#define CFL      0.7f
+#define CFL      0.2f
 
 const int restartFile = -1;
 
-#define Re       3000.f
+#define Re       1600.f
 #define Pr       0.7f
 #define gamma    1.4f
 #define Ma       1.5f
@@ -61,7 +61,7 @@ const double stretch = 3.0;
 #if pRow*pCol>1
 const int multiGPU = 1;
 #else
-const int multiGPU = 0;
+const int multiGPU = 1;
 #endif
 
 #if stencilSize==1
