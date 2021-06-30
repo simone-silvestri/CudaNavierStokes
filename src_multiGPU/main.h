@@ -29,6 +29,7 @@ extern void initChannel(Communicator rk);
 extern void calcdt(Communicator rk);
 void calcAvgChan(Communicator rk);
 void setGPUParameters(Communicator rk);
+void setDevice(int device);
 void copyField(int direction, Communicator rk);
 void checkGpuMem(Communicator rk);
 void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);

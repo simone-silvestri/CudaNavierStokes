@@ -35,13 +35,9 @@ cm.plot('y','tm',ax=ax)
 mm.plot('y','tm',ax=ax)
 cm.plot('y','mm',ax=ax)
 mm.plot('y','mm',ax=ax)
-plt.savefig('results/prop.eps', format='eps')
-
-fig, ax = plt.subplots()
-
 cm.plot('y','wm',ax=ax)
 mm.plot('y','wm',ax=ax)
-plt.savefig('results/velrey.eps', format='eps')
+plt.savefig('results/mean.eps', format='eps')
 
 fig, ax = plt.subplots()
 

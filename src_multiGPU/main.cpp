@@ -33,10 +33,11 @@ int main(int argc, char** argv) {
 
     if(nProcs != pRow*pCol) {
     	if(myRank==0) {
-    		printf("Error! -> nProcs different that pRow*pCol");
+    		printf("Error! -> nProcs different that pRow*pCol\n");
     	}
     	ierr = MPI_Barrier(MPI_COMM_WORLD);
-    	exit(1);
+        ierr = MPI_Finalize();
+        return 0;
     }
 
     //Initialize the 2D processor grid
@@ -55,6 +56,7 @@ int main(int argc, char** argv) {
     calcAvgChan(rk);
 
     //Set GPU parameters and copying the solution onto the GPU
+    setDevice(rk.nodeRank);
     setGPUParameters(rk);
     initSolver(rk);
     copyField(0,rk);

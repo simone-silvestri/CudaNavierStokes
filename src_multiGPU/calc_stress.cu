@@ -164,7 +164,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
 
 void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Communicator rk) {
 
-    cudaSetDevice(rk.nodeRank);
+	cudaSetDevice(rk.nodeRank);
 
 	myprec *workA, *rbulk;
 	myprec *hostWork = (myprec*)malloc(sizeof(myprec));

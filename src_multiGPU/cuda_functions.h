@@ -139,8 +139,6 @@ extern __device__ __forceinline__ void fluxCubeSharedz(myprec *df, myprec *s_f, 
 
 __device__ __forceinline__ __attribute__((always_inline)) void fluxQuadSharedx(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
-
-
 	myprec flxp,flxm;
 
 	flxp = 0.0;
@@ -189,7 +187,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void fluxCubeSharedx(m
 __device__ __forceinline__ __attribute__((always_inline)) void fluxQuadSharedy(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
 
-
 	myprec flxp,flxm;
 
 	flxp = 0.0;
@@ -229,7 +226,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void fluxCubeSharedy(m
 
 __device__ __forceinline__ __attribute__((always_inline)) void fluxQuadSharedz(myprec *df, myprec *s_f, myprec *s_g, int si)
 {
-
 
 	myprec flxp,flxm;
 

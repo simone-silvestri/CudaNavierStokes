@@ -97,9 +97,12 @@ void initChannel(Communicator rk) {
 	for (int i=0; i<mx; i++) {
 		for (int j=0; j<my; j++) {
 			for (int k=0; k<mz; k++) {
-				double rr1 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double rr2 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double rr3 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
+				//double rr1 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
+				//double rr2 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
+				//double rr3 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
+				double rr1 = i*j*k/(mx*my*mz) - 0.5;
+				double rr2 = i*j*k/(mx*my*mz) - 0.5;
+				double rr3 = i*j*k/(mx*my*mz) - 0.5;
 				double ufluc  =  0.02*rr1;
 				double vfluc  =  0.02*rr2;
 				double wfluc  =  0.02*rr3;
@@ -119,7 +122,7 @@ void initChannel(Communicator rk) {
 
 void initCHIT(Communicator rk) {
 
-	double V0 = 0.0;
+	double V0 = 1.0;
 	double T0 = 1.0;
 	double P0 = T0*Rgas;
 	double R0 = 1.0;

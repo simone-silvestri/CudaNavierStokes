@@ -3,14 +3,15 @@
 #include <math.h>
 #include <cmath>
 #include <algorithm>
-#include <chrono>
+#include "mpi.h"
 #include "../src_multiGPU/globals.h"
+#include "../src_multiGPU/comm.h"
 
 using namespace std;
 
 double dt;
 
-double dx,dxv[mx],x[mx],xp[mx],xpp[mx],y[my],z[mz];
+double dx,dxv[mx_tot],x[mx_tot],xp[mx_tot],xpp[mx_tot],y[my_tot],z[mz_tot];
 
 double r[mx*my*mz];
 double u[mx*my*mz];
@@ -61,11 +62,13 @@ public:
 		}
 
 	}
-	void printFile() {
-		FILE *fp = fopen(name,"w+");
-		for (int i=0; i<N; i++)
-			fprintf(fp,"%le %le %le %le %le %le %le %le %le %le %le %le %le %le\n",x[i],r[i],uf[i],vf[i],wf[i],u[i],v[i],w[i],e[i],hf[i],h[i],t[i],p[i],m[i]);
-		fclose(fp);
+	void printFile(int myRank) {
+		if(myRank==0) {
+			FILE *fp = fopen(name,"w+");
+			for (int i=0; i<N; i++)
+				fprintf(fp,"%le %le %le %le %le %le %le %le %le %le %le %le %le %le\n",x[i],r[i],uf[i],vf[i],wf[i],u[i],v[i],w[i],e[i],hf[i],h[i],t[i],p[i],m[i]);
+			fclose(fp);
+		}
 	}
 	void calcFavre() {
 		for (int i=0; i<N; i++) {
@@ -75,60 +78,102 @@ public:
 			hf[i] /= r[i];
 		}
 	}
+	void allReduceVariables() {
+		allReduceArrayDouble(r,N);
+		allReduceArrayDouble(u,N);
+		allReduceArrayDouble(v,N);
+		allReduceArrayDouble(w,N);
+		allReduceArrayDouble(e,N);
+		allReduceArrayDouble(h,N);
+		allReduceArrayDouble(t,N);
+		allReduceArrayDouble(p,N);
+		allReduceArrayDouble(m,N);
+	}
+	void allReduceFavre() {
+		allReduceArrayDouble(uf,N);
+		allReduceArrayDouble(vf,N);
+		allReduceArrayDouble(wf,N);
+		allReduceArrayDouble(hf,N);
+	}
 };
 
 const int initfile= 1;
-const int endfile = 1;
+const int endfile = 21;
 
 int denom;
 
 void calcState();
 void addMean(Variables *var);
 void addFluc(Variables *var, Variables mean);
-void initFile(int timestep);
-void initGrid();
-void printRes();
 
 int main(int argc, char** argv) {
 
-	Variables mean(mx,"mean.txt"), fluc(mx,"fluc.txt"), bulk(1,"bulk.txt");
-	int end = endfile;
-	int ini = initfile;
+	int myRank, nProcs;
 
-	if(argc==3) {
-		  char *a;
-		  a   = argv[1];
-		  ini = atoi(a);
-		  a   = argv[2];
-		  end = atoi(a);
-	}
+    int ierr;
 
+    ierr = MPI_Init(&argc, &argv);
+    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    ierr = MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
 
-	int numberOfFiles = end - ini + 1;
-	denom = numberOfFiles*my*mz;
+    double begin = MPI_Wtime();
 
-	initGrid();
+    if(nProcs != pRow*pCol) {
+    	if(myRank==0) {
+    		printf("Error! -> nProcs different that pRow*pCol\n");
+    	}
+    	ierr = MPI_Barrier(MPI_COMM_WORLD);
+        ierr = MPI_Finalize();
+        return 0;
+    }
 
-	for(int file = ini; file<end+1; file++) {
-		initFile(file);
-		cout << "loaded file " << file << "\n";
-		calcState();
-		addMean(&mean);
-		addMean(&bulk);
-		printRes();
-	}
+    //Initialize the 2D processor grid
+    Communicator rk;
+    splitComm(&rk,myRank);
+    mpiBarrier();
+
+    //Initialize the computational mesh
+    initGrid(rk);
+
+    Variables mean(mx,"mean.txt"), fluc(mx,"fluc.txt"), bulk(1,"bulk.txt");
+    int end = endfile;
+    int ini = initfile;
+
+    if(argc>=3) {
+    	ini = atoi(argv[1]);
+    	end = atoi(argv[2]);
+    	if(rk.rank==0) printf("Fields to postprocess :  %d -> %d\n",ini,end);
+    }
+
+    int numberOfFiles = end - ini + 1;
+    denom = numberOfFiles*my*mz;
+
+    mpiBarrier();
+
+    for(int file = ini; file<end+1; file++) {
+    	initField(file,rk);
+    	calcState();
+    	addMean(&mean);
+    	addMean(&bulk);
+    	printRes(rk);
+    }
+	mean.allReduceVariables();
+	bulk.allReduceVariables();
 	mean.calcFavre();
 	bulk.calcFavre();
+	mean.allReduceFavre();
+	bulk.allReduceFavre();
 	for(int file = ini; file<end+1; file++) {
-		initFile(file);
-		cout << "loaded file " << file << "\n";
+    	initField(file,rk);
 		calcState();
 		addFluc(&fluc,mean);
 	}
-	mean.printFile();
-	fluc.printFile();
-	bulk.printFile();
+	fluc.allReduceVariables();
+	mean.printFile(rk.rank);
+	fluc.printFile(rk.rank);
+	bulk.printFile(rk.rank);
 
+	ierr = MPI_Finalize();
 	return 0;
 }
 

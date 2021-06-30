@@ -48,7 +48,6 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 
 void setGPUParameters(Communicator rk)
 {
-
 	// Setting the appropriate GPU (using number of cores per node = number of GPUs per node)
 	cudaSetDevice(rk.nodeRank);
 
@@ -392,13 +391,13 @@ __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
 	int blockNumInGrid   = blockIdx.x  + gridDim.x  * blockIdx.y;
 
-	int globalThreadNum = blockNumInGrid * threadsPerBlock + threadNumInBlock;
+	int gl = blockNumInGrid * threadsPerBlock + threadNumInBlock;
 
-	d_fr[globalThreadNum] = r[globalThreadNum];
-	d_fu[globalThreadNum] = u[globalThreadNum];
-	d_fv[globalThreadNum] = v[globalThreadNum];
-	d_fw[globalThreadNum] = w[globalThreadNum];
-	d_fe[globalThreadNum] = e[globalThreadNum];
+	d_fr[gl] = r[gl];
+	d_fu[gl] = u[gl];
+	d_fv[gl] = v[gl];
+	d_fw[gl] = w[gl];
+	d_fe[gl] = e[gl];
 }
 
 void initSolver(Communicator rk) {
@@ -476,6 +475,10 @@ void initSolver(Communicator rk) {
 
 	checkCuda( cudaMalloc((void**)&d_dil, bytes) );
 
+    for (int i=0; i<9; i++) {
+    	checkCuda( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
+    }
+
 	int bytesY = mz*mx*stencilSize*sizeof(myprec);
 	int bytesZ = my*mx*stencilSize*sizeof(myprec);
 	checkCuda( cudaMallocHost(&senYm, bytesY) );
@@ -495,10 +498,6 @@ void initSolver(Communicator rk) {
 	checkCuda( cudaMallocHost(&senZp5, 5*bytesZ) );
 	checkCuda( cudaMallocHost(&rcvZm5, 5*bytesZ) );
 	checkCuda( cudaMallocHost(&rcvZp5, 5*bytesZ) );
-
-    for (int i=0; i<9; i++) {
-    	checkCuda( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
-    }
 
 }
 
@@ -791,3 +790,6 @@ void checkGpuMem(Communicator rk) {
 	}
 }
 
+void setDevice(int device) {
+	checkCuda( cudaSetDevice(device) );
+}
