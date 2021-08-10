@@ -31,6 +31,7 @@
  * stream 2 -> viscous terms and pressure terms in Z (in RHSDeviceFullZL) (large pencil grid)
  * stream 3 -> advective fluxes in Y direction (in FLXDeviceY) (small pencil transposed grid)
  * stream 4 -> advective fluxes in Z direction (in FLXDeviceZ) (small pencil transposed grid)*/
+
 #if mx>=558
 __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,

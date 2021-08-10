@@ -8,6 +8,8 @@
 #include "../src_multiGPU/globals.h"
 #include "../src_multiGPU/main.h"
 
+extern double dxv[mx_tot];
+
 void derivGrid(double *d2f, double *df, double *f, double dx);
 
 void initField(int timestep, Communicator rk) {
@@ -56,6 +58,12 @@ void initGrid(Communicator rk) {
 
 #endif
 
+	dxv[0] = (x[1]+x[0])/2.0;
+	for (int i=1; i<mx-1; i++) {
+		dxv[i]   = (x[i+1]-x[i-1])/2.0;
+	}
+	dxv[mx-1] = Lx - (x[mx-1]+x[mx-2])/2.0;
+
 	for(int j=0;j<my_tot;j++) {
 		y[j]=Ly*(0.5+j*1.0)/(my_tot);  }
 
@@ -65,160 +73,6 @@ void initGrid(Communicator rk) {
 	if(rk.rank==0) printf("grid read\n");
 
 	mpiBarrier();
-}
-
-void initChannel(Communicator rk) {
-
-	double U0;
-	double T0 = 1.0;
-	double P0 = T0*Rgas;
-	double R0 = 1.0;
-
-	U0 = pow(gamma,0.5)*Ma;
-
-	for (int i=0; i<mx; i++) {
-		for (int j=0; j<my; j++) {
-			for (int k=0; k<mz; k++) {
-				double rr1 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double rr2 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double rr3 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double ufluc  =  0.02*rr1;
-				double vfluc  =  0.02*rr2;
-				double wfluc  =  0.02*rr3;
-
-				double wmean  = 1.5*U0*R0*x[i]*(1.0-x[i]/Lx);
-
-				ufluc = ufluc + 0.05*sin(0.5*M_PI*x[i])*cos(2*M_PI*y[j+rk.jstart]);
-				vfluc = vfluc + 0.05*sin(0.5*M_PI*x[i])*sin(2*M_PI*y[j+rk.jstart]);
-				u[idx(i,j,k)] = ufluc;
-				v[idx(i,j,k)] = vfluc;
-				w[idx(i,j,k)] = wfluc + wmean;
-
-				r[idx(i,j,k)] = R0;
-				e[idx(i,j,k)] = P0/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
-			} } }
-}
-
-void initCHIT(Communicator rk) {
-
-	double V0 = 0.0;
-	double T0 = 1.0;
-	double P0 = T0*Rgas;
-	double R0 = 1.0;
-
-	for (int i=0; i<mx; i++) {
-		double fx = 2*M_PI*x[i]/Lx;
-		for (int j=0; j<my; j++) {
-			double fy = 2*M_PI*y[j+rk.jstart]/Ly;
-			for (int k=0; k<mz; k++) {
-				double fz = 2*M_PI*z[k+rk.kstart]/Lz;
-				u[idx(i,j,k)] =  V0*sin(fx/1.0)*cos(fy/1.0)*cos(fz/1.0);
-				v[idx(i,j,k)] = -V0*cos(fx/1.0)*sin(fy/1.0)*cos(fz/1.0);
-				w[idx(i,j,k)] =  0.0;
-
-				double press = P0 + 1.0/16.0*R0*V0*V0 * (cos(2.0*fx/1.0) + cos(2.0*fy/1.0)) * (cos(2.0*fz/1.0) + 2.0);
-
-				r[idx(i,j,k)] = press/Rgas/T0;
-				e[idx(i,j,k)] = press/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
-			} } }
-}
-
-void calcAvgChan(Communicator rk) {
-	double um[mx],vm[mx],wm[mx],rm[mx],em[mx];
-	double uf[mx],vf[mx],wf[mx],rf[mx],ef[mx];
-
-	for (int i=0; i<mx; i++) {
-		rm[i] = 0.0;
-		um[i] = 0.0;
-		vm[i] = 0.0;
-		wm[i] = 0.0;
-		em[i] = 0.0;
-		rf[i] = 0.0;
-		uf[i] = 0.0;
-		vf[i] = 0.0;
-		wf[i] = 0.0;
-		ef[i] = 0.0;
-		for (int k=0; k<mz; k++)
-			for (int j=0; j<my; j++) {
-				rm[i] += r[idx(i,j,k)]/my/mz;
-				um[i] += r[idx(i,j,k)]*u[idx(i,j,k)]/my/mz;
-				vm[i] += r[idx(i,j,k)]*v[idx(i,j,k)]/my/mz;
-				wm[i] += r[idx(i,j,k)]*w[idx(i,j,k)]/my/mz;
-				em[i] += e[idx(i,j,k)]/my/mz;
-			}
-	}
-
-	allReduceArrayDouble(rm,mx);
-	allReduceArrayDouble(um,mx);
-	allReduceArrayDouble(vm,mx);
-	allReduceArrayDouble(wm,mx);
-	allReduceArrayDouble(em,mx);
-
-	for (int i=0; i<mx; i++) {
-		um[i] /= rm[i];
-		vm[i] /= rm[i];
-		wm[i] /= rm[i];
-		for (int k=0; k<mz; k++)
-			for (int j=0; j<my; j++) {
-				rf[i] += (r[idx(i,j,k)]-rm[i])*(r[idx(i,j,k)]-rm[i])/my/mz;
-				uf[i] += (u[idx(i,j,k)]-um[i])*(u[idx(i,j,k)]-um[i])/my/mz;
-				vf[i] += (v[idx(i,j,k)]-vm[i])*(v[idx(i,j,k)]-vm[i])/my/mz;
-				wf[i] += (w[idx(i,j,k)]-wm[i])*(w[idx(i,j,k)]-wm[i])/my/mz;
-				ef[i] += (e[idx(i,j,k)]-em[i])*(e[idx(i,j,k)]-em[i])/my/mz;
-			}
-	}
-
-	allReduceArrayDouble(rf,mx);
-	allReduceArrayDouble(uf,mx);
-	allReduceArrayDouble(vf,mx);
-	allReduceArrayDouble(wf,mx);
-	allReduceArrayDouble(ef,mx);
-
-	if(rk.rank==0) {
-		FILE *fp = fopen("prof.txt","w+");
-		for (int i=0; i<mx; i++)
-			fprintf(fp,"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",x[i],rm[i],um[i],vm[i],wm[i],em[i],rf[i],uf[i],vf[i],wf[i],ef[i]);
-		fclose(fp);
-	}
-	mpiBarrier();
-}
-
-void printRes(Communicator rk) {
-
-	double ut;
-
-	double Ret = 0.0;
-	double muw,temw;
-
-	for (int k=0; k<mz; k++)
-		for (int j=0; j<my; j++) {
-			    temw   = 1.0;
-			    double suth = pow(temw,viscexp);
-			    muw      = suth/Re;
-
-			    double ub[stencilSize*2+1];
-			    for (int i=stencilSize; i<stencilSize*2+1; i++)
-			    	ub[i] = w[i-stencilSize + j*mx + k*my*mx];
-			    for (int i=0; i<stencilSize; i++)
-			    	ub[i] = w[stencilSize-i-1 + j*mx + k*my*mx];
-
-			    double dudx = 0;
-			    for (int i=0; i<stencilSize; i++)
-			    	dudx += coeffF[i]*(ub[i]-ub[stencilSize*2-i])/dx;
-
-			    dudx *= xp[0];
-
-			    ut  = sqrt(muw*abs(dudx)/r[idx(0,j,k)]);
-			    Ret += ut*r[idx(0,j,k)]/muw;
-		}
-
-	Ret = Ret/my/mz;
-
-	allReduceArrayDouble(&Ret,1);
-
-	if(rk.rank==0) {
-		printf("The average friction Reynolds number is: \t %lf\n",Ret);
-	}
 }
 
 void derivGrid(double *d2f, double *df, double *f, double dx) {
@@ -278,15 +132,4 @@ void calcdt(Communicator rk) {
 
 	allReduceArrayDouble(&dt,1);
 	mpiBarrier();
-}
-
-void restartWrapper(int restartFile, Communicator rk) {
-    if(restartFile<0) {
-    	if(forcing) {
-    		initChannel(rk);
-    	} else {
-    		initCHIT(rk);
-    	}
-    } else {
-    	initField(restartFile,rk); }
 }

@@ -16,7 +16,6 @@ void initField(int timestep, Communicator rk) {
 	readFileMPI('v',timestep,v,rk);
 	readFileMPI('w',timestep,w,rk);
 	readFileMPI('e',timestep,e,rk);
-
     if(rk.rank==0) {
     	printf("finished initializing field\n");
     }

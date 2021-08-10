@@ -55,7 +55,7 @@ const int lPencils = 8;  // large # pencils
 #elif mz > 128 || my > 128
 const int lPencils = 16;  // large # pencils
 #else
-const int lPencils = 32;  // large # pencils
+const int lPencils = 1;  // large # pencils
 #endif
 #endif
 

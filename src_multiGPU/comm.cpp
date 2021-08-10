@@ -24,67 +24,67 @@ void updateHaloTest(myprec *var, Communicator rk) {
 	int ierr;
 	MPI_Status status;
 
-//	fillBoundaries(senYm,senYp,senZm,senZp,var,0,rk);
+	//	fillBoundaries(senYm,senYp,senZm,senZp,var,0,rk);
 
 	for(int i=0; i<mx*my*mz; i++) {
 		senYm[i] = rk.rank;
- 		senYp[i] = rk.rank;
+		senYp[i] = rk.rank;
 		senZm[i] = rk.rank;
 		senZp[i] = rk.rank;
 	}
 
 	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-					    rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			MPI_COMM_WORLD,&status);
 	ierr = MPI_Sendrecv(senYp, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-			            rcvYp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvYp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+			MPI_COMM_WORLD,&status);
 
 	ierr = MPI_Sendrecv(senZm, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-					    rcvZm, my*mx*stencilSize, MPI_myprec, rk.km, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvZm, my*mx*stencilSize, MPI_myprec, rk.km, 0,
+			MPI_COMM_WORLD,&status);
 	ierr = MPI_Sendrecv(senZp, my*mx*stencilSize, MPI_myprec, rk.km, 0,
-					    rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+			MPI_COMM_WORLD,&status);
 
 	for(int i=0; i<mx*my*mz; i++) {
 		r[i] = rk.rank;
- 		u[i] = rcvYm[0];
+		u[i] = rcvYm[0];
 		v[i] = rcvYp[0];
 		w[i] = rcvZm[0];
 		e[i] = rcvZp[0];
 	}
-    printf("rank %d , Ym->%lf, Yp->%lf, Zm->%lf, Zp->%lf\n",rk.rank,rcvYm[0],rcvYp[0],rcvZm[0],rcvZp[0]);
+	printf("rank %d , Ym->%lf, Yp->%lf, Zm->%lf, Zp->%lf\n",rk.rank,rcvYm[0],rcvYp[0],rcvZm[0],rcvZp[0]);
 
 }
 
 void updateHaloTestFive(myprec *dr, myprec *du, myprec *dv, myprec *dw, myprec *de, Communicator rk) {
-        int ierr;
-        MPI_Status status;
-        fillBoundariesFive(senYm5,senYp5,senZm5,senZp5,dr,du,dv,dw,de,0,rk);
+	int ierr;
+	MPI_Status status;
+	fillBoundariesFive(senYm5,senYp5,senZm5,senZp5,dr,du,dv,dw,de,0,rk);
 
-        ierr = MPI_Sendrecv(senYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-                                            rcvYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-                                                 MPI_COMM_WORLD,&status);
-        ierr = MPI_Sendrecv(senYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-                                    rcvYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-                                                 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+			rcvYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			rcvYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+			MPI_COMM_WORLD,&status);
 
-        ierr = MPI_Sendrecv(senZm5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-                                            rcvZm5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
-                                                 MPI_COMM_WORLD,&status);
-        ierr = MPI_Sendrecv(senZp5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
-                                            rcvZp5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-                                                 MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senZm5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+			rcvZm5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
+			MPI_COMM_WORLD,&status);
+	ierr = MPI_Sendrecv(senZp5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
+			rcvZp5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+			MPI_COMM_WORLD,&status);
 
-        for(int i=0; i<mx*my*mz; i++) {
-                r[i] = rk.rank;
-                u[i] = rcvYm5[0];
-                v[i] = rcvYp5[0];
-                w[i] = rcvZm5[0];
-                e[i] = rcvZp5[0];
-        }
-        printf("rank %d , Ym->%lf, Yp->%lf, Zm->%lf, Zp->%lf\n",rk.rank,rcvYm5[0],rcvYp5[0],rcvZm5[0],rcvZp5[0]);
+	for(int i=0; i<mx*my*mz; i++) {
+		r[i] = rk.rank;
+		u[i] = rcvYm5[0];
+		v[i] = rcvYp5[0];
+		w[i] = rcvZm5[0];
+		e[i] = rcvZp5[0];
+	}
+	printf("rank %d , Ym->%lf, Yp->%lf, Zm->%lf, Zp->%lf\n",rk.rank,rcvYm5[0],rcvYp5[0],rcvZm5[0],rcvZp5[0]);
 }
 
 void updateHalo(myprec *var, Communicator rk) {
@@ -95,18 +95,18 @@ void updateHalo(myprec *var, Communicator rk) {
 	fillBoundaries(senYm,senYp,senZm,senZp,var,0,rk);
 
 	ierr = MPI_Sendrecv(senYm, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-					    rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvYm, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			MPI_COMM_WORLD,&status);
 	ierr = MPI_Sendrecv(senYp, mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-			            rcvYp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvYp, mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+			MPI_COMM_WORLD,&status);
 
 	ierr = MPI_Sendrecv(senZm, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-					    rcvZm, my*mx*stencilSize, MPI_myprec, rk.km, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvZm, my*mx*stencilSize, MPI_myprec, rk.km, 0,
+			MPI_COMM_WORLD,&status);
 	ierr = MPI_Sendrecv(senZp, my*mx*stencilSize, MPI_myprec, rk.km, 0,
-					    rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvZp, my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+			MPI_COMM_WORLD,&status);
 
 	fillBoundaries(rcvYm,rcvYp,rcvZm,rcvZp,var,1,rk);
 }
@@ -117,18 +117,18 @@ void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Commu
 	fillBoundariesFive(senYm5,senYp5,senZm5,senZp5,r,u,v,w,e,0,rk);
 
 	ierr = MPI_Sendrecv(senYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-					    rcvYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvYm5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
+			MPI_COMM_WORLD,&status);
 	ierr = MPI_Sendrecv(senYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jm, 0,
-			            rcvYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvYp5, 5*mz*mx*stencilSize, MPI_myprec, rk.jp, 0,
+			MPI_COMM_WORLD,&status);
 
 	ierr = MPI_Sendrecv(senZm5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-					    rcvZm5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvZm5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
+			MPI_COMM_WORLD,&status);
 	ierr = MPI_Sendrecv(senZp5, 5*my*mx*stencilSize, MPI_myprec, rk.km, 0,
-					    rcvZp5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
-						 MPI_COMM_WORLD,&status);
+			rcvZp5, 5*my*mx*stencilSize, MPI_myprec, rk.kp, 0,
+			MPI_COMM_WORLD,&status);
 
 	fillBoundariesFive(rcvYm5,rcvYp5,rcvZm5,rcvZp5,r,u,v,w,e,1,rk);
 }
@@ -143,7 +143,7 @@ long int nameToHash(char *name, int length) {
 
 void splitComm(Communicator *rk, int myRank) {
 
-    rk->myRank(myRank);
+	rk->myRank(myRank);
 
 	const int dimens[]  = {pRow,pCol};
 	const int periods[] = {1,1};
@@ -188,18 +188,18 @@ void splitComm(Communicator *rk, int myRank) {
 
 	long int hash;
 	MPI_Comm comm_node;
-    int procnamesize;
+	int procnamesize;
 	char procname[MPI_MAX_PROCESSOR_NAME];
 
 	ierr = MPI_Get_processor_name(procname, &procnamesize);
 
-    hash = nameToHash(procname, procnamesize);
+	hash = nameToHash(procname, procnamesize);
 
-    ierr = MPI_Comm_split(MPI_COMM_WORLD, hash, rk->rank, &comm_node);
-    ierr = MPI_Comm_rank(comm_node , &rk->nodeRank);
-    ierr = MPI_Barrier(MPI_COMM_WORLD);
-    printf("rank number %d, gpu number %d\n",rk->rank,rk->nodeRank);
-    ierr = MPI_Barrier(MPI_COMM_WORLD);
+	ierr = MPI_Comm_split(MPI_COMM_WORLD, hash, rk->rank, &comm_node);
+	ierr = MPI_Comm_rank(comm_node , &rk->nodeRank);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
+	printf("rank number %d, gpu number %d\n",rk->rank,rk->nodeRank);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {
@@ -210,8 +210,8 @@ void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {
 	MPI_Status status;
 	MPI_Offset offset = 0;
 	int cmode, omode;
-    MPI_File fh;
-    MPI_Info info;
+	MPI_File fh;
+	MPI_Info info;
 
 	char str[80];
 	size_t result;
@@ -236,21 +236,21 @@ void saveFileMPI(char filename, int timestep,  double *var, Communicator rk) {
 	ierr = MPI_Type_commit(&array);
 
 
-    /* Users can set customized I/O hints in info object */
-    info = MPI_INFO_NULL;  /* no user I/O hint */
+	/* Users can set customized I/O hints in info object */
+	info = MPI_INFO_NULL;  /* no user I/O hint */
 
-    /* set file open mode */
-    cmode  = MPI_MODE_CREATE; /* to create a new file */
-    cmode |= MPI_MODE_WRONLY; /* with write-only permission */
+	/* set file open mode */
+	cmode  = MPI_MODE_CREATE; /* to create a new file */
+	cmode |= MPI_MODE_WRONLY; /* with write-only permission */
 
-    /* collectively open a file, shared by all processes in MPI_COMM_WORLD */
-    ierr = MPI_File_open(MPI_COMM_WORLD, str, cmode, info, &fh);
+	/* collectively open a file, shared by all processes in MPI_COMM_WORLD */
+	ierr = MPI_File_open(MPI_COMM_WORLD, str, cmode, info, &fh);
 
-    ierr = MPI_File_set_view(fh, offset, MPI_DOUBLE, view, "native", MPI_INFO_NULL);
-    ierr = MPI_File_write_all(fh, var, 1, array, &status);
+	ierr = MPI_File_set_view(fh, offset, MPI_DOUBLE, view, "native", MPI_INFO_NULL);
+	ierr = MPI_File_write_all(fh, var, 1, array, &status);
 
-    ierr = MPI_File_close(&fh);
-    CHECK_ERR(MPI_File_close);
+	ierr = MPI_File_close(&fh);
+	CHECK_ERR(MPI_File_close);
 }
 
 void readFileMPI(char filename, int timestep,  double *var, Communicator rk) {
@@ -271,11 +271,11 @@ void readFileMPI(char filename, int timestep,  double *var, Communicator rk) {
 	ierr = MPI_Bcast(var_tot, lSize, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	ierr = MPI_Barrier(MPI_COMM_WORLD);
-    for (int k=rk.kstart; k<rk.kend; k++)
-    	for (int j=rk.jstart; j<rk.jend; j++)
-    		for (int i=0; i<mx; i++)
-    			var[i + (j-rk.jstart)*mx + (k-rk.kstart)*mx*my] = var_tot[i + j * mx_tot + k * mx_tot * my_tot];
-    delete [] var_tot;
+	for (int k=rk.kstart; k<rk.kend; k++)
+		for (int j=rk.jstart; j<rk.jend; j++)
+			for (int i=0; i<mx; i++)
+				var[i + (j-rk.jstart)*mx + (k-rk.kstart)*mx*my] = var_tot[i + j * mx_tot + k * mx_tot * my_tot];
+	delete [] var_tot;
 }
 
 void reduceArray(int rcvCore, myprec *sendArr, int sizeArr, Communicator rk) {

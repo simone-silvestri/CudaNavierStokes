@@ -291,7 +291,7 @@ void solverWrapper(Communicator rk) {
     for(int file = start+1; file<nfiles+start+1; file++) {
 
     	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
-    	copyField(1,rk);			  //copying back partial results to CPU
+    	copyField(1,rk);					  //copying back partial results to CPU
 
     	writeField(file,rk);
 

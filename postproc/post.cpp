@@ -62,11 +62,27 @@ public:
 		}
 
 	}
-	void printFile(int myRank) {
+	void printFile(int myRank, double Ret, double ut) {
 		if(myRank==0) {
 			FILE *fp = fopen(name,"w+");
+			fprintf(fp,"Reynolds number based on utau %lf with utau %lf\n",Ret,ut);
+			fprintf(fp,"1)  y\n");
+			fprintf(fp,"2)  rho\n");
+			fprintf(fp,"3)  uFavre\n");
+			fprintf(fp,"4)  vFavre\n");
+			fprintf(fp,"5)  wFavre\n");
+			fprintf(fp,"6)  u\n");
+			fprintf(fp,"7)  v\n");
+			fprintf(fp,"8)  w\n");
+			fprintf(fp,"9)  eTotal\n");
+			fprintf(fp,"10) hFavre\n");
+			fprintf(fp,"11) h\n");
+			fprintf(fp,"12) Temperature\n");
+			fprintf(fp,"13) Pressure\n");
+			fprintf(fp,"13) visc\n");
+			fprintf(fp,"---------------------------------------------------------------------------------------------------------------------------------------------------\n");
 			for (int i=0; i<N; i++)
-				fprintf(fp,"%le %le %le %le %le %le %le %le %le %le %le %le %le %le\n",x[i],r[i],uf[i],vf[i],wf[i],u[i],v[i],w[i],e[i],hf[i],h[i],t[i],p[i],m[i]);
+				fprintf(fp,"%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\t%le\n",x[i],r[i],uf[i],vf[i],wf[i],u[i],v[i],w[i],e[i],hf[i],h[i],t[i],p[i],m[i]);
 			fclose(fp);
 		}
 	}
@@ -105,6 +121,7 @@ int denom;
 void calcState();
 void addMean(Variables *var);
 void addFluc(Variables *var, Variables mean);
+void calcRet(Communicator rk, double *Retot, double *uttot);
 
 int main(int argc, char** argv) {
 
@@ -150,13 +167,18 @@ int main(int argc, char** argv) {
 
     mpiBarrier();
 
+    double Ret = 0.0;
+    double ut  = 0.0;
+
     for(int file = ini; file<end+1; file++) {
     	initField(file,rk);
     	calcState();
     	addMean(&mean);
     	addMean(&bulk);
-    	printRes(rk);
+    	calcRet(rk,&Ret,&ut);
     }
+    Ret/=numberOfFiles;
+    ut /=numberOfFiles;
 	mean.allReduceVariables();
 	bulk.allReduceVariables();
 	mean.calcFavre();
@@ -169,9 +191,9 @@ int main(int argc, char** argv) {
 		addFluc(&fluc,mean);
 	}
 	fluc.allReduceVariables();
-	mean.printFile(rk.rank);
-	fluc.printFile(rk.rank);
-	bulk.printFile(rk.rank);
+	mean.printFile(rk.rank,Ret,ut);
+	fluc.printFile(rk.rank,Ret,ut);
+	bulk.printFile(rk.rank,Ret,ut);
 
 	ierr = MPI_Finalize();
 	return 0;
@@ -255,3 +277,50 @@ void calcState() {
 			}
 }
 
+void calcRet(Communicator rk, double *Retot, double *uttot) {
+
+	double ut  = 0.0;
+	double Ret = 0.0;
+
+	for (int k=0; k<mz; k++)
+		for (int j=0; j<my; j++) {
+
+			    double rw = 0.5*(p[idx(0,j,k)]+p[idx(mx-1,j,k)])/Rgas;
+			    double muw      = 1.0/Re;
+
+			    double   ub[mx+stencilSize*2+2];
+			    double dudx[mx+stencilSize*2+2];
+			    for (int i=0; i<mx; i++)
+			    	ub[i+stencilSize+1] = w[idx(i,j,k)];
+
+			    for (int i=0; i<stencilSize+1; i++) {
+			    	ub[i]                  = -w[idx(stencilSize-i,j,k)];
+			    	ub[mx+stencilSize+1+i] = -w[idx(mx-i-1       ,j,k)];
+			    }
+
+			    for (int j=3; j<mx+stencilSize+2; j++) {
+			    	dudx[j] = 0;
+			    	for (int i=0; i<stencilSize; i++) {
+			    		dudx[j] += coeffF[i]*(ub[j+i-stencilSize]  - ub[j-i+stencilSize])/dx;
+			    	}
+			    }
+
+			    double dudxavg = abs(dudx[3])+abs(dudx[4])+abs(dudx[mx+stencilSize])+abs(dudx[mx+stencilSize+1]);
+			    dudxavg = dudxavg*0.25*xp[0];
+
+			    double uttemp = sqrt(muw*dudxavg/rw);
+			    ut  += uttemp;
+
+			    Ret += uttemp*rw/muw;
+		}
+
+	Ret = Ret/my/mz;
+	ut  = ut/my/mz;
+	allReduceArrayDouble(&Ret,1);
+	allReduceArrayDouble(&ut,1);
+	*Retot += Ret;
+	*uttot += ut;
+	if(rk.rank==0) {
+		printf("The average friction Reynolds number is: \t %lf with friction velocity \t %lf\n",Ret,ut);
+	}
+}
