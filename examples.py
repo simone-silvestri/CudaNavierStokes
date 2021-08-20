@@ -85,7 +85,6 @@ CompNavierStokes(mx=160, my=192, mz=192, \
 		 Re=3000, Ma=1.5, visc=0.7, \
 		 nsteps=1000, nfiles=100) 
 
-
 # Let's again save the results in a different folder and create a visualization xmf file
 
 directory='./fields/supersonic-channel/'

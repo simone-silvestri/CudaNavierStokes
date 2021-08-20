@@ -38,7 +38,7 @@
 #define Pr       0.7f
 #define gamma    1.4f
 #define Ma       1.5f
-#define viscexp  0.7
+#define viscexp  0.75
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
 
