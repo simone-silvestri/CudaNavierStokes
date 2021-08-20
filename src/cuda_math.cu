@@ -30,7 +30,7 @@ __global__ void deviceSca(myprec *a, myprec *bx, myprec *by, myprec *bz, myprec 
 
 __global__ void deviceMul(myprec *a, myprec *b, myprec *c) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	a[id.g] = b[id.g]*c[id.g];
+		a[id.g] = b[id.g]*c[id.g];
 }
 
 __global__ void deviceDiv(myprec *a, myprec *b, myprec *c) {
@@ -153,6 +153,36 @@ __global__ void integrateThreads(myprec *gOut, myprec *gArr, int arraySize) {
 	for (int it = glb; it < arraySize; it += gdim) {
 		int i = it % mx;
 		sum += gArr[it]*d_dxv[i]/d_dy/d_dz;
+	}
+	extern __shared__ myprec shArr[];
+	shArr[tix] = sum;
+	__syncthreads();
+	for (int size = bdim/2; size>0; size/=2) {
+		if (tix<size)
+			shArr[tix] += shArr[tix+size];
+		__syncthreads();
+	}
+	if (tix == 0) {
+			gOut[bix] = shArr[0];
+	}
+
+	__syncthreads();
+
+}
+
+__global__ void AverageThreads(myprec *gOut, myprec *gArr, int arraySize) {
+
+	int bdim  = blockDim.x;
+	int tix   = threadIdx.x;
+	int bix   = blockIdx.x;
+	int gdim  = gridDim.x*blockDim.x;
+
+	int glb   = tix + bix * bdim;
+
+	myprec sum = 0;
+	for (int it = glb; it < arraySize; it += gdim) {
+		int i = it % mx;
+		sum += gArr[it]*d_dxv[i]/d_dy/d_dz/Lx/Ly/Lz;
 	}
 	extern __shared__ myprec shArr[];
 	shArr[tix] = sum;
@@ -327,4 +357,31 @@ void hostVolumeIntegral(myprec *gOut, myprec *var, Communicator rk) {
 
 	checkCuda( cudaFree(dwrkM  ) );
 }
+
+void hostVolumeAverage(myprec *gOut, myprec *var, Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
+
+	myprec *dwrkM;
+
+	int tot = mx*my*mz;
+
+	int gr  = my *  mz;
+	int bl = mx ;
+
+	checkCuda( cudaMalloc((void**)&dwrkM ,gr*sizeof(myprec)) );
+	cudaDeviceSynchronize();
+
+	bl = hostFindPreviousPowerOf2(bl);
+
+	AverageThreads<<<gr, bl, bl*sizeof(myprec)>>>(dwrkM, var , tot);
+	cudaDeviceSynchronize();
+	reduceThreads<<<   1 , bl, bl*sizeof(myprec)>>>(dwrkM, dwrkM, gr);
+	cudaDeviceSynchronize();
+
+	deviceCpyOne<<<1,1>>>(gOut,&dwrkM[0]);
+
+	checkCuda( cudaFree(dwrkM  ) );
+}
+
 

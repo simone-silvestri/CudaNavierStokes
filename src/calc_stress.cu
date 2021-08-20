@@ -12,7 +12,7 @@ __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
 	*a = 0.99*(*b) - 0.5*(*a/(*c)-1);
 }
 
-__global__ void calcStressX(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelX(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
@@ -47,7 +47,7 @@ __global__ void calcStressX(myprec *u, myprec *v, myprec *w) {
 
 }
 
-__global__ void calcStressY(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelY(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
@@ -56,7 +56,7 @@ __global__ void calcStressY(myprec *u, myprec *v, myprec *w) {
 	derDev1yL(gij[5],w,id);
 }
 
-__global__ void calcStressZ(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
@@ -65,7 +65,7 @@ __global__ void calcStressZ(myprec *u, myprec *v, myprec *w) {
 	derDev1zL(gij[8],w,id);
 }
 
-__global__ void calcStressYBC(myprec *u, myprec *v, myprec *w, int direction) {
+__global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
@@ -76,7 +76,7 @@ __global__ void calcStressYBC(myprec *u, myprec *v, myprec *w, int direction) {
 	derDev1yBC(gij[5],w,id,direction);
 }
 
-__global__ void calcStressZBC(myprec *u, myprec *v, myprec *w, int direction) {
+__global__ void derVelZBC(myprec *u, myprec *v, myprec *w, int direction) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
@@ -162,7 +162,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
 
 }
 
-void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Communicator rk) {
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk) {
 
 	cudaSetDevice(rk.nodeRank);
 
@@ -174,23 +174,30 @@ void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Commu
 	checkCuda( cudaMalloc((void**)&workA,mx*my*mz*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&rbulk    ,     sizeof(myprec)) );
 
-	hostVolumeIntegral(rbulk,r,rk);
-	checkCuda( cudaMemcpy(hostWork, rbulk, sizeof(myprec), cudaMemcpyDeviceToHost) );
-	allReduceSum(hostWork,1);
-	checkCuda( cudaMemcpy(rbulk, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
+	if(forcing) {
+		hostVolumeIntegral(rbulk,r,rk);
+		checkCuda( cudaMemcpy(hostWork, rbulk, sizeof(myprec), cudaMemcpyDeviceToHost) );
+		allReduceSum(hostWork,1);
+		checkCuda( cudaMemcpy(rbulk, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
 
-	deviceMul<<<gr0,bl0>>>(workA,r,w);
-	hostVolumeIntegral(par1,workA,rk);
-	checkCuda( cudaMemcpy(hostWork, par1, sizeof(myprec), cudaMemcpyDeviceToHost) );
-	allReduceSum(hostWork,1);
-	checkCuda( cudaMemcpy(par1, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
-	deviceDivOne<<<1,1>>>(par1,par1,rbulk);
+		deviceMul<<<gr0,bl0>>>(workA,r,w);
+		hostVolumeIntegral(par1,workA,rk);
+		checkCuda( cudaMemcpy(hostWork, par1, sizeof(myprec), cudaMemcpyDeviceToHost) );
+		allReduceSum(hostWork,1);
+		checkCuda( cudaMemcpy(par1, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
+		deviceDivOne<<<1,1>>>(par1,par1,rbulk);
 
-	hostVolumeIntegral(par2,e,rk);
-	checkCuda( cudaMemcpy(hostWork, par2, sizeof(myprec), cudaMemcpyDeviceToHost) );
-	allReduceSum(hostWork,1);
-	checkCuda( cudaMemcpy(par2, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
-
+		hostVolumeIntegral(par2,e,rk);
+		checkCuda( cudaMemcpy(hostWork, par2, sizeof(myprec), cudaMemcpyDeviceToHost) );
+		allReduceSum(hostWork,1);
+		checkCuda( cudaMemcpy(par2, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
+	} else {
+		deviceSca<<<gr0,bl0>>>(workA,u,v,w,u,v,w);
+		hostVolumeAverage(par1,workA,rk);
+		checkCuda( cudaMemcpy(hostWork, par1, sizeof(myprec), cudaMemcpyDeviceToHost) );
+		allReduceSum(hostWork,1);
+		checkCuda( cudaMemcpy(par1, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
+	}
 	free(hostWork);
 	checkCuda( cudaFree(workA) );
 	checkCuda( cudaFree(rbulk) );

@@ -14,26 +14,8 @@
 #include "cuda_math.h"
 #include "boundary.h"
 
-
-/*
- *  The L-versions of the RHS have to be ran with
- *  - the L-version of the derivatives
- *  i.e.: derDev1xL instead of derDev1x
- *  - the L-version of the grid
- *  i.e.: h_gridL[0] instead of h_grid[0]
- */
-
-/* The whole RHS in the X direction is calculated in RHSDeviceSharedFlxX_old thanks to the beneficial memory layout that allows to use small pencils */
-/* For the Y and Z direction, fluxes require a small pencil discretization while the rest of the RHS can be calculated on large pencils which speed
- * up significantly the computation. Therefore 5 streams are used
- * stream 0 -> complete X RHS (in RHSDeviceSharedFlxX_old) (small pencil grid)
- * stream 1 -> viscous terms and pressure terms in Y (in RHSDeviceFullYL) (large pencil grid)
- * stream 2 -> viscous terms and pressure terms in Z (in RHSDeviceFullZL) (large pencil grid)
- * stream 3 -> advective fluxes in Y direction (in FLXDeviceY) (small pencil transposed grid)
- * stream 4 -> advective fluxes in Z direction (in FLXDeviceZ) (small pencil transposed grid)*/
-
 #if mx>=558
-__global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+__global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz) {
@@ -171,7 +153,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	eX[id.g] = eXtmp;
 }
 #else
-__global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+__global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz) {
@@ -320,7 +302,7 @@ __global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *
 	eX[id.g] = eXtmp;
 }
 #endif
-__global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+__global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz) {
@@ -468,7 +450,7 @@ __global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *
 	__syncthreads();
 }
 
-__global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+__global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz) {

@@ -76,27 +76,27 @@ class Indices {
 
 void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu, Communicator rk);
 void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w, Communicator rk);
-void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *w, myprec *e, Communicator rk);
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk);
 
 //global functions
-__global__ void RHSDeviceSharedFlxX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+__global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz);
-__global__ void RHSDeviceSharedFlxY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+__global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz);
-__global__ void RHSDeviceSharedFlxZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
+__global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dil, myprec *dpdz);
 
-__global__ void calcStressX(myprec *u, myprec *v, myprec *w);
-__global__ void calcStressY(myprec *u, myprec *v, myprec *w);
-__global__ void calcStressZ(myprec *u, myprec *v, myprec *w);
-__global__ void calcStressYBC(myprec *u, myprec *v, myprec *w, int direction);
-__global__ void calcStressZBC(myprec *u, myprec *v, myprec *w, int direction);
+__global__ void derVelX(myprec *u, myprec *v, myprec *w);
+__global__ void derVelY(myprec *u, myprec *v, myprec *w);
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w);
+__global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction);
+__global__ void derVelZBC(myprec *u, myprec *v, myprec *w, int direction);
 __global__ void calcDil(myprec *dil);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam, int bc);

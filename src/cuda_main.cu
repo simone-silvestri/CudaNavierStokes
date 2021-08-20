@@ -17,15 +17,15 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 	void (*RHSDeviceDir[3])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*,
 							myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*);
 
-	RHSDeviceDir[0] = RHSDeviceSharedFlxX;
-	RHSDeviceDir[1] = RHSDeviceSharedFlxY;
-	RHSDeviceDir[2] = RHSDeviceSharedFlxZ;
+	RHSDeviceDir[0] = deviceRHSX;
+	RHSDeviceDir[1] = deviceRHSY;
+	RHSDeviceDir[2] = deviceRHSZ;
 
     for (int istep = 0; istep < nsteps; istep++) {
     	if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
-    	if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_w,d_e,rk);
+    	if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_u,d_v,d_w,d_e,rk);
 
     	deviceMul<<<grid0,block0,0,s[0]>>>(d_uO,d_r,d_u);
     	deviceMul<<<grid0,block0,0,s[1]>>>(d_vO,d_r,d_v);
@@ -36,17 +36,17 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	//Starting the Runge-Kutta Steps
 
     	//runge kutta step 1
-		calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0);
-		calcStressX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
-		calcStressY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
-		calcStressZ<<<d_grid[4],d_block[4],0,s[3]>>>(d_u,d_v,d_w);
+		calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0); //here 0 means interior points
+		derVelX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
+		derVelY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
+		derVelZ<<<d_grid[4],d_block[4],0,s[3]>>>(d_u,d_v,d_w);
 		if(multiGPU) {
 			updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
-			calcState<<<gridHalo,blockHalo,0,s[4]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,1);
-			calcStressYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);
-			calcStressZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);
-			calcStressYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);
-			calcStressZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);
+			calcState<<<gridHalo,blockHalo,0,s[4]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,1); //here 1 means halo points
+			derVelYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);  //here 0 means lower boundary (0-index)
+			derVelZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);	//here 0 means lower boundary (0-index)
+			derVelYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);	//here 1 means upper boundary (my-index)
+			derVelZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);	//here 1 means upper boundary (mz-index)
 		}
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
@@ -80,16 +80,16 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
 		//runge kutta step 2
 		calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0);
-		calcStressX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
-		calcStressY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
-		calcStressZ<<<d_grid[4],d_block[4],0,s[3]>>>(d_u,d_v,d_w);
+		derVelX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
+		derVelY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
+		derVelZ<<<d_grid[4],d_block[4],0,s[3]>>>(d_u,d_v,d_w);
 		if(multiGPU) {
 			updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
 			calcState<<<gridHalo,blockHalo,0,s[4]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,1);
-			calcStressYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);
-			calcStressZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);
-			calcStressYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);
-			calcStressZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);
+			derVelYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);
+			derVelZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);
+			derVelYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);
+			derVelZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);
 		}
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);
@@ -123,16 +123,16 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
     	//runge kutta step 3
 		calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0);
-		calcStressX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
-		calcStressY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
-		calcStressZ<<<d_grid[4],d_block[4],0,s[3]>>>(d_u,d_v,d_w);
+		derVelX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
+		derVelY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
+		derVelZ<<<d_grid[4],d_block[4],0,s[3]>>>(d_u,d_v,d_w);
 		if(multiGPU) {
 			updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
 			calcState<<<gridHalo,blockHalo,0,s[4]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,1);
-			calcStressYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);
-			calcStressZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);
-			calcStressYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);
-			calcStressZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);
+			derVelYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);
+			derVelZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);
+			derVelYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);
+			derVelZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);
 		}
 		cudaDeviceSynchronize();
     	calcDil<<<grid0,block0>>>(d_dil);

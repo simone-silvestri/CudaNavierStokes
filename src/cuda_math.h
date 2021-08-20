@@ -24,11 +24,13 @@ __device__ void reduceToOne(myprec *gout, myprec *var);
 __device__ void reduceToMax(myprec *gout, myprec *var);
 __device__ void reduceToMin(myprec *gout, myprec *var);
 __global__ void integrateThreads (myprec *gOut, myprec *gArr, int arraySize);
+__global__ void AverageThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void reduceThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void minOfThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void maxOfThreads (myprec *gOut, myprec *gArr, int arraySize);
 __device__ unsigned int findPreviousPowerOf2(unsigned int n);
 void hostReduceToMin(myprec *gOut, myprec *var, Communicator rk);
 void hostVolumeIntegral(myprec *gOut, myprec *var, Communicator rk);
+void hostVolumeAverage(myprec *gOut, myprec *var, Communicator rk);
 
 #endif /* CUDA_MATH_H_ */

@@ -138,7 +138,6 @@ void setGPUParameters(Communicator rk)
 					coeffVF[2*stencilSize - it]*xpp[i]*(xp[i]*xp[i]*xp[i])*h_dx);
 		}
 
-
 	checkCuda( cudaMemcpyToSymbol(dcoeffF , h_coeffF ,  stencilSize   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(dcoeffS , h_coeffS , (stencilSize+1)*sizeof(myprec), 0, cudaMemcpyHostToDevice) );
 	checkCuda( cudaMemcpyToSymbol(dcoeffVF, h_coeffVF,  stencilVisc   *sizeof(myprec), 0, cudaMemcpyHostToDevice) );
