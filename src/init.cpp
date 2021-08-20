@@ -118,7 +118,7 @@ void initChannel(Communicator rk) {
 
 void initCHIT(Communicator rk) {
 
-	double V0 = 0.0;
+	double V0 = 1.0;
 	double T0 = 1.0;
 	double P0 = T0*Rgas;
 	double R0 = 1.0;

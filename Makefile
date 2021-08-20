@@ -21,7 +21,7 @@ ifeq ($(ARCH),GPU)
 gpu_usage=1
 endif
 
-SRC=./src_multiGPU/
+SRC=./src/
 OBJ=./obj/
 
 # Define compiler and optimizer's flags
@@ -38,7 +38,7 @@ INC = -I$(CUDA)/include -I$(GEN)/include
 #INC += -I$(MPI)/include
 LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda -lcudart -lcudadevrt 
 #LIB += -L$(MPI)/lib
-NVCC = nvcc $(DBG) -lineinfo -rdc=true # 
+NVCC = nvcc $(DBG) $(CPPFLAGS) -lineinfo -rdc=true # 
 MAXREG = # --maxrregcount=82 --ptxas-options=-v
 ifeq ($(DBG),)
 NVCC += -O5  
@@ -49,7 +49,7 @@ CFLAGS = $(INC) $(LIB)
 
 TARGET = ns
 
-MPICC = mpic++ -mcmodel=large 
+MPICC = mpic++ -mcmodel=large $(CPPFLAGS) 
 ifeq ($(DBG),)
 MPICC += -O5 
 endif

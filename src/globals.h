@@ -15,25 +15,25 @@
 #define pCol 1
 
 //Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
-#define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
-#define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
+#define stencilSize 2  // the order is double the stencilSize (advective fluxes stencil)
+#define stencilVisc 1  // the order is double the stencilVisc (viscous fluxes stencil)
 
-#define Lx       (2.0)
+#define Lx       (2.0*M_PI)
 #define Ly       (2.0*M_PI)
-#define Lz       (4.0*M_PI)
-#define mx_tot   160
-#define my_tot   192
-#define mz_tot   192
-#define nsteps   1001
-#define nfiles	 1
+#define Lz       (2.0*M_PI)
+#define mx_tot   256
+#define my_tot   256
+#define mz_tot   256
+#define nsteps   1000
+#define nfiles	 10
 #define CFL      0.7f
 
 const int restartFile = -1;
 
-#define Re       1500.f
+#define Re       1600.f
 #define Pr       0.7f
 #define gamma    1.4f
-#define Ma       1.5f
+#define Ma       0.1f
 #define Ec       ((gamma - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gamma*Ma*Ma))
 #define viscexp  0.7
@@ -41,9 +41,9 @@ const int restartFile = -1;
 const myprec TwallTop = 1.0;
 const myprec TwallBot = 1.0;
 
-#define forcing       (true)
-#define periodicX     (false)
-#define nonUniformX   (true)
+#define forcing       (false)
+#define periodicX     (true)
+#define nonUniformX   (false)
 #define useStreams    (false)   // true might give a little speedup (it might also be harmful in terms of performance in certain occasions) very bad for memory footprint
 
 const double stretch = 3.0;
