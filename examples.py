@@ -49,7 +49,7 @@ from CompNavierStokes import CompNavierStokes
 # we just have to set up the amount of required files (100 will do)
 # and make sure the domain is 2\pi*2\pi*2\pi
 
-Nfiles=100 # we want to save down 100 fields
+Nfiles=3 # we want to save down 100 fields
 
 CompNavierStokes(nsteps=101,nfiles=Nfiles,Lx=2*m.pi,Ly=2*m.pi,Lz=2*m.pi)
 
@@ -83,7 +83,7 @@ CompNavierStokes(mx=160, my=192, mz=192, \
 		 Lx=2,   Ly=2*m.pi, Lz=4*m.pi, \
 		 perX=False, nUnifX=True, forcing=True, \
 		 Re=3000, Ma=1.5, visc=0.7, \
-		 nsteps=1000, nfiles=100) 
+		 nsteps=1000, nfiles=Nfiles) 
 
 # Let's again save the results in a different folder and create a visualization xmf file
 
