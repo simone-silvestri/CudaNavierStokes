@@ -36,6 +36,7 @@ void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);
 void initSolver(Communicator rk);
 void clearSolver(Communicator rk);
 void solverWrapper(Communicator rk);
+void spongeWrapper(Communicator rk);
 void restartWrapper(int restartFile, Communicator rk);
 void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction, Communicator rk);
 void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction, Communicator rk);

@@ -47,6 +47,9 @@ int main(int argc, char** argv) {
     //Initialize the computational mesh
     initGrid(rk);
 
+    //If boundary layer set sponge on the GPU and initialize the solution field with references
+    if(boundaryLayer) spongeWrapper(rk);
+
     //Initialize the solution field
     restartWrapper(restartFile,rk);
 

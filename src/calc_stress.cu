@@ -34,7 +34,12 @@ __global__ void derVelX(myprec *u, myprec *v, myprec *w) {
 #if periodicX
 		perBCx(s_u[sj],si);perBCx(s_v[sj],si);perBCx(s_w[sj],si);
 #else
-		wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
+		if(boundaryLayer) {
+			topBCxExt(s_u[sj],si);topBCxExt(s_v[sj],si);topBCxExt(s_w[sj],si);
+			botBCxExt(s_u[sj],si,0.0);botBCxExt(s_v[sj],si,0.0);botBCxExt(s_w[sj],si,0.0);
+		} else {
+			wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
+		}
 #endif
 	}
 

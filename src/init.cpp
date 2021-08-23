@@ -312,7 +312,7 @@ void restartWrapper(int restartFile, Communicator rk) {
     	if(forcing) {
     		initChannel(rk);
     	} else {
-    		initCHIT(rk);
+    		if(!boundaryLayer) initCHIT(rk);
     	}
     } else {
     	initField(restartFile,rk); }

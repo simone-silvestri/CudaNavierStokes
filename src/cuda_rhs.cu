@@ -14,7 +14,7 @@
 #include "cuda_math.h"
 #include "boundary.h"
 
-#if mx>=558
+#if mx>=558  //difference is only the fact that dil is calculated based on g11, g22 and g33 (where g11 is mirrored and g22 and g33 extrapolated)
 __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
@@ -59,10 +59,24 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 		perBCx(s_t[sj],si); perBCx(s_p[sj],si); perBCx(s_prop1[sj],si);
 		perBCx(s_prop2[sj],si);
 #else
-		wallBCxMir(s_p[sj],si);
-		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
-		wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
-		mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
+		if(boundaryLayer) {
+			topBCxExt(s_p[sj],si);
+			topBCxExt(s_t[sj],si);
+			topBCxExt(s_u[sj],si);
+			topBCxExt(s_v[sj],si);
+			topBCxExt(s_w[sj],si);
+			botBCxMir(s_p[sj],si);
+			botBCxMir(s_t[sj],si);
+			botBCxExt(s_u[sj],si,0.0);
+			botBCxExt(s_v[sj],si,0.0);
+			botBCxExt(s_w[sj],si,0.0);
+			mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
+		} else {
+			wallBCxMir(s_p[sj],si);
+			wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
+			wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
+			mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
+		}
 #endif
 	}
 
@@ -107,7 +121,12 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 #if periodicX
 		perBCx(s_prop2[sj],si);
 #else
-		wallBCxMir(s_prop2[sj],si);
+		if(boundaryLayer) {
+			topBCxExt(s_prop2[sj],si);
+			botBCxMir(s_prop2[sj],si);
+		} else {
+			wallBCxMir(s_prop2[sj],si);
+		}
 #endif
 	}
 	__syncthreads();
@@ -129,6 +148,7 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 		rhBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
 #endif
 	}
+
 
 	fluxQuadSharedx(&wrk1,s_prop1[sj],s_u[sj],si);
 	rXtmp = wrk1;
@@ -302,6 +322,7 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	eX[id.g] = eXtmp;
 }
 #endif
+
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
@@ -342,7 +363,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 			haloBCy(s_prop[sj],mu,si,id); haloBCy(s_dil[sj],dil,si,id);
 		} else {
 			perBCy(s_u[sj],si);	perBCy(s_v[sj],si); perBCy(s_w[sj],si);
-			perBCy(s_prop[sj],si); perBCy(s_dil[sj],si); }
+			perBCy(s_prop[sj],si); perBCy(s_dil[sj],si);
+		}
 	}
 	__syncthreads();
 
@@ -383,7 +405,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 		if(multiGPU) {
 			haloBCy(s_dil[sj],p,si,id);
 		} else {
-			perBCy(s_dil[sj],si); }
+			perBCy(s_dil[sj],si);
+		}
 	}
 	__syncthreads();
 	derDevShared1y(&wrk1,s_dil[sj],si);
@@ -397,7 +420,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 		if(multiGPU) {
 			haloBCy(s_dil[sj],t,si,id); haloBCy(s_prop[sj],lam,si,id);
 		} else {
-			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si); }
+			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si);
+		}
 	}
 	__syncthreads();
 
@@ -415,7 +439,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 		if(multiGPU) {
 			haloBCy(s_dil[sj],h,si,id); haloBCy(s_prop[sj],r,si,id);
 		} else {
-			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si); }
+			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si);
+		}
 	}
 	__syncthreads();
 	fluxQuadSharedy(&wrk1,s_prop[sj],s_v[sj],si);
@@ -489,8 +514,17 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 			haloBCz(s_u[sj],u,si,id);	  haloBCz(s_v[sj],v,si,id); haloBCz(s_w[sj],w,si,id);
 			haloBCz(s_prop[sj],mu,si,id); haloBCz(s_dil[sj],dil,si,id);
 		} else {
-			perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
-			perBCz(s_prop[sj],si); perBCz(s_dil[sj],si); }
+			if(boundaryLayer) {
+				topBCzExt(s_u[sj],si); botBCzExt(s_u[sj],si);
+				topBCzExt(s_v[sj],si); botBCzExt(s_v[sj],si);
+				topBCzExt(s_w[sj],si); botBCzExt(s_w[sj],si);
+				topBCzExt(s_prop[sj],si); botBCzExt(s_prop[sj],si);
+				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
+			} else {
+				perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
+				perBCz(s_prop[sj],si); perBCz(s_dil[sj],si);
+			}
+		}
 	}
 	__syncthreads();
 
@@ -508,7 +542,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	vZtmp *= wrk2;
 	wZtmp *= wrk2;
 
-	// viscous fluxes derivative
+	//viscous fluxes derivative
 	derDevSharedV2z(&wrk1,s_u[sj],si);
 	uZtmp = uZtmp + wrk1*s_prop[sj][si];
 	derDevSharedV2z(&wrk1,s_v[sj],si);
@@ -531,7 +565,12 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 		if(multiGPU) {
 			haloBCz(s_dil[sj],p,si,id);
 		} else {
-			perBCz(s_dil[sj],si); }
+			if(boundaryLayer) {
+				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
+			} else {
+				perBCz(s_dil[sj],si);
+			}
+		}
 	}
 	__syncthreads();
 	derDevShared1z(&wrk1,s_dil[sj],si);
@@ -545,7 +584,13 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 		if(multiGPU) {
 			haloBCz(s_dil[sj],t,si,id); haloBCz(s_prop[sj],lam,si,id);
 		} else {
-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
+			if(boundaryLayer) {
+				topBCzExt(s_prop[sj],si); botBCzExt(s_prop[sj],si);
+				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
+			} else {
+				perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
+			}
+		}
 	}
 	__syncthreads();
 
@@ -563,7 +608,13 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 		if(multiGPU) {
 			haloBCz(s_dil[sj],h,si,id); haloBCz(s_prop[sj],r,si,id);
 		} else {
-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
+			if(boundaryLayer) {
+				topBCzExt(s_prop[sj],si); botBCzExt(s_prop[sj],si);
+				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
+			} else {
+				perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
+			}
+		}
 	}
 	__syncthreads();
 	fluxQuadSharedz(&wrk1,s_prop[sj],s_w[sj],si);

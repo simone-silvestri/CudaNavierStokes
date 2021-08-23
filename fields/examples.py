@@ -8,6 +8,7 @@ sys.path.append('python-utils')
 
 from writexmf import writexmf
 from CompNavierStokes import CompNavierStokes
+from CompNavierStokes import initializeSolution
 
 # Parameters that can be specified are:
 
@@ -66,7 +67,7 @@ y = np.fromfile(directory + 'y.bin', dtype='double')
 z = np.fromfile(directory + 'z.bin', dtype='double')
 writexmf(directory + 'decaying-turbulence.xmf','double', \
          x, y, z, \
-         np.arange(0,Nfiles+1,1), 1.0, \
+         np.arange(1,Nfiles+1,1), 1.0, \
          ['r',\
           'u',\
           'v',\
@@ -98,7 +99,7 @@ y = np.fromfile(directory + 'y.bin', dtype='double')
 z = np.fromfile(directory + 'z.bin', dtype='double')
 writexmf(directory + 'supersonic-channel.xmf','double', \
          x, y, z, \
-         np.arange(0,Nfiles+1,1), 1.0, \
+         np.arange(1,Nfiles+1,1), 1.0, \
          ['r',\
           'u',\
           'v',\

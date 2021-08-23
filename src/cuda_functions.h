@@ -297,7 +297,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevShared2x(my
 #endif
 
 	__syncthreads();
-
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV1x(myprec *df, myprec *s_f, int si)
