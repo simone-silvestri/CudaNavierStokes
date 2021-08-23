@@ -1,0 +1,673 @@
+diff --git a/src/boundary.h b/src/boundary.h
+index 0b58aeb..00356e2 100644
+--- a/src/boundary.h
++++ b/src/boundary.h
+@@ -20,6 +20,11 @@ extern __device__ __forceinline__ void wallBCxDil(myprec *s_f, myprec *s_u, mypr
+ extern __device__ __forceinline__ void stateBoundPT(myprec *r, myprec *t, myprec *u, myprec *v, myprec *w, myprec *h, myprec *p, myprec *m, myprec *l);
+ extern __device__ __forceinline__ void rhBoundPT(myprec *r, myprec *h, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si);
+ extern __device__ __forceinline__ void mlBoundPT(myprec *m, myprec *l, myprec *p, myprec *t, myprec *u, myprec *v, myprec *w, int si);
++extern __device__ __forceinline__ void botBCxMir(myprec *s_f, int si);
++extern __device__ __forceinline__ void topBCxExt(myprec *s_f, int si);
++extern __device__ __forceinline__ void botBCxExt(myprec *s_f, int si, myprec Bcbot);
++extern __device__ __forceinline__ void topBCzExt(myprec *s_f, int si);
++extern __device__ __forceinline__ void botBCzExt(myprec *s_f, int si);
+ 
+ __device__ __forceinline__ __attribute__((always_inline)) void perBCx(myprec *s_f, int si) {
+ 	s_f[si-stencilSize]  = s_f[si+mx-stencilSize];
+@@ -117,5 +122,25 @@ __device__ __forceinline__ __attribute__((always_inline)) void mlBoundPT(myprec
+     l[idx]   = suth/Re/Pr/Ec;
+ }
+ 
++__device__ __forceinline__ __attribute__((always_inline)) void topBCxExt(myprec *s_f, int si) {
++	s_f[si+mx]           = 2.0*s_f[mx+stencilSize-1] - s_f[mx+2*stencilSize-si-2];  //here we assume that the boundary is at mx+stencilSize-1 (at the node not at the face)
++}
++
++__device__ __forceinline__ __attribute__((always_inline)) void topBCzExt(myprec *s_f, int si) {
++	s_f[si+mz]           = 2.0*s_f[mz+stencilSize-1] - s_f[mz+2*stencilSize-si-2];  //here we assume that the boundary is at mx+stencilSize-1 (at the node not at the face)
++}
++
++__device__ __forceinline__ __attribute__((always_inline)) void botBCzExt(myprec *s_f, int si) {
++	s_f[si-stencilSize]  = 2.0*s_f[stencilSize] - s_f[3*stencilSize-si]; //here we assume that the boundary is at stencilSize (at the node not at the face)
++}
++
++__device__ __forceinline__ __attribute__((always_inline)) void botBCxExt(myprec *s_f, int si, myprec Bcbot) {
++	s_f[si-stencilSize]  = 2.0*Bcbot - s_f[3*stencilSize-si-1];
++}
++
++__device__ __forceinline__ __attribute__((always_inline)) void botBCxMir(myprec *s_f, int si) {
++	s_f[si-stencilSize]  = s_f[3*stencilSize-si-1];
++}
++
+ 
+ #endif /* BOUNDARY_H_ */
+diff --git a/src/calc_stress.cu b/src/calc_stress.cu
+index 7287517..82dc932 100644
+--- a/src/calc_stress.cu
++++ b/src/calc_stress.cu
+@@ -34,7 +34,12 @@ __global__ void derVelX(myprec *u, myprec *v, myprec *w) {
+ #if periodicX
+ 		perBCx(s_u[sj],si);perBCx(s_v[sj],si);perBCx(s_w[sj],si);
+ #else
+-		wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
++		if(boundaryLayer) {
++			topBCxExt(s_u[sj],si);topBCxExt(s_v[sj],si);topBCxExt(s_w[sj],si);
++			botBCxExt(s_u[sj],si,0.0);botBCxExt(s_v[sj],si,0.0);botBCxExt(s_w[sj],si,0.0);
++		} else {
++			wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
++		}
+ #endif
+ 	}
+ 
+diff --git a/src/cuda_functions.h b/src/cuda_functions.h
+index fe65b0f..20a7b7b 100644
+--- a/src/cuda_functions.h
++++ b/src/cuda_functions.h
+@@ -297,7 +297,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevShared2x(my
+ #endif
+ 
+ 	__syncthreads();
+-
+ }
+ 
+ __device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV1x(myprec *df, myprec *s_f, int si)
+diff --git a/src/cuda_globals.h b/src/cuda_globals.h
+index 9fddbb3..6741f27 100644
+--- a/src/cuda_globals.h
++++ b/src/cuda_globals.h
+@@ -51,9 +51,9 @@ const int sPencils = 2;
+ const int lPencils = 1;  
+ #else
+ #if mz > 256 || my > 256
+-const int lPencils = 8;  // large # pencils
++const int lPencils = 1;  // large # pencils
+ #elif mz > 128 || my > 128
+-const int lPencils = 16;  // large # pencils
++const int lPencils = 1;  // large # pencils
+ #else
+ const int lPencils = 1;  // large # pencils
+ #endif
+diff --git a/src/cuda_main.cu b/src/cuda_main.cu
+index c8e4adb..a473118 100644
+--- a/src/cuda_main.cu
++++ b/src/cuda_main.cu
+@@ -4,6 +4,10 @@
+ #include "cuda_main.h"
+ #include "cuda_math.h"
+ #include "comm.h"
++#include "sponge.h"
++
++myprec *d_spongeX, *d_spongeZ;
++myprec *d_rref, *d_uref, *d_wref, *d_eref;
+ 
+ cudaStream_t s[9];
+ 
+@@ -58,10 +62,11 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
+ #else
+ 		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();
+ 		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+-    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
++		if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
+ 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+ 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+ #endif
++		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e,d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
+     	for (int d=0; d<fin; d++) {
+     		eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],dtC,d);
+     		eulerSum<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],dtC,d);    	}
+@@ -105,6 +110,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
+ 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+ 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+ #endif
++		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_e,d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
+ 		for (int d=0; d<fin; d++) {
+ 			eulerSum3<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],d_rhsr2[d],dtC,d);
+ 			eulerSum3<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],d_rhse2[d],dtC,d);   	}
+@@ -148,6 +154,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
+ 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+ 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
+ #endif
++		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_e,d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
+     	for (int d=0; d<fin; d++) {
+     		rk3final<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],d_rhsr2[d],d_rhsr3[d],dtC,d);
+     		rk3final<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],d_rhse2[d],d_rhse3[d],dtC,d); 	}
+@@ -283,10 +290,6 @@ void solverWrapper(Communicator rk) {
+     	start=restartFile;
+     }
+ 
+-//  checkCuda( cudaFuncSetCacheConfig( RHSDeviceSharedFlxX, cudaFuncCachePreferShared ) );
+-//	checkCuda( cudaFuncSetCacheConfig( RHSDeviceSharedFlxY, cudaFuncCachePreferShared ) );
+-//	checkCuda( cudaFuncSetCacheConfig( RHSDeviceSharedFlxZ, cudaFuncCachePreferShared ) );
+-
+     if(rk.rank==0) fp = fopen("solution.txt","w+");
+     for(int file = start+1; file<nfiles+start+1; file++) {
+ 
+diff --git a/src/cuda_rhs.cu b/src/cuda_rhs.cu
+index fa49cde..abadba9 100644
+--- a/src/cuda_rhs.cu
++++ b/src/cuda_rhs.cu
+@@ -14,7 +14,7 @@
+ #include "cuda_math.h"
+ #include "boundary.h"
+ 
+-#if mx>=558
++#if mx>=558  //difference is only the fact that dil is calculated based on g11, g22 and g33 (where g11 is mirrored and g22 and g33 extrapolated)
+ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+ 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+ 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+@@ -59,10 +59,24 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
+ 		perBCx(s_t[sj],si); perBCx(s_p[sj],si); perBCx(s_prop1[sj],si);
+ 		perBCx(s_prop2[sj],si);
+ #else
+-		wallBCxMir(s_p[sj],si);
+-		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
+-		wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
+-		mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
++		if(boundaryLayer) {
++			topBCxExt(s_p[sj],si);
++			topBCxExt(s_t[sj],si);
++			topBCxExt(s_u[sj],si);
++			topBCxExt(s_v[sj],si);
++			topBCxExt(s_w[sj],si);
++			botBCxMir(s_p[sj],si);
++			botBCxMir(s_t[sj],si);
++			botBCxExt(s_u[sj],si,0.0);
++			botBCxExt(s_v[sj],si,0.0);
++			botBCxExt(s_w[sj],si,0.0);
++			mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
++		} else {
++			wallBCxMir(s_p[sj],si);
++			wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
++			wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
++			mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
++		}
+ #endif
+ 	}
+ 
+@@ -107,7 +121,12 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
+ #if periodicX
+ 		perBCx(s_prop2[sj],si);
+ #else
+-		wallBCxMir(s_prop2[sj],si);
++		if(boundaryLayer) {
++			topBCxExt(s_prop2[sj],si);
++			botBCxMir(s_prop2[sj],si);
++		} else {
++			wallBCxMir(s_prop2[sj],si);
++		}
+ #endif
+ 	}
+ 	__syncthreads();
+@@ -130,6 +149,7 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
+ #endif
+ 	}
+ 
++
+ 	fluxQuadSharedx(&wrk1,s_prop1[sj],s_u[sj],si);
+ 	rXtmp = wrk1;
+ 	__syncthreads();
+@@ -302,6 +322,7 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
+ 	eX[id.g] = eXtmp;
+ }
+ #endif
++
+ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
+ 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+ 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+@@ -342,7 +363,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
+ 			haloBCy(s_prop[sj],mu,si,id); haloBCy(s_dil[sj],dil,si,id);
+ 		} else {
+ 			perBCy(s_u[sj],si);	perBCy(s_v[sj],si); perBCy(s_w[sj],si);
+-			perBCy(s_prop[sj],si); perBCy(s_dil[sj],si); }
++			perBCy(s_prop[sj],si); perBCy(s_dil[sj],si);
++		}
+ 	}
+ 	__syncthreads();
+ 
+@@ -383,7 +405,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
+ 		if(multiGPU) {
+ 			haloBCy(s_dil[sj],p,si,id);
+ 		} else {
+-			perBCy(s_dil[sj],si); }
++			perBCy(s_dil[sj],si);
++		}
+ 	}
+ 	__syncthreads();
+ 	derDevShared1y(&wrk1,s_dil[sj],si);
+@@ -397,7 +420,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
+ 		if(multiGPU) {
+ 			haloBCy(s_dil[sj],t,si,id); haloBCy(s_prop[sj],lam,si,id);
+ 		} else {
+-			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si); }
++			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si);
++		}
+ 	}
+ 	__syncthreads();
+ 
+@@ -415,7 +439,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
+ 		if(multiGPU) {
+ 			haloBCy(s_dil[sj],h,si,id); haloBCy(s_prop[sj],r,si,id);
+ 		} else {
+-			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si); }
++			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si);
++		}
+ 	}
+ 	__syncthreads();
+ 	fluxQuadSharedy(&wrk1,s_prop[sj],s_v[sj],si);
+@@ -489,8 +514,17 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
+ 			haloBCz(s_u[sj],u,si,id);	  haloBCz(s_v[sj],v,si,id); haloBCz(s_w[sj],w,si,id);
+ 			haloBCz(s_prop[sj],mu,si,id); haloBCz(s_dil[sj],dil,si,id);
+ 		} else {
+-			perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
+-			perBCz(s_prop[sj],si); perBCz(s_dil[sj],si); }
++			if(boundaryLayer) {
++				topBCzExt(s_u[sj],si); botBCzExt(s_u[sj],si);
++				topBCzExt(s_v[sj],si); botBCzExt(s_v[sj],si);
++				topBCzExt(s_w[sj],si); botBCzExt(s_w[sj],si);
++				topBCzExt(s_prop[sj],si); botBCzExt(s_prop[sj],si);
++				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
++			} else {
++				perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
++				perBCz(s_prop[sj],si); perBCz(s_dil[sj],si);
++			}
++		}
+ 	}
+ 	__syncthreads();
+ 
+@@ -508,7 +542,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
+ 	vZtmp *= wrk2;
+ 	wZtmp *= wrk2;
+ 
+-	// viscous fluxes derivative
++	//viscous fluxes derivative
+ 	derDevSharedV2z(&wrk1,s_u[sj],si);
+ 	uZtmp = uZtmp + wrk1*s_prop[sj][si];
+ 	derDevSharedV2z(&wrk1,s_v[sj],si);
+@@ -531,7 +565,12 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
+ 		if(multiGPU) {
+ 			haloBCz(s_dil[sj],p,si,id);
+ 		} else {
+-			perBCz(s_dil[sj],si); }
++			if(boundaryLayer) {
++				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
++			} else {
++				perBCz(s_dil[sj],si);
++			}
++		}
+ 	}
+ 	__syncthreads();
+ 	derDevShared1z(&wrk1,s_dil[sj],si);
+@@ -545,7 +584,13 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
+ 		if(multiGPU) {
+ 			haloBCz(s_dil[sj],t,si,id); haloBCz(s_prop[sj],lam,si,id);
+ 		} else {
+-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
++			if(boundaryLayer) {
++				topBCzExt(s_prop[sj],si); botBCzExt(s_prop[sj],si);
++				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
++			} else {
++				perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
++			}
++		}
+ 	}
+ 	__syncthreads();
+ 
+@@ -563,7 +608,13 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
+ 		if(multiGPU) {
+ 			haloBCz(s_dil[sj],h,si,id); haloBCz(s_prop[sj],r,si,id);
+ 		} else {
+-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
++			if(boundaryLayer) {
++				topBCzExt(s_prop[sj],si); botBCzExt(s_prop[sj],si);
++				topBCzExt(s_dil[sj],si); botBCzExt(s_dil[sj],si);
++			} else {
++				perBCz(s_dil[sj],si); perBCz(s_prop[sj],si);
++			}
++		}
+ 	}
+ 	__syncthreads();
+ 	fluxQuadSharedz(&wrk1,s_prop[sj],s_w[sj],si);
+diff --git a/src/globals.h b/src/globals.h
+index 9003253..18a1b6d 100644
+--- a/src/globals.h
++++ b/src/globals.h
+@@ -10,22 +10,22 @@
+ #include <stdlib.h>
+ #include <stdio.h>
+ 
+-//////Remember: Run always the code with num-tasks-per-node = num-GPUs-per-node. Otherwise it will not work!
++//Remember: Run always the code with num-tasks-per-node = num-GPUs-per-node. Otherwise it will not work!
+ //#define pRow 1
+ //#define pCol 1
+-////
+-//////Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
++//
++////Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
+ //#define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
+ //#define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
+-////
+-//#define Lx       (2.0*M_PI)
++//
++//#define Lx       (2.0)
+ //#define Ly       (2.0*M_PI)
+-//#define Lz       (2.0*M_PI)
+-//#define mx_tot   64
+-//#define my_tot   64
+-//#define mz_tot   64
+-//#define nsteps   150
+-//#define nfiles	 100
++//#define Lz       (4.0*M_PI)
++//#define mx_tot   160
++//#define my_tot   192
++//#define mz_tot   192
++//#define nsteps   1001
++//#define nfiles	 1
+ //#define CFL      0.7f
+ //#define restart  -1
+ #if restart<0
+@@ -34,21 +34,21 @@
+ 	const int restartFile = restart;
+ #endif
+ 
+-//#define Re       1600.f
+-//#define Pr       0.7f
+-#define gamma    1.4f
+-//#define Ma       0.1f
+-//#define viscexp  0.7
++//#define Re       1600.0
++//#define Pr       0.7
++#define gamma    1.4
++//#define Ma       1.5
++//#define viscexp  0.75
+ #define Ec       ((gamma - 1.f)*Ma*Ma)
+ #define Rgas     (1.f/(gamma*Ma*Ma))
+ 
+-
++const bool boundaryLayer = false;
+ const myprec TwallTop = 1.0;
+ const myprec TwallBot = 1.0;
+ 
+-//#define forcing       (false)
+-//#define periodicX     (true)
+-//#define nonUniformX   (false)
++//#define forcing       (true)
++//#define periodicX     (false)
++//#define nonUniformX   (true)
+ //#define useStreams    (false)   // true might give a little speedup (it might also be harmful in terms of performance in certain occasions) very bad for memory footprint
+ 
+ const double stretch = 3.0;
+diff --git a/src/init.cpp b/src/init.cpp
+index 527eb51..006a6f4 100644
+--- a/src/init.cpp
++++ b/src/init.cpp
+@@ -312,7 +312,7 @@ void restartWrapper(int restartFile, Communicator rk) {
+     	if(forcing) {
+     		initChannel(rk);
+     	} else {
+-    		initCHIT(rk);
++    		if(!boundaryLayer) initCHIT(rk);
+     	}
+     } else {
+     	initField(restartFile,rk); }
+diff --git a/src/main.cpp b/src/main.cpp
+index 8a7605f..afc6417 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -47,6 +47,9 @@ int main(int argc, char** argv) {
+     //Initialize the computational mesh
+     initGrid(rk);
+ 
++    //If boundary layer set sponge on the GPU and initialize the solution field with references
++    if(boundaryLayer) spongeWrapper(rk);
++
+     //Initialize the solution field
+     restartWrapper(restartFile,rk);
+ 
+diff --git a/src/main.h b/src/main.h
+index e03cb5e..8502f25 100644
+--- a/src/main.h
++++ b/src/main.h
+@@ -36,6 +36,7 @@ void runSimulation(myprec *kin, myprec *enst, myprec *time, Communicator rk);
+ void initSolver(Communicator rk);
+ void clearSolver(Communicator rk);
+ void solverWrapper(Communicator rk);
++void spongeWrapper(Communicator rk);
+ void restartWrapper(int restartFile, Communicator rk);
+ void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var, int direction, Communicator rk);
+ void fillBoundariesFive(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction, Communicator rk);
+diff --git a/src/sponge.cu b/src/sponge.cu
+new file mode 100644
+index 0000000..ef84e00
+--- /dev/null
++++ b/src/sponge.cu
+@@ -0,0 +1,212 @@
++#include "globals.h"
++#include "cuda_globals.h"
++#include "cuda_functions.h"
++#include "comm.h"
++#include "main.h"
++#include "sponge.h"
++
++#define idx2(i,k) \
++		({ ( k )*mx + ( i ); })
++
++const myprec spTopStr = 0.5;
++const myprec spTopLen = 5.0;
++const myprec spTopExp = 2.0;
++const myprec spInlStr = 0.5;
++const myprec spInlLen = 10.0;
++const myprec spInlExp = 2.0;
++const myprec spOutStr = 0.5;
++const myprec spOutLen = 10.0;
++const myprec spOutExp = 2.0;
++
++void spline(myprec x[], myprec y[], int n, myprec yp1, myprec ypn, myprec y2[]);
++myprec splint(myprec xa[], myprec ya[], myprec y2a[], int n, myprec x);
++
++__global__ void addSponge(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse,
++						  myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *spongeX, myprec *spongeZ,
++						  myprec *rref, myprec *uref, myprec *wref, myprec *eref) {
++
++	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
++
++	rhsr[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (rref[idx2(id.i,id.k)] - r[id.g]);
++	rhsu[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (uref[idx2(id.i,id.k)] - u[id.g]);
++	rhsv[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (0.0                   - v[id.g]);
++	rhsw[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (wref[idx2(id.i,id.k)] - w[id.g]);
++	rhse[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (eref[idx2(id.i,id.k)] - e[id.g]);
++}
++
++void spongeWrapper(Communicator rk) {
++	 calculateSpongePar(x, z, rk);
++	 calculateRefSponge(x, z, rk);
++}
++
++void calculateSpongePar(myprec *x, myprec *z, Communicator rk) {
++	myprec *h_spongeX = new myprec[mx];
++	myprec *h_spongeZ = new myprec[mz];
++
++	for(int i=0; i<mx; i++) {
++		h_spongeX[i] = 0.0;
++		if ((spTopLen > 0.0) && (x[i] >= Lx - spTopLen))
++			h_spongeX[i] = spTopStr*pow((x[i] - (Lx-spTopLen))/spTopLen , spTopExp);
++	}
++
++	for(int k=0; k<mz; k++) {
++		h_spongeZ[k] = 0.0;
++		myprec fz = z[k+rk.kstart];
++		if ((spInlLen > 0.0) && (fz <= spInlLen))
++			h_spongeZ[k] = spInlStr*pow( (spInlLen-fz)/spInlLen , spInlExp);
++
++		if ((spOutLen > 0.0) && (fz >= (Lz-spOutLen)))
++			h_spongeZ[k] = spOutStr*pow((fz - (Lz-spOutLen))/spOutLen,spOutExp);
++	}
++
++	checkCuda( cudaMalloc((void**)&d_spongeX, mx*sizeof(myprec)) );
++	checkCuda( cudaMalloc((void**)&d_spongeZ, mz*sizeof(myprec)) );
++
++    checkCuda( cudaMemcpy(d_spongeX, h_spongeX, mx*sizeof(myprec), cudaMemcpyHostToDevice) );
++    checkCuda( cudaMemcpy(d_spongeZ, h_spongeZ, mz*sizeof(myprec), cudaMemcpyHostToDevice) );
++
++    delete [] h_spongeX;
++    delete [] h_spongeZ;
++
++}
++
++void calculateRefSponge(myprec *x, myprec *z, Communicator rk) {
++
++	FILE *fp = fopen("blasius1D/xProf.bin","rb");
++
++	fseek(fp, 0, SEEK_END); 		  // seek to end of file
++	int size = ftell(fp) / sizeof(double); // get current file pointer
++	fseek(fp, 0, SEEK_SET); 		  // seek back to beginning of file
++
++	myprec xIn[size] , rIn[size] , uIn[size] , wIn[size] , eIn[size];
++	myprec             r2In[size], u2In[size], w2In[size], e2In[size];
++	size_t result = 0;
++
++	result = fread(xIn, sizeof(double), size, fp); fclose(fp);
++	fp = fopen("blasius1D/rProf.bin","rb");
++	result = fread(rIn, sizeof(double), size, fp); fclose(fp);
++	fp = fopen("blasius1D/uProf.bin","rb");
++	result = fread(uIn, sizeof(double), size, fp); fclose(fp);
++	fp = fopen("blasius1D/wProf.bin","rb");
++	result = fread(wIn, sizeof(double), size, fp); fclose(fp);
++	fp = fopen("blasius1D/eProf.bin","rb");
++	result = fread(eIn, sizeof(double), size, fp);
++
++	myprec *rref = new myprec[mx*mz];
++	myprec *uref = new myprec[mx*mz];
++	myprec *wref = new myprec[mx*mz];
++	myprec *eref = new myprec[mx*mz];
++
++	spline(xIn, rIn, size, 1e30, 1e30, r2In);
++	spline(xIn, uIn, size, 1e30, 1e30, u2In);
++	spline(xIn, wIn, size, 1e30, 1e30, w2In);
++	spline(xIn, eIn, size, 1e30, 1e30, e2In);
++	for (int k=0; k<mz; k++)
++		for (int i=0; i<mx; i++) {
++			myprec scale = pow( 1 + z[k+rk.kstart]/Re, 0.5 );
++			rref[idx2(i,k)] = splint(xIn,rIn,r2In,size,x[i]/scale);
++			uref[idx2(i,k)] = splint(xIn,uIn,u2In,size,x[i]/scale); u[idx2(i,k)] /= (scale*Re);
++			wref[idx2(i,k)] = splint(xIn,wIn,w2In,size,x[i]/scale);
++			eref[idx2(i,k)] = splint(xIn,eIn,e2In,size,x[i]/scale);
++			eref[idx2(i,k)] = eref[idx2(i,k)] + 0.5*(uref[idx2(i,k)]*uref[idx2(i,k)]+wref[idx2(i,k)]*wref[idx2(i,k)]);
++			eref[idx2(i,k)]*= rref[idx2(i,k)];
++		}
++
++	for (int k=0; k<mz; k++)
++		for (int j=0; j<my; j++)
++			for (int i=0; i<mx; i++) {
++				r[idx(i,j,k)] = rref[idx2(i,k)];
++				u[idx(i,j,k)] = uref[idx2(i,k)];
++				v[idx(i,j,k)] = 0.0;
++				w[idx(i,j,k)] = wref[idx2(i,k)];
++				e[idx(i,j,k)] = eref[idx2(i,k)];
++			}
++
++	checkCuda( cudaMalloc((void**)&d_rref, mz*mx*sizeof(myprec)) );
++	checkCuda( cudaMalloc((void**)&d_uref, mz*mx*sizeof(myprec)) );
++	checkCuda( cudaMalloc((void**)&d_wref, mz*mx*sizeof(myprec)) );
++	checkCuda( cudaMalloc((void**)&d_eref, mz*mx*sizeof(myprec)) );
++
++    checkCuda( cudaMemcpy(d_rref, rref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
++    checkCuda( cudaMemcpy(d_uref, uref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
++    checkCuda( cudaMemcpy(d_wref, wref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
++    checkCuda( cudaMemcpy(d_eref, eref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
++
++	delete [] rref;
++	delete [] uref;
++	delete [] wref;
++	delete [] eref;
++}
++
++myprec *vector12(long nl, long nh)
++/* allocate a float vector with subscript range v[nl..nh] */
++{
++	myprec *v;
++
++	v=(myprec *)malloc((size_t) ((nh-nl+1+1)*sizeof(myprec)));
++	if (!v){
++		fprintf(stderr,"allocation failure in vector()");
++		fprintf(stderr,"...now exiting to system...\n");
++		exit(1);
++	}
++	return v-nl+1;
++}
++
++void free_vector(myprec *v, long nl, long nh)
++/* free a float vector allocated with vector() */
++{
++	free((char*) (v+nl-1));
++}
++
++void spline(myprec x[], myprec y[], int n, myprec yp1, myprec ypn, myprec y2[])
++{
++	int i,k;
++	myprec p,qn,sig,un,*u;
++	u=vector12(1,n-1);
++	if (yp1 > 0.99e30)
++		y2[1]=u[1]=0.0;
++	else {
++		y2[1] = -0.5;
++		u[1]=(3.0/(x[2]-x[1]))*((y[2]-y[1])/(x[2]-x[1])-yp1);
++	}
++	for (i=2;i<=n-1;i++) {
++		sig=(x[i]-x[i-1])/(x[i+1]-x[i-1]);
++		p=sig*y2[i-1]+2.0;
++		y2[i]=(sig-1.0)/p;
++		u[i]=(y[i+1]-y[i])/(x[i+1]-x[i]) - (y[i]-y[i-1])/(x[i]-x[i-1]);
++		u[i]=(6.0*u[i]/(x[i+1]-x[i-1])-sig*u[i-1])/p;
++	}
++	if (ypn > 0.99e30)
++		qn=un=0.0;
++	else {
++		qn=0.5;
++		un=(3.0/(x[n]-x[n-1]))*(ypn-(y[n]-y[n-1])/(x[n]-x[n-1]));
++	}
++	y2[n]=(un-qn*u[n-1])/(qn*y2[n-1]+1.0);
++	for (k=n-1;k>=1;k--)
++		y2[k]=y2[k]*y2[k+1]+u[k];
++	free_vector(u,1,n-1);
++}
++
++myprec splint(myprec xa[], myprec ya[], myprec y2a[], int n, myprec x)
++{
++	int klo,khi,k;
++	myprec h,b,a,y;
++	klo=1;
++	khi=n;
++	while (khi-klo > 1) {
++		k=(khi+klo) >> 1;
++		if (xa[k] > x) khi=k;
++		else klo=k;
++	}
++	h=xa[khi]-xa[klo];
++	if (h == 0.0){
++		fprintf(stderr,"Bad xa input to routine splint");
++		fprintf(stderr,"...now exiting to system...\n");
++		exit(1);
++	}
++	a=(xa[khi]-x)/h;
++	b=(x-xa[klo])/h;
++	y=a*ya[klo]+b*ya[khi]+((a*a*a-a)*y2a[klo]+(b*b*b-b)*y2a[khi])*(h*h)/6.0;
++	return y;
++}
+diff --git a/src/sponge.h b/src/sponge.h
+new file mode 100644
+index 0000000..44c9ad9
+--- /dev/null
++++ b/src/sponge.h
+@@ -0,0 +1,13 @@
++#ifndef SPONGE_H_
++#define SPONGE_H_
++
++extern myprec *d_spongeX, *d_spongeZ;
++extern myprec *d_rref, *d_uref, *d_wref, *d_eref;
++
++__global__ void addSponge(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse,
++						  myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *spongeX, myprec *spongeZ,
++						  myprec *rref, myprec *uref, myprec *wref, myprec *eref);
++void calculateSpongePar(myprec *x, myprec *z, Communicator rk);
++void calculateRefSponge(myprec *x, myprec *z, Communicator rk);
++
++#endif /* SPONGE_H_ */
