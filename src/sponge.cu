@@ -5,11 +5,8 @@
 #include "main.h"
 #include "sponge.h"
 
-#define idx2(i,k) \
-		({ ( k )*mx + ( i ); })
-
 const myprec spTopStr = 0.5;
-const myprec spTopLen = 5.0;
+const myprec spTopLen = 2.0;
 const myprec spTopExp = 2.0;
 const myprec spInlStr = 0.5;
 const myprec spInlLen = 10.0;
@@ -18,30 +15,85 @@ const myprec spOutStr = 0.5;
 const myprec spOutLen = 10.0;
 const myprec spOutExp = 2.0;
 
+__device__ myprec spongeX[mx];
+__device__ myprec spongeZ[mz];
+__device__ myprec rref[mx*mz];
+__device__ myprec uref[mx*mz];
+__device__ myprec wref[mx*mz];
+__device__ myprec eref[mx*mz];
+__device__ myprec href[mx*mz];
+__device__ myprec tref[mx*mz];
+__device__ myprec pref[mx*mz];
+__device__ myprec mref[mx*mz];
+__device__ myprec lref[mx*mz];
+
 void spline(myprec x[], myprec y[], int n, myprec yp1, myprec ypn, myprec y2[]);
 myprec splint(myprec xa[], myprec ya[], myprec y2a[], int n, myprec x);
 
 __global__ void addSponge(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse,
-						  myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *spongeX, myprec *spongeZ,
-						  myprec *rref, myprec *uref, myprec *wref, myprec *eref) {
+						  myprec *r, myprec *u, myprec *v, myprec *w, myprec *e) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
 	rhsr[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (rref[idx2(id.i,id.k)] - r[id.g]);
 	rhsu[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (uref[idx2(id.i,id.k)] - u[id.g]);
-	rhsv[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (0.0                   - v[id.g]);
+//	rhsv[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (0.0                   - v[id.g]);
 	rhsw[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (wref[idx2(id.i,id.k)] - w[id.g]);
 	rhse[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (eref[idx2(id.i,id.k)] - e[id.g]);
 }
 
-void spongeWrapper(Communicator rk) {
-	 calculateSpongePar(x, z, rk);
-	 calculateRefSponge(x, z, rk);
+__global__ void copySpongeToDevice(myprec *d_spongeX, myprec *d_spongeZ, myprec *d_rref, myprec *d_uref, myprec *d_wref, myprec *d_eref) {
+
+	int bdx = blockDim.x ;
+	int tix = threadIdx.x;
+	int bix = blockIdx.x ;
+
+	int gl = tix + bdx * bix;
+
+	if(bix==0)	spongeX[tix] = d_spongeX[tix];
+	if(tix==0)	spongeZ[bix] = d_spongeZ[bix];
+
+	rref[gl] = d_rref[gl];
+	uref[gl] = d_uref[gl];
+	wref[gl] = d_wref[gl];
+	eref[gl] = d_eref[gl];
+
+	myprec cvInv = (gamma - 1.0)/Rgas;
+
+    myprec invrho = 1.0/rref[gl];
+
+    myprec en  = eref[gl]*invrho - 0.5*(uref[gl]*uref[gl] + wref[gl]*wref[gl]);
+    tref[gl]   = cvInv*en;
+    pref[gl]   = rref[gl]*Rgas*tref[gl];
+    href[gl]   = (eref[gl] + pref[gl])*invrho;
+
+    myprec suth = pow(tref[gl],viscexp);
+    mref[gl]    = suth/Re;
+    lref[gl]    = suth/Re/Pr/Ec;
+    __syncthreads();
 }
 
-void calculateSpongePar(myprec *x, myprec *z, Communicator rk) {
+void calculateSponge(Communicator rk) {
+
 	myprec *h_spongeX = new myprec[mx];
 	myprec *h_spongeZ = new myprec[mz];
+	myprec *h_rref = new myprec[mx*mz];
+	myprec *h_uref = new myprec[mx*mz];
+	myprec *h_wref = new myprec[mx*mz];
+	myprec *h_eref = new myprec[mx*mz];
+	myprec *d_spongeX, *d_spongeZ;
+	myprec *d_rref;
+	myprec *d_uref;
+	myprec *d_wref;
+	myprec *d_eref;
+
+	checkCuda( cudaMalloc((void**)&d_spongeX, mx*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_spongeZ, mz*sizeof(myprec)) );
+
+	checkCuda( cudaMalloc((void**)&d_rref, mz*mx*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_uref, mz*mx*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_wref, mz*mx*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_eref, mz*mx*sizeof(myprec)) );
 
 	for(int i=0; i<mx; i++) {
 		h_spongeX[i] = 0.0;
@@ -59,18 +111,11 @@ void calculateSpongePar(myprec *x, myprec *z, Communicator rk) {
 			h_spongeZ[k] = spOutStr*pow((fz - (Lz-spOutLen))/spOutLen,spOutExp);
 	}
 
-	checkCuda( cudaMalloc((void**)&d_spongeX, mx*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_spongeZ, mz*sizeof(myprec)) );
-
     checkCuda( cudaMemcpy(d_spongeX, h_spongeX, mx*sizeof(myprec), cudaMemcpyHostToDevice) );
     checkCuda( cudaMemcpy(d_spongeZ, h_spongeZ, mz*sizeof(myprec), cudaMemcpyHostToDevice) );
 
     delete [] h_spongeX;
     delete [] h_spongeZ;
-
-}
-
-void calculateRefSponge(myprec *x, myprec *z, Communicator rk) {
 
 	FILE *fp = fopen("blasius1D/xProf.bin","rb");
 
@@ -80,7 +125,7 @@ void calculateRefSponge(myprec *x, myprec *z, Communicator rk) {
 
 	myprec xIn[size] , rIn[size] , uIn[size] , wIn[size] , eIn[size];
 	myprec             r2In[size], u2In[size], w2In[size], e2In[size];
-	size_t result = 0;
+	size_t result;
 
 	result = fread(xIn, sizeof(double), size, fp); fclose(fp);
 	fp = fopen("blasius1D/rProf.bin","rb");
@@ -92,11 +137,6 @@ void calculateRefSponge(myprec *x, myprec *z, Communicator rk) {
 	fp = fopen("blasius1D/eProf.bin","rb");
 	result = fread(eIn, sizeof(double), size, fp);
 
-	myprec *rref = new myprec[mx*mz];
-	myprec *uref = new myprec[mx*mz];
-	myprec *wref = new myprec[mx*mz];
-	myprec *eref = new myprec[mx*mz];
-
 	spline(xIn, rIn, size, 1e30, 1e30, r2In);
 	spline(xIn, uIn, size, 1e30, 1e30, u2In);
 	spline(xIn, wIn, size, 1e30, 1e30, w2In);
@@ -104,38 +144,43 @@ void calculateRefSponge(myprec *x, myprec *z, Communicator rk) {
 	for (int k=0; k<mz; k++)
 		for (int i=0; i<mx; i++) {
 			myprec scale = pow( 1 + z[k+rk.kstart]/Re, 0.5 );
-			rref[idx2(i,k)] = splint(xIn,rIn,r2In,size,x[i]/scale);
-			uref[idx2(i,k)] = splint(xIn,uIn,u2In,size,x[i]/scale); u[idx2(i,k)] /= (scale*Re);
-			wref[idx2(i,k)] = splint(xIn,wIn,w2In,size,x[i]/scale);
-			eref[idx2(i,k)] = splint(xIn,eIn,e2In,size,x[i]/scale);
-			eref[idx2(i,k)] = eref[idx2(i,k)] + 0.5*(uref[idx2(i,k)]*uref[idx2(i,k)]+wref[idx2(i,k)]*wref[idx2(i,k)]);
-			eref[idx2(i,k)]*= rref[idx2(i,k)];
+			h_rref[idx2(i,k)] = splint(xIn,rIn,r2In,size,x[i]/scale);
+			h_uref[idx2(i,k)] = splint(xIn,uIn,u2In,size,x[i]/scale); h_uref[idx2(i,k)] /= (scale*Re);
+			h_wref[idx2(i,k)] = splint(xIn,wIn,w2In,size,x[i]/scale);
+			h_eref[idx2(i,k)] = splint(xIn,eIn,e2In,size,x[i]/scale);
+			h_eref[idx2(i,k)] = h_eref[idx2(i,k)] + 0.5*(h_uref[idx2(i,k)]*h_uref[idx2(i,k)]+h_wref[idx2(i,k)]*h_wref[idx2(i,k)]);
+			h_eref[idx2(i,k)]*= h_rref[idx2(i,k)];
 		}
 
-	for (int k=0; k<mz; k++)
-		for (int j=0; j<my; j++)
-			for (int i=0; i<mx; i++) {
-				r[idx(i,j,k)] = rref[idx2(i,k)];
-				u[idx(i,j,k)] = uref[idx2(i,k)];
-				v[idx(i,j,k)] = 0.0;
-				w[idx(i,j,k)] = wref[idx2(i,k)];
-				e[idx(i,j,k)] = eref[idx2(i,k)];
-			}
+	if(restartFile<0) {
+		for (int k=0; k<mz; k++)
+			for (int j=0; j<my; j++)
+				for (int i=0; i<mx; i++) {
+					r[idx(i,j,k)] = h_rref[idx2(i,k)];
+					u[idx(i,j,k)] = h_uref[idx2(i,k)];
+					v[idx(i,j,k)] = 0.0;
+					w[idx(i,j,k)] = h_wref[idx2(i,k)];
+					e[idx(i,j,k)] = h_eref[idx2(i,k)];
+				}
+	}
+    checkCuda( cudaMemcpy(d_rref, h_rref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
+    checkCuda( cudaMemcpy(d_uref, h_uref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
+    checkCuda( cudaMemcpy(d_wref, h_wref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
+    checkCuda( cudaMemcpy(d_eref, h_eref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
 
-	checkCuda( cudaMalloc((void**)&d_rref, mz*mx*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_uref, mz*mx*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_wref, mz*mx*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_eref, mz*mx*sizeof(myprec)) );
+    delete [] h_rref;
+    delete [] h_uref;
+    delete [] h_wref;
+    delete [] h_eref;
 
-    checkCuda( cudaMemcpy(d_rref, rref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
-    checkCuda( cudaMemcpy(d_uref, uref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
-    checkCuda( cudaMemcpy(d_wref, wref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
-    checkCuda( cudaMemcpy(d_eref, eref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
+    copySpongeToDevice<<<mx,mz>>>(d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
 
-	delete [] rref;
-	delete [] uref;
-	delete [] wref;
-	delete [] eref;
+    checkCuda( cudaFree(d_spongeX) );
+    checkCuda( cudaFree(d_spongeZ) );
+    checkCuda( cudaFree(d_rref) );
+    checkCuda( cudaFree(d_uref) );
+    checkCuda( cudaFree(d_wref) );
+    checkCuda( cudaFree(d_eref) );
 }
 
 myprec *vector12(long nl, long nh)

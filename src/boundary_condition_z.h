@@ -1,0 +1,116 @@
+#ifndef BOUNDARY_CONDITION_H_
+#define BOUNDARY_CONDITION_H_
+
+#include "boundary.h"
+#include "sponge.h"
+
+extern __device__ __forceinline__ void BCzNumber1(myprec *s_u, myprec *s_v, myprec *s_w,
+												  myprec *s_m, myprec *s_dil,
+												  myprec *u, myprec *v, myprec *w,
+												  myprec *m, myprec *dil,
+												  Indices id, int si, int n);
+
+extern __device__ __forceinline__ void BCzNumber2(myprec *s_p, myprec *p, Indices id, int si, int m);
+
+extern __device__ __forceinline__ void BCzNumber3(myprec *s_l, myprec *s_t,
+												  myprec *l,   myprec *t,
+												  Indices id, int si, int n);
+
+extern __device__ __forceinline__ void BCzNumber4(myprec *s_r, myprec *s_h,
+												  myprec *r,   myprec *h,
+												  Indices id, int si, int n);
+
+__device__ __forceinline__ __attribute__((always_inline)) void BCzNumber1(myprec *s_u, myprec *s_v, myprec *s_w,
+																		  myprec *s_m, myprec *s_dil,
+																		  myprec *u, myprec *v, myprec *w,
+																		  myprec *m, myprec *dil,
+																		  Indices id, int si, int n) {
+
+	if (id.k < stencilSize) {
+		if(multiGPU) {
+			haloBCz(s_u,u,si,id); haloBCz(s_v,v,si,id); haloBCz(s_w,w,si,id);
+			haloBCz(s_m,m,si,id); haloBCz(s_dil,dil,si,id);
+		} else {
+			if(boundaryLayer) {
+//				refBCz(s_u,uref,si,id.i);
+//				topBCzVal(s_v,si,0.0); botBCzVal(s_v,si,0.0);
+//				refBCz(s_u,wref,si,id.i);
+//				refBCz(s_f,mref,si,id.i);
+				topBCzExt(s_u,si);
+				topBCzExt(s_v,si);
+				topBCzExt(s_w,si);
+				botBCzExt(s_u,si);
+				botBCzExt(s_v,si);
+				botBCzExt(s_w,si);
+				topBCzExt(s_m,si);
+				botBCzExt(s_m,si);
+				topBCzExt(s_dil,si);
+				botBCzExt(s_dil,si);
+			} else {
+				perBCz(s_u,si);	perBCz(s_v,si); perBCz(s_w,si);
+				perBCz(s_m,si); perBCz(s_dil,si);
+			}
+		}
+	}
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void BCzNumber2(myprec *s_p, myprec *p, Indices id, int si, int n) {
+	if (id.k < stencilSize) {
+		if(multiGPU) {
+			haloBCz(s_p,p,si,id);
+		} else {
+			if(boundaryLayer) {
+				topBCzExt(s_p,si);
+				botBCzExt(s_p,si);
+//				refBCz(s_p,pref,si,id.i);
+			} else {
+				perBCz(s_p,si);
+			}
+		}
+	}
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void BCzNumber3(myprec *s_l, myprec *s_t,
+																		  myprec *l,   myprec *t,
+																		  Indices id, int si, int n) {
+	if (id.k < stencilSize) {
+		if(multiGPU) {
+			haloBCz(s_l,l,si,id); haloBCz(s_t,t,si,id);
+		} else {
+			if(boundaryLayer) {
+//				refBCz(s_t,tref,si,id.i);
+//				refBCz(s_l,lref,si,id.i);
+				topBCzExt(s_l,si);
+				botBCzExt(s_l,si);
+				topBCzExt(s_t,si);
+				botBCzExt(s_t,si);
+			} else {
+				perBCz(s_l,si); perBCz(s_t,si);
+			}
+		}
+	}
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void BCzNumber4(myprec *s_r, myprec *s_h,
+																		  myprec *r,   myprec *h,
+																		  Indices id, int si, int n) {
+	if (id.k < stencilSize) {
+		if(multiGPU) {
+			haloBCz(s_h,h,si,id); haloBCz(s_r,r,si,id);
+		} else {
+			if(boundaryLayer) {
+//				refBCz(s_r,rref,si,id.i);
+//				refBCz(s_h,href,si,id.i);
+				topBCzExt(s_r,si);
+				botBCzExt(s_r,si);
+				topBCzExt(s_h,si);
+				botBCzExt(s_h,si);
+			} else {
+				perBCz(s_r,si); perBCz(s_h,si);
+			}
+		}
+	}
+}
+
+
+#endif /* BOUNDARY_CONDITION_H_ */

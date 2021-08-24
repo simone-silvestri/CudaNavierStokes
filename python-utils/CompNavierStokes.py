@@ -2,7 +2,7 @@ def CompNavierStokes(mx=128,my=128,mz=128, \
 		     pRow=1,pCol=1, \
 		     Lx=1.0,Ly=1.0,Lz=1.0, \
 		     Re=1600,Pr=1.0,Ma=0.1,visc=1,cfl=0.5, \
-		     nUnifX=False,perX=True,forcing=False,stream=False, \
+		     nUnifX=False,perX=True,forcing=False,stream=False,boundaryLayer=False, \
                      stenA=4,stenV=4,restart=-1,nsteps=200,nfiles=1, \
 		     checkCFL=10, checkBulk=10):
 	
@@ -53,12 +53,17 @@ def CompNavierStokes(mx=128,my=128,mz=128, \
 	else:
 		args+= "useStream=-DuseStream=false" + " "
 
+ 	if boundaryLayer:
+		args+= "boundaryLayer=-DboundaryLayer=true" + " "
+	else:
+		args+= "boundaryLayer=-DboundaryLayer=false" + " "
+
 	args+="restart=-Drestart="+str(restart) + " "
 	args+="nsteps=-Dnsteps="+str(nsteps) + " "
 	args+="nfiles=-Dnfiles="+str(nfiles)
 
 	devnull = open(os.devnull, 'wb')
-	p1 = subprocess.Popen(args=args, shell=True, stdout=devnull, stderr=subprocess.PIPE)
+	p1 = subprocess.Popen(args=args, shell=True) #, stdout=devnull, stderr=subprocess.PIPE)
 	output, error = p1.communicate()
 
   

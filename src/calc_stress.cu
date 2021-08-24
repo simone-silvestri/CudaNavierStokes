@@ -5,7 +5,7 @@
 #include "cuda_functions.h"
 #include "cuda_globals.h"
 #include "cuda_math.h"
-#include "boundary.h"
+#include "boundary_condition_x.h"
 #include "comm.h"
 
 __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
@@ -27,28 +27,15 @@ __global__ void derVelX(myprec *u, myprec *v, myprec *w) {
 	s_u[sj][si] = u[id.g];
 	s_v[sj][si] = v[id.g];
 	s_w[sj][si] = w[id.g];
-
 	__syncthreads();
 
-	if(id.i<stencilSize) {
-#if periodicX
-		perBCx(s_u[sj],si);perBCx(s_v[sj],si);perBCx(s_w[sj],si);
-#else
-		if(boundaryLayer) {
-			topBCxExt(s_u[sj],si);topBCxExt(s_v[sj],si);topBCxExt(s_w[sj],si);
-			botBCxExt(s_u[sj],si,0.0);botBCxExt(s_v[sj],si,0.0);botBCxExt(s_w[sj],si,0.0);
-		} else {
-			wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
-		}
-#endif
-	}
-
+	BCxderVel(s_u[sj],s_v[sj],s_w[sj],id,si,mx);
 	__syncthreads();
 
 	myprec wrk1;
-	derDevShared1x(&wrk1,s_u[sj],si); gij[0][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_v[sj],si); gij[1][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_w[sj],si); gij[2][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_u[sj],si); gij[0][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_v[sj],si); gij[1][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_w[sj],si); gij[2][id.g] = wrk1;
 
 }
 
@@ -56,18 +43,18 @@ __global__ void derVelY(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDev1yL(gij[3],u,id);
-	derDev1yL(gij[4],v,id);
-	derDev1yL(gij[5],w,id);
+	derDevV1yL(gij[3],u,id);
+	derDevV1yL(gij[4],v,id);
+	derDevV1yL(gij[5],w,id);
 }
 
 __global__ void derVelZ(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDev1zL(gij[6],u,id);
-	derDev1zL(gij[7],v,id);
-	derDev1zL(gij[8],w,id);
+	derDevV1zL(gij[6],u,id);
+	derDevV1zL(gij[7],v,id);
+	derDevV1zL(gij[8],w,id);
 }
 
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction) {

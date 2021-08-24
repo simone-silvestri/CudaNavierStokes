@@ -47,7 +47,7 @@ const int sPencils = 1;  // small # pencils
 const int sPencils = 2;
 #endif
 #endif
-#if mx==1 || my==1 || mz==1
+#if mx<=16 || my<=16 || mz<=16
 const int lPencils = 1;  
 #else
 #if mz > 256 || my > 256
@@ -55,7 +55,7 @@ const int lPencils = 8;  // large # pencils
 #elif mz > 128 || my > 128
 const int lPencils = 16;  // large # pencils
 #else
-const int lPencils = 1;  // large # pencils
+const int lPencils = 4;
 #endif
 #endif
 

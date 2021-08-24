@@ -6,9 +6,6 @@
 #include "comm.h"
 #include "sponge.h"
 
-myprec *d_spongeX, *d_spongeZ;
-myprec *d_rref, *d_uref, *d_wref, *d_eref;
-
 cudaStream_t s[9];
 
 void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
@@ -66,7 +63,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
-		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e,d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
+		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e);
     	for (int d=0; d<fin; d++) {
     		eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],dtC,d);
     		eulerSum<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],dtC,d);    	}
@@ -110,7 +107,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
-		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_e,d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
+		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e);
 		for (int d=0; d<fin; d++) {
 			eulerSum3<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],d_rhsr2[d],dtC,d);
 			eulerSum3<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],d_rhse2[d],dtC,d);   	}
@@ -154,7 +151,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
-		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_e,d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref);
+		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e);
     	for (int d=0; d<fin; d++) {
     		rk3final<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],d_rhsr2[d],d_rhsr3[d],dtC,d);
     		rk3final<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],d_rhse2[d],d_rhse3[d],dtC,d); 	}

@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     initGrid(rk);
 
     //If boundary layer set sponge on the GPU and initialize the solution field with references
-    if(boundaryLayer) spongeWrapper(rk);
+    if(boundaryLayer) calculateSponge(rk);
 
     //Initialize the solution field
     restartWrapper(restartFile,rk);
@@ -63,6 +63,7 @@ int main(int argc, char** argv) {
     setGPUParameters(rk);
     initSolver(rk);
     copyField(0,rk);
+	writeField(0,rk);
 
     //Run the solver
     solverWrapper(rk);
