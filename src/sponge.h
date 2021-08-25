@@ -5,6 +5,7 @@ extern __device__ myprec spongeX[mx];
 extern __device__ myprec spongeZ[mz];
 extern __device__ myprec rref[mx*mz];
 extern __device__ myprec uref[mx*mz];
+extern __device__ myprec vref[mx*mz];
 extern __device__ myprec wref[mx*mz];
 extern __device__ myprec eref[mx*mz];
 extern __device__ myprec href[mx*mz];

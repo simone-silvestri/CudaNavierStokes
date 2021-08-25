@@ -43,7 +43,7 @@ __global__ void fillBCValuesY(myprec *m, myprec *p, myprec *var, int direction);
 __global__ void fillBCValuesZ(myprec *m, myprec *p, myprec *var, int direction);
 __global__ void fillBCValuesYFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction);
 __global__ void fillBCValuesZFive(myprec *m, myprec *p, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, int direction);
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
+__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e, Communicator rk);
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e);
 
 void setGPUParameters(Communicator rk)
@@ -328,7 +328,7 @@ void copyField(int direction, Communicator rk) {
      checkCuda( cudaMemcpy(d_fw, fw, bytes, cudaMemcpyHostToDevice) );
      checkCuda( cudaMemcpy(d_fe, fe, bytes, cudaMemcpyHostToDevice) );
 
-     initDevice<<<grid0, block0>>>(d_fr,d_fu,d_fv,d_fw,d_fe,d_r,d_u,d_v,d_w,d_e);
+     initDevice<<<grid0, block0>>>(d_fr,d_fu,d_fv,d_fw,d_fe,d_r,d_u,d_v,d_w,d_e,rk);
  	 calcState<<<grid0,block0>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0);
 
   } else if (direction == 1) {
@@ -369,7 +369,7 @@ void copyField(int direction, Communicator rk) {
 
 }
 
-__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e) {
+__global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e, Communicator rk) {
 
 	int threadsPerBlock  = blockDim.x * blockDim.y;
 	int threadNumInBlock = threadIdx.x + blockDim.x * threadIdx.y;
@@ -382,6 +382,19 @@ __global__ void initDevice(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_f
 	v[globalThreadNum]   = d_fv[globalThreadNum];
 	w[globalThreadNum]   = d_fw[globalThreadNum];
 	e[globalThreadNum]   = d_fe[globalThreadNum];
+
+	time_on_GPU = 0.0;
+
+	rkGPU.nodeRank = rk.nodeRank;
+	rkGPU.rank = rk.rank;
+	rkGPU.jp   = rk.jp;
+	rkGPU.jm   = rk.jm;
+	rkGPU.kp   = rk.kp;
+	rkGPU.km   = rk.km;
+	rkGPU.jstart   = rk.jstart;
+	rkGPU.jend     = rk.jend  ;
+	rkGPU.kstart   = rk.kstart;
+	rkGPU.kend     = rk.kend  ;
 }
 
 __global__ void getResults(myprec *d_fr, myprec *d_fu, myprec *d_fv, myprec *d_fw, myprec *d_fe, myprec *r, myprec *u,  myprec *v,  myprec *w,  myprec *e) {

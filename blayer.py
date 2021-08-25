@@ -9,10 +9,10 @@ sys.path.append('python-utils')
 from writexmf import writexmf
 from CompNavierStokes import CompNavierStokes
 
-CompNavierStokes(mx=320, my=10, mz=320, \
+CompNavierStokes(mx=320, my=3, mz=600, \
 		 Lx=20,   Ly=2, Lz=100, \
 		 perX=False, nUnifX=True, forcing=False, boundaryLayer=True, \
-		 Re=300, Ma=0.8, visc=0.75, Pr=0.71, \
+		 Re=300, Ma=0.8, gam=1.4, visc=0.75, Pr=0.72, \
 		 checkCFL=100,checkBulk=100, \
 		 stenA=3, stenV=2, \
 		 nsteps=101, nfiles=400, restart=-1) 

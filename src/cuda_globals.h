@@ -50,12 +50,14 @@ const int sPencils = 2;
 #if mx<=16 || my<=16 || mz<=16
 const int lPencils = 1;  
 #else
-#if mz > 256 || my > 256
+#if mz > 512 || my > 512
+const int lPencils = 4;  // large # pencils
+#elif mz > 256 || my > 256
 const int lPencils = 8;  // large # pencils
 #elif mz > 128 || my > 128
 const int lPencils = 16;  // large # pencils
 #else
-const int lPencils = 4;
+const int lPencils = 32;
 #endif
 #endif
 
@@ -74,6 +76,8 @@ extern __device__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
 extern __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
 extern __device__ myprec gij[9][mx*my*mz];
+extern __device__ myprec time_on_GPU;
+extern __device__ Communicator rkGPU;
 
 extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
 extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;

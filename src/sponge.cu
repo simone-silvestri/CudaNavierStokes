@@ -5,20 +5,21 @@
 #include "main.h"
 #include "sponge.h"
 
-const myprec spTopStr = 0.5;
+const myprec spTopStr = 0.1;
 const myprec spTopLen = 2.0;
 const myprec spTopExp = 2.0;
 const myprec spInlStr = 0.5;
-const myprec spInlLen = 10.0;
+const myprec spInlLen = 5.0;
 const myprec spInlExp = 2.0;
 const myprec spOutStr = 0.5;
-const myprec spOutLen = 10.0;
+const myprec spOutLen = 5.0;
 const myprec spOutExp = 2.0;
 
 __device__ myprec spongeX[mx];
 __device__ myprec spongeZ[mz];
 __device__ myprec rref[mx*mz];
 __device__ myprec uref[mx*mz];
+__device__ myprec vref[mx*mz];
 __device__ myprec wref[mx*mz];
 __device__ myprec eref[mx*mz];
 __device__ myprec href[mx*mz];
@@ -37,7 +38,7 @@ __global__ void addSponge(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw
 
 	rhsr[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (rref[idx2(id.i,id.k)] - r[id.g]);
 	rhsu[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (uref[idx2(id.i,id.k)] - u[id.g]);
-//	rhsv[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (0.0                   - v[id.g]);
+	rhsv[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (vref[idx2(id.i,id.k)] - v[id.g]);
 	rhsw[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (wref[idx2(id.i,id.k)] - w[id.g]);
 	rhse[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (eref[idx2(id.i,id.k)] - e[id.g]);
 }
@@ -55,10 +56,11 @@ __global__ void copySpongeToDevice(myprec *d_spongeX, myprec *d_spongeZ, myprec 
 
 	rref[gl] = d_rref[gl];
 	uref[gl] = d_uref[gl];
+	vref[gl] = 0.0;
 	wref[gl] = d_wref[gl];
 	eref[gl] = d_eref[gl];
 
-	myprec cvInv = (gamma - 1.0)/Rgas;
+	myprec cvInv = (gam - 1.0)/Rgas;
 
     myprec invrho = 1.0/rref[gl];
 
@@ -127,15 +129,20 @@ void calculateSponge(Communicator rk) {
 	myprec             r2In[size], u2In[size], w2In[size], e2In[size];
 	size_t result;
 
-	result = fread(xIn, sizeof(double), size, fp); fclose(fp);
+	result = fread(xIn, sizeof(double), size, fp);
+	if (result != size) {fputs ("Reading error",stderr); exit (3);}; fclose(fp);
 	fp = fopen("blasius1D/rProf.bin","rb");
-	result = fread(rIn, sizeof(double), size, fp); fclose(fp);
+	result = fread(rIn, sizeof(double), size, fp);
+	if (result != size) {fputs ("Reading error",stderr); exit (3);}; fclose(fp);
 	fp = fopen("blasius1D/uProf.bin","rb");
-	result = fread(uIn, sizeof(double), size, fp); fclose(fp);
+	result = fread(uIn, sizeof(double), size, fp);
+	if (result != size) {fputs ("Reading error",stderr); exit (3);}; fclose(fp);
 	fp = fopen("blasius1D/wProf.bin","rb");
-	result = fread(wIn, sizeof(double), size, fp); fclose(fp);
+	result = fread(wIn, sizeof(double), size, fp);
+	if (result != size) {fputs ("Reading error",stderr); exit (3);}; fclose(fp);
 	fp = fopen("blasius1D/eProf.bin","rb");
 	result = fread(eIn, sizeof(double), size, fp);
+	if (result != size) {fputs ("Reading error",stderr); exit (3);}; fclose(fp);
 
 	spline(xIn, rIn, size, 1e30, 1e30, r2In);
 	spline(xIn, uIn, size, 1e30, 1e30, u2In);
@@ -152,6 +159,12 @@ void calculateSponge(Communicator rk) {
 			h_eref[idx2(i,k)]*= h_rref[idx2(i,k)];
 		}
 
+	FILE *fw = fopen("inProf.txt","w+");
+	for(int i=0; i<size; i++) {
+		fprintf(fw,"%le %le %le %le %le\n",xIn[i],rIn[i],uIn[i],wIn[i],eIn[i]);
+	}
+	fclose(fw);
+
 	if(restartFile<0) {
 		for (int k=0; k<mz; k++)
 			for (int j=0; j<my; j++)
@@ -163,6 +176,13 @@ void calculateSponge(Communicator rk) {
 					e[idx(i,j,k)] = h_eref[idx2(i,k)];
 				}
 	}
+
+	fw = fopen("inRef.txt","w+");
+	for(int i=0; i<mx; i++) {
+		fprintf(fw,"%le %le %le %le %le\n",x[i],r[idx(i,0,0)],u[idx(i,0,0)],w[idx(i,0,0)],e[idx(i,0,0)]);
+	}
+	fclose(fw);
+
     checkCuda( cudaMemcpy(d_rref, h_rref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
     checkCuda( cudaMemcpy(d_uref, h_uref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );
     checkCuda( cudaMemcpy(d_wref, h_wref, mz*mx*sizeof(myprec), cudaMemcpyHostToDevice) );

@@ -78,6 +78,8 @@ void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec
 void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w, Communicator rk);
 void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk);
 
+#include "boundary_condition_z.h"
+
 //global functions
 __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
@@ -100,6 +102,7 @@ __global__ void derVelZBC(myprec *u, myprec *v, myprec *w, int direction);
 __global__ void calcDil(myprec *dil);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam, int bc);
+__global__ void deviceAdvanceTime(myprec *dt);
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);
@@ -448,7 +451,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1yL(myprec 
 		  s_f[sj+my][si] 		   = s_f[sj][si];
 	  }
   }
-
   __syncthreads();
 
   for (int j = id.tiy; j < my; j += id.bdy) {
@@ -463,7 +465,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1yL(myprec 
   __syncthreads();
 
 }
-
 
 __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec *df, myprec *f, Indices id)
 {
@@ -555,7 +556,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevV1yL(myprec
 
 }
 
-__device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec *df, myprec *f, Indices id)
+__device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec *df, myprec *f, myprec *fref, Indices id)
 {
   __shared__ myprec s_f[mz+stencilVisc*2][lPencils];
 
@@ -571,23 +572,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec
 
   __syncthreads();
 
-  int sk = id.tiy + stencilVisc;
-  if (sk < stencilVisc*2) {
-	  if(multiGPU) {
-		  int k = sk - stencilVisc;
-		  s_f[sk-stencilVisc][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
-		  s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
-	  } else {
-		  if(boundaryLayer) {
-			  s_f[sk+mz][si]           = 2.0*s_f[mz+stencilVisc-1][si] - s_f[mz+2*stencilVisc-sk-2][si];
-			  s_f[sk-stencilVisc][si]  = 2.0*s_f[stencilVisc][si]      - s_f[3*stencilVisc-sk][si]; //here we assume that the boundary is at stencilSize (at the node not at the face)
-		  } else {
-			  s_f[sk-stencilVisc][si]  = s_f[sk+mz-stencilVisc][si];
-			  s_f[sk+mz][si]           = s_f[sk][si];
-		  }
-	  }
-  }
-
+  BCzderVel(s_f,f,fref,id,si,i,j);
   __syncthreads();
 
   for (int k = id.tiy; k < mz; k += id.bdy) {

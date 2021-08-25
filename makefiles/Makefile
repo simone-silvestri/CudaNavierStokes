@@ -46,7 +46,7 @@ OBJ=./obj/
 GRID   = $(mx_tot) $(my_tot) $(mz_tot) $(Lx) $(Ly) $(Lz) $(nonUniformX) $(periodicX) 
 WORKERS= $(pRow) $(pCol)
 STENCIL= $(stencilSize) $(stencilVisc)
-PARAM  = $(Re) $(Pr) $(Ma) $(visc) $(cfl) $(forcing) $(boundaryLayer)
+PARAM  = $(Re) $(Pr) $(Ma) $(gam) $(visc) $(cfl) $(forcing) $(boundaryLayer) $(perturbed)
 RESTART= $(restart)
 SIM = $(nsteps) $(nfiles) $(useStreams) $(checkCFLcondition) $(checkBulk)
 

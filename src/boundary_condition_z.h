@@ -4,6 +4,8 @@
 #include "boundary.h"
 #include "sponge.h"
 
+extern __device__ __forceinline__ void BCzderVel(myprec s_f[mz+stencilSize*2][lPencils], myprec *f, myprec *fref, Indices id, int si, int i, int j);
+
 extern __device__ __forceinline__ void BCzNumber1(myprec *s_u, myprec *s_v, myprec *s_w,
 												  myprec *s_m, myprec *s_dil,
 												  myprec *u, myprec *v, myprec *w,
@@ -19,6 +21,31 @@ extern __device__ __forceinline__ void BCzNumber3(myprec *s_l, myprec *s_t,
 extern __device__ __forceinline__ void BCzNumber4(myprec *s_r, myprec *s_h,
 												  myprec *r,   myprec *h,
 												  Indices id, int si, int n);
+
+__device__ __forceinline__ __attribute__((always_inline)) void BCzderVel(myprec s_f[mz+stencilSize*2][lPencils], myprec *f, myprec *fref, Indices id, int si, int i, int j) {
+	int sk = id.tiy + stencilVisc;
+	if (sk < stencilVisc*2) {
+		if(multiGPU) {
+			int k = sk - stencilVisc;
+			s_f[sk-stencilVisc][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
+			s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
+		} else {
+			if(boundaryLayer) {
+				//extrapolation
+				s_f[sk+mz][si]           = 2.0*s_f[mz+stencilVisc-1][si] - s_f[mz+2*stencilVisc-sk-2][si];
+				s_f[sk-stencilVisc][si]  = 2.0*s_f[stencilVisc][si]      - s_f[3*stencilVisc-sk][si];
+				//reference condition
+//				s_f[sk+mz][si]           = fref[idx2(i,mz-1)];
+//				s_f[sk-stencilVisc][si]  = fref[idx2(i,0) ];
+			} else {
+				s_f[sk-stencilVisc][si]  = s_f[sk+mz-stencilVisc][si];
+				s_f[sk+mz][si]           = s_f[sk][si];
+			}
+		}
+	}
+
+	__syncthreads();
+}
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber1(myprec *s_u, myprec *s_v, myprec *s_w,
 																		  myprec *s_m, myprec *s_dil,
@@ -52,6 +79,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber1(myprec
 			}
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber2(myprec *s_p, myprec *p, Indices id, int si, int n) {
@@ -68,6 +96,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber2(myprec
 			}
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber3(myprec *s_l, myprec *s_t,
@@ -89,6 +118,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber3(myprec
 			}
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber4(myprec *s_r, myprec *s_h,
@@ -110,6 +140,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber4(myprec
 			}
 		}
 	}
+	__syncthreads();
 }
 
 

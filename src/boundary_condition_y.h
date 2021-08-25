@@ -30,6 +30,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCyNumber1(myprec
 			perBCy(s_m,si); perBCy(s_dil,si);
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCyNumber2(myprec *s_p, myprec *p, Indices id, int si, int n) {
@@ -40,6 +41,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCyNumber2(myprec
 			perBCy(s_p,si);
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCyNumber3(myprec *s_f, myprec *s_g,
@@ -52,6 +54,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCyNumber3(myprec
 			perBCy(s_f,si); perBCy(s_g,si);
 		}
 	}
+	__syncthreads();
 }
 
 #endif /* BOUNDARY_CONDITION_H_ */

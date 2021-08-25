@@ -79,7 +79,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void stateBoundPT(mypr
 	int idx = si-stencilSize;
 
     r[idx]  = p[idx]/(Rgas*t[idx]);
-    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+    h[idx]  = t[idx]*Rgas*gam/(gam - 1.0)
     		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
 
     myprec suth = pow(t[idx],viscexp);
@@ -88,7 +88,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void stateBoundPT(mypr
 
     idx = si+mx;
     r[idx]  = p[idx]/(Rgas*t[idx]);
-    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+    h[idx]  = t[idx]*Rgas*gam/(gam - 1.0)
         		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
 
     suth = pow(t[idx],viscexp);
@@ -100,12 +100,12 @@ __device__ __forceinline__ __attribute__((always_inline)) void rhBoundPT(myprec 
 {
 	int idx = si-stencilSize;
 
-    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+    h[idx]  = t[idx]*Rgas*gam/(gam - 1.0)
     		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
     r[idx]  = p[idx]/(Rgas*t[idx]);
 
     idx = si+mx;
-    h[idx]  = t[idx]*Rgas*gamma/(gamma - 1.0)
+    h[idx]  = t[idx]*Rgas*gam/(gam - 1.0)
         		    		  + 0.5*(u[idx]*u[idx]+v[idx]*v[idx]+w[idx]*w[idx]);
     r[idx]  = p[idx]/(Rgas*t[idx]);
 }

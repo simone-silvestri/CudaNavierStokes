@@ -26,6 +26,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
+    	deviceAdvanceTime<<<1,1>>>(dtC);
     	if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_u,d_v,d_w,d_e,rk);
 
     	deviceMul<<<grid0,block0,0,s[0]>>>(d_uO,d_r,d_u);
@@ -228,7 +229,7 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 
 	if(bc==1) gl += mx*my*mz;
 
-    myprec cvInv = (gamma - 1.0)/Rgas;
+    myprec cvInv = (gam - 1.0)/Rgas;
 
     myprec invrho = 1.0/rho[gl];
 

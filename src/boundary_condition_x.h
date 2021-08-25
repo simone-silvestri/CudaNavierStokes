@@ -3,6 +3,7 @@
 
 #include "boundary.h"
 #include "sponge.h"
+#include "perturbation.h"
 
 extern __device__ __forceinline__ void BCxderVel(myprec *s_u, myprec *s_v, myprec *s_w,
 												 Indices id, int si, int m);
@@ -26,12 +27,16 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxderVel(myprec 
 			perBCx(s_u,si);perBCx(s_v,si);perBCx(s_w,si);
 		} else {
 			if(boundaryLayer) {
-				topBCxRef(s_u,uref,si,id.k);
-				topBCxVal(s_v,si,0.0);
-				topBCxRef(s_w,wref,si,id.k);
+				topBCxExt(s_u,si);
+				topBCxExt(s_v,si);
+				topBCxExt(s_w,si);
+//				topBCxRef(s_u,uref,si,id.k);
+//				topBCxVal(s_v,si,0.0);
+//				topBCxRef(s_w,wref,si,id.k);
 				botBCxExt(s_u,si,0.0);
 				botBCxExt(s_v,si,0.0);
 				botBCxExt(s_w,si,0.0);
+				if(perturbed) PerturbUvel(s_u,id,si);
 			} else {
 				wallBCxVel(s_u,si);
 				wallBCxVel(s_v,si);
@@ -39,6 +44,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxderVel(myprec 
 			}
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber1(myprec *s_u, myprec *s_v, myprec *s_w,
@@ -56,21 +62,22 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber1(myprec
 			perBCx(s_l,si);
 		}else {
 			if(boundaryLayer) {
-//				topBCxExt(s_u,si);
-//				topBCxExt(s_v,si);
-//				topBCxExt(s_w,si);
-//				topBCxExt(s_p,si);
-//				topBCxExt(s_t,si);
-				topBCxRef(s_p,pref,si,id.k);
-				topBCxRef(s_t,tref,si,id.k);
-				topBCxRef(s_u,uref,si,id.k);
-				topBCxVal(s_v,si,0.0);
-				topBCxRef(s_w,wref,si,id.k);
+				topBCxExt(s_u,si);
+				topBCxExt(s_v,si);
+				topBCxExt(s_w,si);
+				topBCxExt(s_p,si);
+				topBCxExt(s_t,si);
+//				topBCxRef(s_p,pref,si,id.k);
+//				topBCxRef(s_t,tref,si,id.k);
+//				topBCxRef(s_u,uref,si,id.k);
+//				topBCxVal(s_v,si,0.0);
+//				topBCxRef(s_w,wref,si,id.k);
 				botBCxMir(s_p,si);
 				botBCxMir(s_t,si);
 				botBCxExt(s_u,si,0.0);
 				botBCxExt(s_v,si,0.0);
 				botBCxExt(s_w,si,0.0);
+				if(perturbed) PerturbUvel(s_u,id,si);
 				mlBoundPT(s_m, s_l, s_p, s_t, s_u, s_v, s_w, si);
 			} else {
 				wallBCxMir(s_p,si);
@@ -82,6 +89,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber1(myprec
 			}
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber2(myprec *s_dil, Indices id, int si, int m) {
@@ -97,6 +105,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber2(myprec
 			}
 		}
 	}
+	__syncthreads();
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber3(myprec *s_u, myprec *s_v, myprec *s_w,
@@ -110,6 +119,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber3(myprec
 			rhBoundPT(s_r, s_h, s_p, s_t, s_u, s_v, s_w, si);
 		}
 	}
+	__syncthreads();
 }
 
 #endif /* BOUNDARY_CONDITION_H_ */

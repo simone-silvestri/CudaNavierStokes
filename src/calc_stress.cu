@@ -7,6 +7,11 @@
 #include "cuda_math.h"
 #include "boundary_condition_x.h"
 #include "comm.h"
+#include "sponge.h"
+
+__global__ void deviceAdvanceTime(myprec *dt) {
+	time_on_GPU += *dt;
+}
 
 __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
 	*a = 0.99*(*b) - 0.5*(*a/(*c)-1);
@@ -52,9 +57,9 @@ __global__ void derVelZ(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDevV1zL(gij[6],u,id);
-	derDevV1zL(gij[7],v,id);
-	derDevV1zL(gij[8],w,id);
+	derDevV1zL(gij[6],u,uref,id);
+	derDevV1zL(gij[7],v,vref,id);
+	derDevV1zL(gij[8],w,wref,id);
 }
 
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction) {
@@ -140,7 +145,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
     myprec dtViscInv = 0.0;
 
     myprec ien = e[id.g]/r[id.g] - 0.5*(u[id.g]*u[id.g] + v[id.g]*v[id.g] + w[id.g]*w[id.g]);
-    myprec sos = pow(gamma*(gamma-1)*ien,0.5);
+    myprec sos = pow(gam*(gam-1)*ien,0.5);
 
     myprec dx,d2x;
     dx = d_dxv[id.i];
