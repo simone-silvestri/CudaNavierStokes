@@ -314,7 +314,7 @@ void calcdt(Communicator rk) {
 	mpiBarrier();
 }
 
-void restartWrapper(int restartFile, Communicator rk) {
+void restartWrapper(Communicator rk) {
     if(restartFile<0) {
     	if(forcing) {
     		initChannel(rk);

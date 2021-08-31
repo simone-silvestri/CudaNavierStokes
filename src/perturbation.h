@@ -9,8 +9,8 @@
 #define PERTURBATION_H_
 
 
-const int LP = 20;
-const int kC = 100;
+const int kC = (int) (mz/Lz*(spInlLen + Lz/20.0));
+const int LP = 2*(kC - (int) (mz/Lz*spInlLen) - 5);
 const myprec lambda = Ly/5.0;
 const myprec amp1   = 1e-2;
 const myprec amp2   = 1e-6;
@@ -48,6 +48,5 @@ __device__ __forceinline__ __attribute__((always_inline)) void PerturbUvel(mypre
 		s_u[si-stencilSize] = amp1*kappa*g*sin(omega1*time_on_GPU); // + amp2*kappa*g*sin(omega2*time_on_GPU); //*cos(2.0*M_PI*y_glob/lambda);
 	}
 }
-
 
 #endif /* PERTURBATION_H_ */

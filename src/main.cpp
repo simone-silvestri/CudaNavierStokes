@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     if(boundaryLayer) calculateSponge(rk);
 
     //Initialize the solution field
-    restartWrapper(restartFile,rk);
+    restartWrapper(rk);
 
     //Output the initial field
     calcdt(rk);

@@ -30,9 +30,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxderVel(myprec 
 				topBCxExt(s_u,si);
 				topBCxExt(s_v,si);
 				topBCxExt(s_w,si);
-//				topBCxRef(s_u,uref,si,id.k);
-//				topBCxVal(s_v,si,0.0);
-//				topBCxRef(s_w,wref,si,id.k);
 				botBCxExt(s_u,si,0.0);
 				botBCxExt(s_v,si,0.0);
 				botBCxExt(s_w,si,0.0);
@@ -67,11 +64,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCxNumber1(myprec
 				topBCxExt(s_w,si);
 				topBCxExt(s_p,si);
 				topBCxExt(s_t,si);
-//				topBCxRef(s_p,pref,si,id.k);
-//				topBCxRef(s_t,tref,si,id.k);
-//				topBCxRef(s_u,uref,si,id.k);
-//				topBCxVal(s_v,si,0.0);
-//				topBCxRef(s_w,wref,si,id.k);
 				botBCxMir(s_p,si);
 				botBCxMir(s_t,si);
 				botBCxExt(s_u,si,0.0);
