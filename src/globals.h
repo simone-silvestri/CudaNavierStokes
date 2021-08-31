@@ -34,7 +34,6 @@
 #define forcing       (false)
 #define periodicX     (false)
 #define nonUniformX   (true)
-#define useStreams    (false)   // true might give a little speedup (it might also be harmful in terms of performance in certain occasions) very bad for memory footprint
 
 #define checkCFLcondition 100
 #define checkBulk 100
@@ -90,12 +89,6 @@ const double coeffVS[] = { 1.0/90.0, -3.0/20.0,  3.0/2.0, -49.0/18.0};
 #elif stencilVisc==4
 const double coeffVF[] = { 1.0/280.0, -4.0/105.0,  1.0/5.0, -4.0/5.0};
 const double coeffVS[] = {-1.0/560.0,  8.0/315.0, -1.0/5.0,  8.0/5.0,  -205.0/72.0};
-#endif
-
-#if useStreams
-	const int fin = 3;
-#else
-	const int fin = 1;
 #endif
 
 extern double dt, h_dpdz;
