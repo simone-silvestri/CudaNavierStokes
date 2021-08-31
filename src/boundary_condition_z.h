@@ -30,14 +30,15 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzderVel(myprec 
 			s_f[sk-stencilVisc][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
 			s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
 		} else {
-			if(!boundaryLayer) {
+			if(boundaryLayer) {
 				//extrapolation
 				s_f[sk+mz][si]           = 2.0*s_f[mz+stencilVisc-1][si] - s_f[mz+2*stencilVisc-sk-2][si];
 				//extrapolation on reference solution
-				s_f[sk-stencilVisc][si]  = 2.0*fref[i]      - s_f[3*stencilVisc-sk-1][si];
-				//initial condition
-//				s_f[sk-stencilVisc][si]  = fref[stencilVisc - (sk-stencilVisc) -1 + stencilSize*i];
+//				s_f[sk-stencilVisc][si]  = 2.0*fref[i]              - s_f[3*stencilVisc-sk-1][si];
+				//extrapolation
+				s_f[sk-stencilVisc][si]  = 2.0*s_f[stencilVisc][si] - s_f[3*stencilVisc-sk][si];
 			} else {
+				//periodic boundary condition
 				s_f[sk-stencilVisc][si]  = s_f[sk+mz-stencilVisc][si];
 				s_f[sk+mz][si]           = s_f[sk][si];
 			}
@@ -58,17 +59,20 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber1(myprec
 			haloBCz(s_u,u,si,id); haloBCz(s_v,v,si,id); haloBCz(s_w,w,si,id);
 			haloBCz(s_m,m,si,id); haloBCz(s_dil,dil,si,id);
 		} else {
-			if(!boundaryLayer) {
+			if(boundaryLayer) {
 				topBCzExt(s_u,si);
 				topBCzExt(s_v,si);
 				topBCzExt(s_w,si);
 				topBCzExt(s_m,si);
 				topBCzExt(s_dil,si);
-				botBCzInit(s_u,uInit,si,id.i);
-				botBCzInit(s_v,vInit,si,id.i);
-				botBCzInit(s_w,wInit,si,id.i);
-				botBCzInit(s_m,mInit,si,id.i);
-//				botBCzExt(s_m,si);
+//				botBCzInit(s_u,uInit,si,id.i);
+//				botBCzInit(s_v,vInit,si,id.i);
+//				botBCzInit(s_w,wInit,si,id.i);
+//				botBCzInit(s_m,mInit,si,id.i);
+				botBCzExt(s_u,si);
+				botBCzExt(s_v,si);
+				botBCzExt(s_w,si);
+				botBCzExt(s_m,si);
 				botBCzExt(s_dil,si);
 			} else {
 				perBCz(s_u,si);	perBCz(s_v,si); perBCz(s_w,si);
@@ -84,7 +88,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber2(myprec
 		if(multiGPU) {
 			haloBCz(s_p,p,si,id);
 		} else {
-			if(!boundaryLayer) {
+			if(boundaryLayer) {
 				topBCzExt(s_p,si);
 				botBCzExt(s_p,si);
 //				botBCzInit(s_p,pInit,si,id.i);
@@ -103,7 +107,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber3(myprec
 		if(multiGPU) {
 			haloBCz(s_l,l,si,id); haloBCz(s_t,t,si,id);
 		} else {
-			if(!boundaryLayer) {
+			if(boundaryLayer) {
 				topBCzExt(s_l,si);
 				topBCzExt(s_t,si);
 				botBCzExt(s_l,si);
@@ -125,13 +129,13 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber4(myprec
 		if(multiGPU) {
 			haloBCz(s_h,h,si,id); haloBCz(s_r,r,si,id);
 		} else {
-			if(!boundaryLayer) {
+			if(boundaryLayer) {
 				topBCzExt(s_r,si);
 				topBCzExt(s_h,si);
-				botBCzInit(s_r,rInit,si,id.i);
-				botBCzInit(s_h,hInit,si,id.i);
-//				botBCzExt(s_r,si);
-//				botBCzExt(s_h,si);
+//				botBCzInit(s_r,rInit,si,id.i);
+//				botBCzInit(s_h,hInit,si,id.i);
+				botBCzExt(s_r,si);
+				botBCzExt(s_h,si);
 			} else {
 				perBCz(s_r,si); perBCz(s_h,si);
 			}

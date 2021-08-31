@@ -39,9 +39,9 @@ def cBL_BC(f0,finf):
 
 
 gam     = 1.4
-Ma      = 0.8
+Ma      = 0.35
 expMu   = 3.0/2.0
-Pr_inf  = 0.72 
+Pr_inf  = 0.75 
 Ec      = (gam-1)*Ma**2
 Rgas    = 1.0/(gam*Ma*Ma)
 
@@ -67,7 +67,7 @@ deltaBlasius = yBlasius[idx]
 
 r = 1/T
 V = U*yBlasius/(4.0**0.5) - F0/(r*(2**0.5))
-V *= deltaBlasius
+V /= deltaBlasius
 
 
 y = yBlasius/deltaBlasius

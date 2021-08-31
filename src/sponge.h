@@ -1,15 +1,19 @@
 #ifndef SPONGE_H_
 #define SPONGE_H_
 
-
-const myprec spTopStr = 0.5;
-const myprec spTopLen = 2.0;
+//x = Lx
+const myprec spTopStr = 1.0;
+const myprec spTopLen = 1.0;
 const myprec spTopExp = 2.0;
+
+//z = 0
 const myprec spInlStr = 0.5;
-const myprec spInlLen = 5.0;
+const myprec spInlLen = 20.0;
 const myprec spInlExp = 2.0;
+
+//z = Lz
 const myprec spOutStr = 0.5;
-const myprec spOutLen = 5.0;
+const myprec spOutLen = 20.0;
 const myprec spOutExp = 2.0;
 
 extern __device__ myprec spongeX[mx];

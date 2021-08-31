@@ -104,23 +104,23 @@ extern myprec *d_l;
 
 extern myprec *d_dil;
 
-extern myprec *d_rhsr1[3];
-extern myprec *d_rhsu1[3];
-extern myprec *d_rhsv1[3];
-extern myprec *d_rhsw1[3];
-extern myprec *d_rhse1[3];
+extern myprec *d_rhsr1;
+extern myprec *d_rhsu1;
+extern myprec *d_rhsv1;
+extern myprec *d_rhsw1;
+extern myprec *d_rhse1;
 
-extern myprec *d_rhsr2[3];
-extern myprec *d_rhsu2[3];
-extern myprec *d_rhsv2[3];
-extern myprec *d_rhsw2[3];
-extern myprec *d_rhse2[3];
+extern myprec *d_rhsr2;
+extern myprec *d_rhsu2;
+extern myprec *d_rhsv2;
+extern myprec *d_rhsw2;
+extern myprec *d_rhse2;
 
-extern myprec *d_rhsr3[3];
-extern myprec *d_rhsu3[3];
-extern myprec *d_rhsv3[3];
-extern myprec *d_rhsw3[3];
-extern myprec *d_rhse3[3];
+extern myprec *d_rhsr3;
+extern myprec *d_rhsu3;
+extern myprec *d_rhsv3;
+extern myprec *d_rhsw3;
+extern myprec *d_rhse3;
 
 extern myprec *dtC,*dpdz;
 

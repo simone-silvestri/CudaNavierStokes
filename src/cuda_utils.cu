@@ -416,44 +416,43 @@ void initSolver(Communicator rk) {
 
 	cudaSetDevice(rk.nodeRank);
 
-    // Increase GPU default limits to accomodate the computations
-    size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
-    cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
+	// Increase GPU default limits to accomodate the computations
+	size_t rsize = 1024ULL*1024ULL*1024ULL*8ULL;  // allocate 10GB of HEAP (dynamic) memory size
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize , rsize);
 
-    for (int i=0; i<fin; i++) {
-    	checkCuda( cudaMalloc((void**)&d_rhsr1[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsu1[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsv1[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsw1[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhse1[i],mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsr1,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsu1,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsv1,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsw1,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhse1,mx*my*mz*sizeof(myprec)) );
 
-    	checkCuda( cudaMalloc((void**)&d_rhsr2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsu2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsv2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsw2[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhse2[i],mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsr2,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsu2,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsv2,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsw2,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhse2,mx*my*mz*sizeof(myprec)) );
 
-    	checkCuda( cudaMalloc((void**)&d_rhsr3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsu3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsv3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhsw3[i],mx*my*mz*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&d_rhse3[i],mx*my*mz*sizeof(myprec)) );
-    }
+	checkCuda( cudaMalloc((void**)&d_rhsr3,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsu3,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsv3,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhsw3,mx*my*mz*sizeof(myprec)) );
+	checkCuda( cudaMalloc((void**)&d_rhse3,mx*my*mz*sizeof(myprec)) );
 
-    //Boundary condition pointer to pass from GPU to CPU
-    if(multiGPU) {
-    	checkCuda( cudaMalloc((void**)&djm5, 5*mz*mx*stencilSize*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&djp5, 5*mz*mx*stencilSize*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&dkm5, 5*my*mx*stencilSize*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&dkp5, 5*my*mx*stencilSize*sizeof(myprec)) );
 
-    	checkCuda( cudaMalloc((void**)&djm, mz*mx*stencilSize*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&djp, mz*mx*stencilSize*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&dkm, my*mx*stencilSize*sizeof(myprec)) );
-    	checkCuda( cudaMalloc((void**)&dkp, my*mx*stencilSize*sizeof(myprec)) );
+	//Boundary condition pointer to pass from GPU to CPU
+	if(multiGPU) {
+		checkCuda( cudaMalloc((void**)&djm5, 5*mz*mx*stencilSize*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&djp5, 5*mz*mx*stencilSize*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&dkm5, 5*my*mx*stencilSize*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&dkp5, 5*my*mx*stencilSize*sizeof(myprec)) );
+
+		checkCuda( cudaMalloc((void**)&djm, mz*mx*stencilSize*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&djp, mz*mx*stencilSize*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&dkm, my*mx*stencilSize*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&dkp, my*mx*stencilSize*sizeof(myprec)) );
 	}
 
-    int bytes;
+	int bytes;
 
     //fill variables with domain size plus boundary location
     if(multiGPU) {
@@ -517,25 +516,23 @@ void clearSolver(Communicator rk) {
 
 	cudaSetDevice(rk.nodeRank);
 
-	for(int i=0; i<fin; i++) {
-		checkCuda( cudaFree(d_rhsr1[i]) );
-		checkCuda( cudaFree(d_rhsu1[i]) );
-		checkCuda( cudaFree(d_rhsv1[i]) );
-		checkCuda( cudaFree(d_rhsw1[i]) );
-		checkCuda( cudaFree(d_rhse1[i]) );
+	checkCuda( cudaFree(d_rhsr1) );
+	checkCuda( cudaFree(d_rhsu1) );
+	checkCuda( cudaFree(d_rhsv1) );
+	checkCuda( cudaFree(d_rhsw1) );
+	checkCuda( cudaFree(d_rhse1) );
 
-		checkCuda( cudaFree(d_rhsr2[i]) );
-		checkCuda( cudaFree(d_rhsu2[i]) );
-		checkCuda( cudaFree(d_rhsv2[i]) );
-		checkCuda( cudaFree(d_rhsw2[i]) );
-		checkCuda( cudaFree(d_rhse2[i]) );
+	checkCuda( cudaFree(d_rhsr2) );
+	checkCuda( cudaFree(d_rhsu2) );
+	checkCuda( cudaFree(d_rhsv2) );
+	checkCuda( cudaFree(d_rhsw2) );
+	checkCuda( cudaFree(d_rhse2) );
 
-		checkCuda( cudaFree(d_rhsr3[i]) );
-		checkCuda( cudaFree(d_rhsu3[i]) );
-		checkCuda( cudaFree(d_rhsv3[i]) );
-		checkCuda( cudaFree(d_rhsw3[i]) );
-		checkCuda( cudaFree(d_rhse3[i]) );
-	}
+	checkCuda( cudaFree(d_rhsr3) );
+	checkCuda( cudaFree(d_rhsu3) );
+	checkCuda( cudaFree(d_rhsv3) );
+	checkCuda( cudaFree(d_rhsw3) );
+	checkCuda( cudaFree(d_rhse3) );
 
 	checkCuda( cudaFree(djm) );
 	checkCuda( cudaFree(djp) );

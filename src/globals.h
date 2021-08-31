@@ -19,15 +19,15 @@
 #define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
 
 #define Lx       (20.0)
-#define Ly       (4.0)
-#define Lz       (100.0)
-#define mx_tot   200
+#define Ly       (7.0)
+#define Lz       (400.0)
+#define mx_tot   220
 #define my_tot   40
 #define mz_tot   1024
-#define nsteps   1001
-#define nfiles   100
+#define nsteps   501
+#define nfiles   200
 #define CFL      0.5f
-#define restartFile  400
+#define restartFile  -1
 
 #define boundaryLayer (true)
 #define perturbed	  (true)
@@ -38,15 +38,15 @@
 #define checkCFLcondition 100
 #define checkBulk 100
 
-#define Re       2800.0
-#define Pr       0.72
-#define Ma       0.8
+#define Re       1500.0
+#define Pr       0.75
+#define Ma       0.35
 #define viscexp  1.5
 #define gam      1.4
 #define Ec       ((gam - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gam*Ma*Ma))
 
-const double stretch = 4.0;
+const double stretch = 5.0;
 const myprec TwallTop = 1.0;
 const myprec TwallBot = 1.0;
 
