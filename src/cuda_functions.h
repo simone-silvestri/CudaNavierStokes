@@ -114,11 +114,19 @@ __device__ void derDev2x(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2y(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2z(myprec *d2f , myprec *f, Indices id);
 __device__ void derDev1xL(myprec *df , myprec *f, Indices id);
+<<<<<<< HEAD
 __device__ void derDev2xL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2yL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2zL(myprec *d2f, myprec *f, Indices id);
 extern __device__ __forceinline__ void derDevV1yL(myprec *df , myprec *f, Indices id);
 extern __device__ __forceinline__ void derDevV1zL(myprec *d2f, myprec *f, Indices id);
+=======
+__device__ void derDevV1yL(myprec *df , myprec *f, Indices id);
+__device__ void derDevV1zL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2xL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2yL(myprec *d2f, myprec *f, Indices id);
+__device__ void derDev2zL(myprec *d2f, myprec *f, Indices id);
+>>>>>>> main
 extern __device__ __forceinline__ void derDev1yL(myprec *df , myprec *f, Indices id);
 extern __device__ __forceinline__ void derDev1zL(myprec *d2f, myprec *f, Indices id);
 extern __device__ __forceinline__ void derDevShared1x(myprec *df , myprec *s_f, int si);
@@ -451,6 +459,10 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1yL(myprec 
 		  s_f[sj+my][si] 		   = s_f[sj][si];
 	  }
   }
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
   __syncthreads();
 
   for (int j = id.tiy; j < my; j += id.bdy) {
@@ -462,8 +474,11 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1yL(myprec 
 	}
 	df[globalIdx] = dftemp;
   }
+<<<<<<< HEAD
   __syncthreads();
 
+=======
+>>>>>>> main
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec *df, myprec *f, Indices id)
@@ -489,6 +504,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec 
 		  s_f[sk-stencilSize][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
 		  s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
 	  } else {
+<<<<<<< HEAD
 		  if(boundaryLayer) {
 			  s_f[sk+mz][si]           = 2.0*s_f[mz+stencilSize-1][si] - s_f[mz+2*stencilSize-sk-2][si];
 			  s_f[sk-stencilSize][si]  = 2.0*s_f[stencilSize][si]      - s_f[3*stencilSize-sk][si]; //here we assume that the boundary is at stencilSize (at the node not at the face)
@@ -496,6 +512,10 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec 
 			  s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
 			  s_f[sk+mz][si]           = s_f[sk][si];
 		  }
+=======
+		  s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
+		  s_f[sk+mz][si]           = s_f[sk][si];
+>>>>>>> main
 	  }
   }
 
@@ -510,6 +530,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec 
 	}
 	df[globalIdx] = dftemp;
   }
+<<<<<<< HEAD
   __syncthreads();
 
 }
@@ -590,4 +611,8 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec
 
 
 
+=======
+}
+
+>>>>>>> main
 #endif

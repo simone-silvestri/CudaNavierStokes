@@ -49,7 +49,11 @@ from CompNavierStokes import CompNavierStokes
 # we just have to set up the amount of required files (100 will do)
 # and make sure the domain is 2\pi*2\pi*2\pi
 
+<<<<<<< HEAD
 Nfiles=10 # we want to save down 10 fields
+=======
+Nfiles=3 # we want to save down 100 fields
+>>>>>>> main
 
 CompNavierStokes(nsteps=101,nfiles=Nfiles,Lx=2*m.pi,Ly=2*m.pi,Lz=2*m.pi)
 
