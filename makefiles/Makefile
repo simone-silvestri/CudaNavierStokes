@@ -36,16 +36,17 @@ OBJ=./obj/
 #visc= -Dviscexp=0.7
 #cfl= -DCFL=0.7
 
-#nonUniformX = -DnonUniformX=false
-#periodicX   = -DperiodicX=true
-#forcing     = -Dforcing=false
-#useStreams  = -DuseStreams=false
+#nonUniformX   = -DnonUniformX=false
+#periodicX     = -DperiodicX=true
+#forcing       = -Dforcing=false
+#useStreams    = -DuseStreams=false
+#boundaryLayer = -DboundaryLayer=false
 
 #passing default parameters to code 
 GRID   = $(mx_tot) $(my_tot) $(mz_tot) $(Lx) $(Ly) $(Lz) $(nonUniformX) $(periodicX) 
 WORKERS= $(pRow) $(pCol)
 STENCIL= $(stencilSize) $(stencilVisc)
-PARAM  = $(Re) $(Pr) $(Ma) $(visc) $(cfl) $(forcing) 
+PARAM  = $(Re) $(Pr) $(Ma) $(gam) $(visc) $(cfl) $(forcing) $(boundaryLayer) $(perturbed)
 RESTART= $(restart)
 SIM = $(nsteps) $(nfiles) $(useStreams) $(checkCFLcondition) $(checkBulk)
 
@@ -85,7 +86,7 @@ endif
 
 # List of objects
 OBJ_SRC = $(OBJ)main.o $(OBJ)comm.o $(OBJ)init.o 
-OBJ_CUDA= $(OBJ)cuda_utils.o $(OBJ)cuda_math.o $(OBJ)cuda_main.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o 
+OBJ_CUDA= $(OBJ)cuda_utils.o $(OBJ)cuda_math.o $(OBJ)cuda_main.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o $(OBJ)sponge.o
 OBJ_LINK= $(OBJ)cuda_link.o 
 OBJECTS =  $(OBJ_SRC) $(OBJ_CUDA) $(OBJ_LINK)
 
@@ -125,6 +126,9 @@ $(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
 	
 $(OBJ)cuda_derivs.o: $(SRC)cuda_derivs.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
+
+$(OBJ)sponge.o: $(SRC)sponge.cu
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)sponge.cu $(FLAG2) -o $(OBJ)sponge.o
 
 #linking step (OBJ_LINK)	
 $(OBJ)cuda_link.o: $(OBJ_CUDA)

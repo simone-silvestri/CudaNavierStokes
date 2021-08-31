@@ -54,6 +54,8 @@ myprec *djm5,*djp5,*dkm5,*dkp5;
 void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk);
 
 __device__ myprec gij[9][mx*my*mz];
+__device__ myprec time_on_GPU;
+__device__ Communicator rkGPU;
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt, int i);
 __global__ void eulerSumR(myprec *a, myprec *b, myprec *c, myprec *r, myprec *dt, int i);

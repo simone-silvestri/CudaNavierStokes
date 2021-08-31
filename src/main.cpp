@@ -47,8 +47,11 @@ int main(int argc, char** argv) {
     //Initialize the computational mesh
     initGrid(rk);
 
+    //If boundary layer set sponge on the GPU and initialize the solution field with references
+    if(boundaryLayer) calculateSponge(rk);
+
     //Initialize the solution field
-    restartWrapper(restartFile,rk);
+    restartWrapper(rk);
 
     //Output the initial field
     calcdt(rk);
@@ -60,6 +63,7 @@ int main(int argc, char** argv) {
     setGPUParameters(rk);
     initSolver(rk);
     copyField(0,rk);
+	writeField(0,rk);
 
     //Run the solver
     solverWrapper(rk);

@@ -5,8 +5,13 @@
 #include "cuda_functions.h"
 #include "cuda_globals.h"
 #include "cuda_math.h"
-#include "boundary.h"
+#include "boundary_condition_x.h"
 #include "comm.h"
+#include "sponge.h"
+
+__global__ void deviceAdvanceTime(myprec *dt) {
+	time_on_GPU += *dt;
+}
 
 __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
 	*a = 0.99*(*b) - 0.5*(*a/(*c)-1);
@@ -27,23 +32,15 @@ __global__ void derVelX(myprec *u, myprec *v, myprec *w) {
 	s_u[sj][si] = u[id.g];
 	s_v[sj][si] = v[id.g];
 	s_w[sj][si] = w[id.g];
-
 	__syncthreads();
 
-	if(id.i<stencilSize) {
-#if periodicX
-		perBCx(s_u[sj],si);perBCx(s_v[sj],si);perBCx(s_w[sj],si);
-#else
-		wallBCxVel(s_u[sj],si);wallBCxVel(s_v[sj],si);wallBCxVel(s_w[sj],si);
-#endif
-	}
-
+	BCxderVel(s_u[sj],s_v[sj],s_w[sj],id,si,mx);
 	__syncthreads();
 
 	myprec wrk1;
-	derDevShared1x(&wrk1,s_u[sj],si); gij[0][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_v[sj],si); gij[1][id.g] = wrk1;
-	derDevShared1x(&wrk1,s_w[sj],si); gij[2][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_u[sj],si); gij[0][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_v[sj],si); gij[1][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_w[sj],si); gij[2][id.g] = wrk1;
 
 }
 
@@ -51,18 +48,18 @@ __global__ void derVelY(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDev1yL(gij[3],u,id);
-	derDev1yL(gij[4],v,id);
-	derDev1yL(gij[5],w,id);
+	derDevV1yL(gij[3],u,id);
+	derDevV1yL(gij[4],v,id);
+	derDevV1yL(gij[5],w,id);
 }
 
 __global__ void derVelZ(myprec *u, myprec *v, myprec *w) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDev1zL(gij[6],u,id);
-	derDev1zL(gij[7],v,id);
-	derDev1zL(gij[8],w,id);
+	derDevV1zL(gij[6],u,uInit,id);
+	derDevV1zL(gij[7],v,vInit,id);
+	derDevV1zL(gij[8],w,wInit,id);
 }
 
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction) {
@@ -148,7 +145,7 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
     myprec dtViscInv = 0.0;
 
     myprec ien = e[id.g]/r[id.g] - 0.5*(u[id.g]*u[id.g] + v[id.g]*v[id.g] + w[id.g]*w[id.g]);
-    myprec sos = pow(gamma*(gamma-1)*ien,0.5);
+    myprec sos = pow(gam*(gam-1)*ien,0.5);
 
     myprec dx,d2x;
     dx = d_dxv[id.i];

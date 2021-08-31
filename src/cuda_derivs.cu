@@ -293,6 +293,8 @@ __device__ void derDev1xL(myprec *df, myprec *f, Indices id)
   }
 }
 
+<<<<<<< HEAD
+=======
 __device__ void derDevV1yL(myprec *df, myprec *f, Indices id)
 {
   __shared__ myprec s_f[my+stencilVisc*2][lPencils];
@@ -374,6 +376,7 @@ __device__ void derDevV1zL(myprec *df, myprec *f, Indices id)
   }
 }
 
+>>>>>>> main
 __device__ void derDev2xL(myprec *d2f, myprec *f, Indices id)
 {
   __shared__ myprec s_f[lPencils][mx+stencilSize*2]; // 4-wide halo
@@ -479,3 +482,5 @@ __device__ void derDev2zL(myprec *d2f, myprec *f, Indices id)
 		d2f[globalIdx] = dftemp;
 	}
 }
+
+

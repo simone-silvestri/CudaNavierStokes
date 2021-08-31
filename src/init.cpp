@@ -36,11 +36,18 @@ void initGrid(Communicator rk) {
 	dx = Lx*(1.0)/(mx_tot);
 
 	double xn[mx_tot+1];
+	int denom = mx_tot;
+	myprec denom2 = 2.0;
+	if(boundaryLayer) {
+		denom *= 2;
+		denom2/= 2;
+	}
+
 	for (int i=0; i<mx_tot+1; i++)
-		xn[i] = tanh(stretch*((i*1.0)/mx_tot-0.5))/tanh(stretch*0.5);
+		xn[i] = tanh(stretch*((i*1.0)/denom-0.5))/tanh(stretch*0.5);
 
 	for (int i=0; i<mx_tot; i++)
-			x[i] = Lx * (1.0 + (xn[i] + xn[i+1])/2.0)/2.0;
+		x[i] = Lx * (1.0 + (xn[i] + xn[i+1])/2.0)/denom2;
 
 	derivGrid(xpp,xp,x,dx);
 
@@ -91,7 +98,7 @@ void initChannel(Communicator rk) {
 	double P0 = T0*Rgas;
 	double R0 = 1.0;
 
-	U0 = pow(gamma,0.5)*Ma;
+	U0 = pow(gam,0.5)*Ma;
 
 	for (int i=0; i<mx; i++) {
 		for (int j=0; j<my; j++) {
@@ -99,20 +106,20 @@ void initChannel(Communicator rk) {
 				double rr1 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
 				double rr2 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
 				double rr3 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double ufluc  =  0.02*rr1;
-				double vfluc  =  0.02*rr2;
-				double wfluc  =  0.02*rr3;
+//				double ufluc  =  0.02*rr1;
+//				double vfluc  =  0.02*rr2;
+//				double wfluc  =  0.02*rr3;
 
 				double wmean  = 1.5*U0*R0*x[i]*(1.0-x[i]/Lx);
 
-				ufluc = ufluc + 0.05*sin(0.5*M_PI*x[i])*cos(2*M_PI*y[j+rk.jstart]);
-				vfluc = vfluc + 0.05*sin(0.5*M_PI*x[i])*sin(2*M_PI*y[j+rk.jstart]);
-				u[idx(i,j,k)] = ufluc;
-				v[idx(i,j,k)] = vfluc;
-				w[idx(i,j,k)] = wfluc + wmean;
+//				ufluc = ufluc + 0.05*sin(0.5*M_PI*x[i])*cos(2*M_PI*y[j+rk.jstart]);
+//				vfluc = vfluc + 0.05*sin(0.5*M_PI*x[i])*sin(2*M_PI*y[j+rk.jstart]);
+				u[idx(i,j,k)] = 0.0; //ufluc;
+				v[idx(i,j,k)] = 0.0; //vfluc;
+				w[idx(i,j,k)] = wmean; //+ wfluc;
 
 				r[idx(i,j,k)] = R0;
-				e[idx(i,j,k)] = P0/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
+				e[idx(i,j,k)] = P0/(gam-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 }
 
@@ -136,7 +143,7 @@ void initCHIT(Communicator rk) {
 				double press = P0 + 1.0/16.0*R0*V0*V0 * (cos(2.0*fx/1.0) + cos(2.0*fy/1.0)) * (cos(2.0*fz/1.0) + 2.0);
 
 				r[idx(i,j,k)] = press/Rgas/T0;
-				e[idx(i,j,k)] = press/(gamma-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
+				e[idx(i,j,k)] = press/(gam-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 }
 
@@ -280,7 +287,7 @@ void calcdt(Communicator rk) {
 	double dtViscInv = 0.0;
 	for (int gt = 0; gt<mx*my*mz; gt++) {
 		double ien = e[gt]/r[gt] - 0.5*(u[gt]*u[gt] + v[gt]*v[gt] + w[gt]*w[gt]);
-		double sos = pow(gamma*(gamma-1)*ien,0.5);
+		double sos = pow(gam*(gam-1)*ien,0.5);
 
 		int i = gt%my;
 
@@ -307,12 +314,12 @@ void calcdt(Communicator rk) {
 	mpiBarrier();
 }
 
-void restartWrapper(int restartFile, Communicator rk) {
+void restartWrapper(Communicator rk) {
     if(restartFile<0) {
     	if(forcing) {
     		initChannel(rk);
     	} else {
-    		initCHIT(rk);
+    		if(!boundaryLayer) initCHIT(rk);
     	}
     } else {
     	initField(restartFile,rk); }

@@ -1,20 +1,12 @@
-
-/**
- * Copyright 1993-2012 NVIDIA Corporation.  All rights reserved.
- *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
- */
-
 #include "globals.h"
 #include "cuda_functions.h"
 #include "cuda_math.h"
-#include "boundary.h"
+#include "sponge.h"
+#include "boundary_condition_x.h"
+#include "boundary_condition_y.h"
+#include "boundary_condition_z.h"
 
-#if mx>=558
+#if mx<=558  //difference is only the fact that dil is calculated based on g11, g22 and g33 (where g11 is mirrored and g22 and g33 extrapolated)
 __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
@@ -52,20 +44,9 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	s_prop2[sj][si] = lam[id.g];
 	__syncthreads();
 
-	// fill in periodic images in shared memory array
-	if (id.i < stencilSize) {
-#if periodicX
-		perBCx(s_u[sj],si); perBCx(s_v[sj],si); perBCx(s_w[sj],si);
-		perBCx(s_t[sj],si); perBCx(s_p[sj],si); perBCx(s_prop1[sj],si);
-		perBCx(s_prop2[sj],si);
-#else
-		wallBCxMir(s_p[sj],si);
-		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
-		wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
-		mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
-#endif
-	}
-
+	// Boundary conditions in the x-direction are in boundary_condition_x.h
+	// these are the BCs for u,v,w,p,t,mu,lambda
+	BCxNumber1(s_u[sj],s_v[sj],s_w[sj],s_p[sj],s_t[sj],s_prop1[sj],s_prop2[sj],id,si,mx);
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
@@ -103,13 +84,9 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	// pressure and dilation derivatives
 	s_prop2[sj][si] = dil[id.g];
 	__syncthreads();
-	if (id.i < stencilSize) {
-#if periodicX
-		perBCx(s_prop2[sj],si);
-#else
-		wallBCxMir(s_prop2[sj],si);
-#endif
-	}
+
+	// these are the BCs for the dilatation
+	BCxNumber2(s_prop2[sj],id,si,mx);
 	__syncthreads();
 
 	derDevSharedV1x(&wrk2,s_prop2[sj],si);
@@ -121,14 +98,11 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	s_prop1[sj][si] = r[id.g];
 	s_prop2[sj][si] = h[id.g];
 	__syncthreads();
+
 	// fill in periodic images in shared memory array
-	if (id.i < stencilSize) {
-#if periodicX
-		perBCx(s_prop1[sj],si); perBCx(s_prop2[sj],si);
-#else
-		rhBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
-#endif
-	}
+	// these are the BCs for rho (prop1) and enthalpy (prop2)
+	BCxNumber3(s_u[sj],s_v[sj],s_w[sj],s_p[sj],s_t[sj],s_prop1[sj],s_prop2[sj],id,si,mx);
+	__syncthreads();
 
 	fluxQuadSharedx(&wrk1,s_prop1[sj],s_u[sj],si);
 	rXtmp = wrk1;
@@ -302,6 +276,7 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	eX[id.g] = eXtmp;
 }
 #endif
+
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
@@ -325,25 +300,19 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 	__shared__ myprec s_u[sPencils][my+stencilSize*2];
 	__shared__ myprec s_v[sPencils][my+stencilSize*2];
 	__shared__ myprec s_w[sPencils][my+stencilSize*2];
-	__shared__ myprec s_dil[sPencils][my+stencilSize*2];
 	__shared__ myprec s_prop[sPencils][my+stencilSize*2];
+	__shared__ myprec s_dil[sPencils][my+stencilSize*2];
 
 	s_u[sj][si] = u[id.g];
 	s_v[sj][si] = v[id.g];
 	s_w[sj][si] = w[id.g];
-	s_dil[sj][si] = dil[id.g];
 	s_prop[sj][si] = mu[id.g];
+	s_dil[sj][si] = dil[id.g];
 	__syncthreads();
 
 	// fill in periodic images in shared memory array
-	if (id.j < stencilSize) {
-		if(multiGPU) {
-			haloBCy(s_u[sj],u,si,id);	  haloBCy(s_v[sj],v,si,id); haloBCy(s_w[sj],w,si,id);
-			haloBCy(s_prop[sj],mu,si,id); haloBCy(s_dil[sj],dil,si,id);
-		} else {
-			perBCy(s_u[sj],si);	perBCy(s_v[sj],si); perBCy(s_w[sj],si);
-			perBCy(s_prop[sj],si); perBCy(s_dil[sj],si); }
-	}
+	// these are boundary conditions for u,v,w,mu and dilatation
+	BCyNumber1(s_u[sj],s_v[sj],s_w[sj],s_prop[sj],s_dil[sj],u,v,w,mu,dil,id,si,my);
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
@@ -379,13 +348,11 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 	// pressure derivatives
 	s_dil[sj][si] = p[id.g];
 	__syncthreads();
-	if (id.j < stencilSize) {
-		if(multiGPU) {
-			haloBCy(s_dil[sj],p,si,id);
-		} else {
-			perBCy(s_dil[sj],si); }
-	}
+
+	// Boundary condition for pressure
+	BCyNumber2(s_dil[sj],p,id,si,my);
 	__syncthreads();
+
 	derDevShared1y(&wrk1,s_dil[sj],si);
 	vYtmp = vYtmp - wrk1;
 
@@ -393,12 +360,9 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 	s_prop[sj][si] = lam[id.g];
 	s_dil[sj][si]  = t[id.g];
 	__syncthreads();
-	if (id.j < stencilSize) {
-		if(multiGPU) {
-			haloBCy(s_dil[sj],t,si,id); haloBCy(s_prop[sj],lam,si,id);
-		} else {
-			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si); }
-	}
+
+	// Boundary condition for temperature and thermal conductivity
+	BCyNumber3(s_prop[sj],s_dil[sj],lam,t,id,si,my);
 	__syncthreads();
 
 	derDevSharedV2y(&wrk1,s_dil[sj],si);
@@ -411,12 +375,8 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 	s_prop[sj][si] = r[id.g];
 	s_dil[sj][si]  = h[id.g];
 	__syncthreads();
-	if (id.j < stencilSize) {
-		if(multiGPU) {
-			haloBCy(s_dil[sj],h,si,id); haloBCy(s_prop[sj],r,si,id);
-		} else {
-			perBCy(s_dil[sj],si); perBCy(s_prop[sj],si); }
-	}
+	// Boundary condition for density and enthalpy
+	BCyNumber3(s_prop[sj],s_dil[sj],r,h,id,si,my);
 	__syncthreads();
 	fluxQuadSharedy(&wrk1,s_prop[sj],s_v[sj],si);
 	rYtmp = wrk1;
@@ -473,25 +433,19 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	__shared__ myprec s_u[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_v[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_w[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_dil[sPencils][mz+stencilSize*2];
 	__shared__ myprec s_prop[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_dil[sPencils][mz+stencilSize*2];
 
 	s_u[sj][si] = u[id.g];
 	s_v[sj][si] = v[id.g];
 	s_w[sj][si] = w[id.g];
-	s_dil[sj][si] = dil[id.g];
 	s_prop[sj][si] = mu[id.g];
+	s_dil[sj][si] = dil[id.g];
 	__syncthreads();
 
 	// fill in periodic images in shared memory array
-	if (id.k < stencilSize) {
-		if(multiGPU) {
-			haloBCz(s_u[sj],u,si,id);	  haloBCz(s_v[sj],v,si,id); haloBCz(s_w[sj],w,si,id);
-			haloBCz(s_prop[sj],mu,si,id); haloBCz(s_dil[sj],dil,si,id);
-		} else {
-			perBCz(s_u[sj],si);	perBCz(s_v[sj],si); perBCz(s_w[sj],si);
-			perBCz(s_prop[sj],si); perBCz(s_dil[sj],si); }
-	}
+	// these are boundary conditions for u,v,w,mu and dilatation
+	BCzNumber1(s_u[sj],s_v[sj],s_w[sj],s_prop[sj],s_dil[sj],u,v,w,mu,dil,id,si,mz);
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
@@ -508,7 +462,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	vZtmp *= wrk2;
 	wZtmp *= wrk2;
 
-	// viscous fluxes derivative
+	//viscous fluxes derivative
 	derDevSharedV2z(&wrk1,s_u[sj],si);
 	uZtmp = uZtmp + wrk1*s_prop[sj][si];
 	derDevSharedV2z(&wrk1,s_v[sj],si);
@@ -527,12 +481,8 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	// pressure derivatives
 	s_dil[sj][si] = p[id.g];
 	__syncthreads();
-	if (id.k < stencilSize) {
-		if(multiGPU) {
-			haloBCz(s_dil[sj],p,si,id);
-		} else {
-			perBCz(s_dil[sj],si); }
-	}
+	BCzNumber2(s_dil[sj],p,id,si,mz);
+
 	__syncthreads();
 	derDevShared1z(&wrk1,s_dil[sj],si);
 	wZtmp = wZtmp - wrk1;
@@ -541,12 +491,9 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	s_prop[sj][si] = lam[id.g];
 	s_dil[sj][si]  = t[id.g];
 	__syncthreads();
-	if (id.k < stencilSize) {
-		if(multiGPU) {
-			haloBCz(s_dil[sj],t,si,id); haloBCz(s_prop[sj],lam,si,id);
-		} else {
-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
-	}
+
+	// Boundary conditions for thermal conductivity and temperature
+	BCzNumber3(s_prop[sj],s_dil[sj],lam,t,id,si,mz);
 	__syncthreads();
 
 	derDevSharedV2z(&wrk1,s_dil[sj],si);
@@ -559,13 +506,11 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	s_prop[sj][si] = r[id.g];
 	s_dil[sj][si]  = h[id.g];
 	__syncthreads();
-	if (id.k < stencilSize) {
-		if(multiGPU) {
-			haloBCz(s_dil[sj],h,si,id); haloBCz(s_prop[sj],r,si,id);
-		} else {
-			perBCz(s_dil[sj],si); perBCz(s_prop[sj],si); }
-	}
+
+	// Boundary conditions for denisty and enthalpy
+	BCzNumber4(s_prop[sj],s_dil[sj],r,h,id,si,mz);
 	__syncthreads();
+
 	fluxQuadSharedz(&wrk1,s_prop[sj],s_w[sj],si);
 	rZtmp = wrk1;
 	__syncthreads();

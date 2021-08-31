@@ -4,6 +4,7 @@
 #include "cuda_main.h"
 #include "cuda_math.h"
 #include "comm.h"
+#include "sponge.h"
 
 cudaStream_t s[9];
 
@@ -25,6 +26,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
     	if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
     	if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
     	if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
+    	deviceAdvanceTime<<<1,1>>>(dtC);
     	if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_u,d_v,d_w,d_e,rk);
 
     	deviceMul<<<grid0,block0,0,s[0]>>>(d_uO,d_r,d_u);
@@ -58,10 +60,11 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 #else
 		if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();
 		RHSDeviceDir[0]<<<d_grid[0],d_block[0],0,s[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
-    	if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
+		if(multiGPU) updateHalo(d_dil,rk); cudaDeviceSynchronize();
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
+		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e);
     	for (int d=0; d<fin; d++) {
     		eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],dtC,d);
     		eulerSum<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],dtC,d);    	}
@@ -105,6 +108,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr2[0],d_rhsu2[0],d_rhsv2[0],d_rhsw2[0],d_rhse2[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
+		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e);
 		for (int d=0; d<fin; d++) {
 			eulerSum3<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],d_rhsr2[d],dtC,d);
 			eulerSum3<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],d_rhse2[d],dtC,d);   	}
@@ -148,6 +152,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		RHSDeviceDir[1]<<<d_grid[1],d_block[1]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 		RHSDeviceDir[2]<<<d_grid[2],d_block[2]>>>(d_rhsr3[0],d_rhsu3[0],d_rhsv3[0],d_rhsw3[0],d_rhse3[0],d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz);
 #endif
+		if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(d_rhsr1[0],d_rhsu1[0],d_rhsv1[0],d_rhsw1[0],d_rhse1[0],d_r,d_u,d_v,d_w,d_e);
     	for (int d=0; d<fin; d++) {
     		rk3final<<<grid0,block0>>>(d_r,d_rO,d_rhsr1[d],d_rhsr2[d],d_rhsr3[d],dtC,d);
     		rk3final<<<grid0,block0>>>(d_e,d_eO,d_rhse1[d],d_rhse2[d],d_rhse3[d],dtC,d); 	}
@@ -224,7 +229,7 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 
 	if(bc==1) gl += mx*my*mz;
 
-    myprec cvInv = (gamma - 1.0)/Rgas;
+    myprec cvInv = (gam - 1.0)/Rgas;
 
     myprec invrho = 1.0/rho[gl];
 
@@ -282,10 +287,6 @@ void solverWrapper(Communicator rk) {
     } else {
     	start=restartFile;
     }
-
-//  checkCuda( cudaFuncSetCacheConfig( RHSDeviceSharedFlxX, cudaFuncCachePreferShared ) );
-//	checkCuda( cudaFuncSetCacheConfig( RHSDeviceSharedFlxY, cudaFuncCachePreferShared ) );
-//	checkCuda( cudaFuncSetCacheConfig( RHSDeviceSharedFlxZ, cudaFuncCachePreferShared ) );
 
     if(rk.rank==0) fp = fopen("solution.txt","w+");
     for(int file = start+1; file<nfiles+start+1; file++) {

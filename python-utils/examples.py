@@ -8,6 +8,7 @@ sys.path.append('python-utils')
 
 from writexmf import writexmf
 from CompNavierStokes import CompNavierStokes
+from CompNavierStokes import initializeSolution
 
 # Parameters that can be specified are:
 
@@ -49,11 +50,7 @@ from CompNavierStokes import CompNavierStokes
 # we just have to set up the amount of required files (100 will do)
 # and make sure the domain is 2\pi*2\pi*2\pi
 
-<<<<<<< HEAD
-Nfiles=10 # we want to save down 10 fields
-=======
 Nfiles=3 # we want to save down 100 fields
->>>>>>> main
 
 CompNavierStokes(nsteps=101,nfiles=Nfiles,Lx=2*m.pi,Ly=2*m.pi,Lz=2*m.pi)
 
@@ -87,40 +84,11 @@ CompNavierStokes(mx=160, my=192, mz=192, \
 		 Lx=2,   Ly=2*m.pi, Lz=4*m.pi, \
 		 perX=False, nUnifX=True, forcing=True, \
 		 Re=3000, Ma=1.5, visc=0.7, \
-		 nsteps=1000, nfiles=Nfiles) 
+		 nsteps=1000, nfiles=100) 
 
 # Let's again save the results in a different folder and create a visualization xmf file
 
 directory='./fields/supersonic-channel/'
-if not(path.exists(directory)):
-	subprocess.call(["mkdir",directory])
-
-subprocess.call('mv ./fields/*.bin ' + directory, shell=True)
-
-x = np.fromfile(directory + 'x.bin', dtype='double')
-y = np.fromfile(directory + 'y.bin', dtype='double')
-z = np.fromfile(directory + 'z.bin', dtype='double')
-writexmf(directory + 'supersonic-channel.xmf','double', \
-         x, y, z, \
-         np.arange(1,Nfiles+1,1), 1.0, \
-         ['r',\
-          'u',\
-          'v',\
-	  'w',\
-          'e'])
-
-# Now let's run a supersonic laminar boundary layer channel with Mach equal to 0.8 and reynolds (bulk) equal to 300
-
-CompNavierStokes(mx=320, my=4, mz=320, \
-		 Lx=20,   Ly=2, Lz=100, \
-		 perX=False, nUnifX=True, forcing=False, boundaryLayer=True, \
-		 Re=300, Ma=0.8, visc=0.75, Pr=0.71, \
-		 checkCFL=10,checkBulk=10, \
-		 nsteps=1000, nfiles=Nfiles) 
-
-# Let's again save the results in a different folder and create a visualization xmf file
-
-directory='./fields/laminar-BL/'
 if not(path.exists(directory)):
 	subprocess.call(["mkdir",directory])
 

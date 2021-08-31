@@ -10,51 +10,46 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//////Remember: Run always the code with num-tasks-per-node = num-GPUs-per-node. Otherwise it will not work!
-//#define pRow 1
-//#define pCol 1
-////
-//////Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
-//#define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
-//#define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
-////
-//#define Lx       (2.0*M_PI)
-//#define Ly       (2.0*M_PI)
-//#define Lz       (2.0*M_PI)
-//#define mx_tot   64
-//#define my_tot   64
-//#define mz_tot   64
-//#define nsteps   150
-//#define nfiles	 100
-//#define CFL      0.7f
-//#define restart  -1
-#if restart<0
-	const int restartFile = -1;
-#else
-	const int restartFile = restart;
-#endif
+//Remember: Run always the code with num-tasks-per-node = num-GPUs-per-node. Otherwise it will not work!
+#define pRow 1
+#define pCol 1
 
-//#define Re       1600.f
-//#define Pr       0.7f
-#define gamma    1.4f
-//#define Ma       0.1f
-//#define viscexp  0.7
-#define Ec       ((gamma - 1.f)*Ma*Ma)
-#define Rgas     (1.f/(gamma*Ma*Ma))
+//Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
+#define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
+#define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
 
+#define Lx       (20.0)
+#define Ly       (4.0)
+#define Lz       (100.0)
+#define mx_tot   200
+#define my_tot   40
+#define mz_tot   1024
+#define nsteps   1001
+#define nfiles   100
+#define CFL      0.5f
+#define restartFile  400
 
+#define boundaryLayer (true)
+#define perturbed	  (true)
+#define forcing       (false)
+#define periodicX     (false)
+#define nonUniformX   (true)
+#define useStreams    (false)   // true might give a little speedup (it might also be harmful in terms of performance in certain occasions) very bad for memory footprint
+
+#define checkCFLcondition 100
+#define checkBulk 100
+
+#define Re       2800.0
+#define Pr       0.72
+#define Ma       0.8
+#define viscexp  1.5
+#define gam      1.4
+#define Ec       ((gam - 1.f)*Ma*Ma)
+#define Rgas     (1.f/(gam*Ma*Ma))
+
+const double stretch = 4.0;
 const myprec TwallTop = 1.0;
 const myprec TwallBot = 1.0;
-
-//#define forcing       (false)
-//#define periodicX     (true)
-//#define nonUniformX   (false)
-//#define useStreams    (false)   // true might give a little speedup (it might also be harmful in terms of performance in certain occasions) very bad for memory footprint
-
-const double stretch = 3.0;
-
-//#define checkCFLcondition 100
-//#define checkBulk 100
 
 #define mx (mx_tot)
 #define my (my_tot/pRow)
