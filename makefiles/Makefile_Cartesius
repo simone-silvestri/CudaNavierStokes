@@ -96,6 +96,10 @@ $(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
 $(OBJ)cuda_derivs.o: $(SRC)cuda_derivs.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
 
+$(OBJ)sponge.o: $(SRC)sponge.cu
+	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)sponge.cu $(FLAG2) -o $(OBJ)sponge.o
+
+
 #linking step (OBJ_LINK)	
 $(OBJ)cuda_link.o: $(OBJ_CUDA)
 	$(NVCC) -dlink $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(OBJ_CUDA) $(FLAG2) -o $(OBJ)cuda_link.o
