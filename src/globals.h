@@ -24,9 +24,9 @@
 #define mx_tot   220
 #define my_tot   40
 #define mz_tot   1024
-#define nsteps   501
-#define nfiles   200
-#define CFL      0.5f
+#define nsteps   1001
+#define nfiles   500
+#define CFL      0.75f
 #define restartFile  -1
 
 #define boundaryLayer (true)

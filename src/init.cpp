@@ -106,17 +106,17 @@ void initChannel(Communicator rk) {
 				double rr1 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
 				double rr2 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
 				double rr3 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-//				double ufluc  =  0.02*rr1;
-//				double vfluc  =  0.02*rr2;
-//				double wfluc  =  0.02*rr3;
+				double ufluc  =  0.02*rr1;
+				double vfluc  =  0.02*rr2;
+				double wfluc  =  0.02*rr3;
 
 				double wmean  = 1.5*U0*R0*x[i]*(1.0-x[i]/Lx);
 
-//				ufluc = ufluc + 0.05*sin(0.5*M_PI*x[i])*cos(2*M_PI*y[j+rk.jstart]);
-//				vfluc = vfluc + 0.05*sin(0.5*M_PI*x[i])*sin(2*M_PI*y[j+rk.jstart]);
-				u[idx(i,j,k)] = 0.0; //ufluc;
-				v[idx(i,j,k)] = 0.0; //vfluc;
-				w[idx(i,j,k)] = wmean; //+ wfluc;
+				ufluc = ufluc + 0.05*sin(0.5*M_PI*x[i])*cos(2*M_PI*y[j+rk.jstart]);
+				vfluc = vfluc + 0.05*sin(0.5*M_PI*x[i])*sin(2*M_PI*y[j+rk.jstart]);
+				u[idx(i,j,k)] = ufluc;
+				v[idx(i,j,k)] = vfluc;
+				w[idx(i,j,k)] = wmean + wfluc;
 
 				r[idx(i,j,k)] = R0;
 				e[idx(i,j,k)] = P0/(gam-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));

@@ -67,7 +67,7 @@ deltaBlasius = yBlasius[idx]
 
 r = 1/T
 V = U*yBlasius/(4.0**0.5) - F0/(r*(2**0.5))
-V /= deltaBlasius
+# V /= deltaBlasius
 
 
 y = yBlasius/deltaBlasius

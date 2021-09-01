@@ -2,7 +2,7 @@ def CompNavierStokes(mx=128,my=128,mz=128, \
 		     pRow=1,pCol=1, \
 		     Lx=1.0,Ly=1.0,Lz=1.0, \
 		     Re=1600,Pr=1.0,Ma=0.1,gam=1.4,visc=1,cfl=0.5, \
-		     nUnifX=False,perX=True,forcing=False,stream=False,boundaryLayer=False, perturbed=False, \
+		     nUnifX=False,perX=True,forcing=False,boundaryLayer=False,perturbed=False, \
                      stenA=4,stenV=4,restart=-1,nsteps=200,nfiles=1, \
 		     checkCFL=10, checkBulk=10):
 	
@@ -53,11 +53,6 @@ def CompNavierStokes(mx=128,my=128,mz=128, \
 		args+= "forcing=-Dforcing=true" + " "
 	else:
 		args+= "forcing=-Dforcing=false" + " "
-
- 	if stream:
-		args+= "useStream=-DuseStream=true" + " "
-	else:
-		args+= "useStream=-DuseStream=false" + " "
 
  	if boundaryLayer:
 		args+= "boundaryLayer=-DboundaryLayer=true" + " "

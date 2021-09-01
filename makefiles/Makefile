@@ -39,7 +39,6 @@ OBJ=./obj/
 #nonUniformX   = -DnonUniformX=false
 #periodicX     = -DperiodicX=true
 #forcing       = -Dforcing=false
-#useStreams    = -DuseStreams=false
 #boundaryLayer = -DboundaryLayer=false
 
 #passing default parameters to code 
@@ -48,7 +47,7 @@ WORKERS= $(pRow) $(pCol)
 STENCIL= $(stencilSize) $(stencilVisc)
 PARAM  = $(Re) $(Pr) $(Ma) $(gam) $(visc) $(cfl) $(forcing) $(boundaryLayer) $(perturbed)
 RESTART= $(restart)
-SIM = $(nsteps) $(nfiles) $(useStreams) $(checkCFLcondition) $(checkBulk)
+SIM = $(nsteps) $(nfiles) $(checkCFLcondition) $(checkBulk)
 
 
 CPPFLAGS= $(PARAM) $(WORKERS) $(STENCIL) $(RESTART) $(GRID) $(SIM)

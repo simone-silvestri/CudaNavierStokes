@@ -59,19 +59,17 @@ def selfSimilarSol(gam=1.4,Ma=0.3,Re=300,expMu=1.5,Pr=0.72):
     res = solve_bvp(cBL_RHS, cBL_BC, eta, f, verbose=2)
     F0,U,_,T,_,yBlasius = res.sol(eta)
     
-    
     # expand arrays to y = 100 onto 1000 
     
     idx = np.where(U > 0.99)[0][0]
     deltaBlasius = yBlasius[idx]
     
-    
     r = 1/T
     V = U*yBlasius/(4.0**0.5) - F0/(r*(2**0.5))
-    V *= deltaBlasius
+    V /= deltaBlasius
     
     
-    y = yBlasius/deltaBlasius*5
+    y = yBlasius/deltaBlasius
     
     yfin = np.zeros(1000)
     rfin = np.zeros(1000)
