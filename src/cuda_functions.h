@@ -463,7 +463,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1yL(myprec 
 	df[globalIdx] = dftemp;
   }
   __syncthreads();
-
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec *df, myprec *f, Indices id)
@@ -510,7 +509,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec 
 	}
 	df[globalIdx] = dftemp;
   }
-
   __syncthreads();
 
 }
@@ -588,7 +586,5 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec
   __syncthreads();
 
 }
-
-
 
 #endif
