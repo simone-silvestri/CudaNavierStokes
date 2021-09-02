@@ -36,7 +36,7 @@ MAT = -ftz=true -prec-div=false
 FLAG1 = -arch 'compute_$(GPU_ARCHITECTURE)' -code 'sm_$(GPU_ARCHITECTURE)'
 INC = -I$(CUDA)/include -I$(GEN)/include $(GLB)
 #INC += -I$(MPI)/include
-LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda -lcudart -lcudadevrt 
+LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcudart -lcudadevrt 
 #LIB += -L$(MPI)/lib
 NVCC = nvcc $(DBG) $(CPPFLAGS) -lineinfo -rdc=true # 
 MAXREG = # --maxrregcount=82 --ptxas-options=-v
