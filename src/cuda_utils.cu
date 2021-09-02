@@ -195,10 +195,10 @@ void copyThreadGridsToDevice(Communicator rk) {
 
 	// Z-grid (2) for viscous fluxes and (4) for advective fluxes
 	d_grid[4]  = dim3(mx / lPencils, my, 1);
-	d_block[4] = dim3(lPencils, (mz * sPencils) / lPencils, 1);
+	d_block[4] = dim3(lPencils, (mz / nDivZ * sPencils) / lPencils, 1);
 
 	d_grid[2]  = dim3(mx / sPencils, my, 1);
-	d_block[2] = dim3(mz , sPencils, 1); //if not using shared change!!
+	d_block[2] = dim3(mz / nDivZ , sPencils, 1); //if not using shared change!!
 
 	grid0 = d_grid[0];
 	block0= d_block[0];
@@ -266,9 +266,9 @@ void sanityCheckThreadGrids(Communicator rk) {
 		mpiBarrier();
 		exit(1);
 	}
-	if((mz*sPencils)%lPencils!=0) {
+	if((mz/nDivZ*sPencils)%lPencils!=0) {
 		if(rk.rank==0) {
-			printf("Error! -> (mz*sPencils) mod lPencils!=0\n");
+			printf("Error! -> (mz/nDivZ*sPencils) mod lPencils!=0\n");
 		}
 		mpiBarrier();
 		exit(1);
@@ -486,7 +486,7 @@ void initSolver(Communicator rk) {
 
 	checkCuda( cudaMalloc((void**)&d_dil, bytes) );
 
-    for (int i=0; i<9; i++) {
+    for (int i=0; i<16; i++) {
     	checkCuda( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
     }
 
@@ -576,7 +576,7 @@ void clearSolver(Communicator rk) {
 	checkCuda( cudaFreeHost(rcvZm5) );
 	checkCuda( cudaFreeHost(rcvZp5) );
 
-	for (int i=0; i<9; i++) {
+	for (int i=0; i<16; i++) {
 		checkCuda( cudaStreamDestroy(s[i]) );
 	}
 }
@@ -590,31 +590,31 @@ void fillBoundaries(myprec *jm, myprec *jp, myprec *km, myprec *kp, myprec *var,
 	dim3 block = dim3(mx,stencilSize,1);
 
 	if(direction == 0) {
-		fillBCValuesY<<<gridY,block,0,s[5]>>>(djm,djp,var,0);
+		fillBCValuesY<<<gridY,block,0,s[4]>>>(djm,djp,var,0);
 		fillBCValuesZ<<<gridZ,block,0,s[6]>>>(dkm,dkp,var,0);
+		cudaStreamSynchronize(s[4]);
 		cudaStreamSynchronize(s[5]);
-		cudaStreamSynchronize(s[6]);
-		checkCuda( cudaMemcpyAsync(jm,djm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[5]) );
-		checkCuda( cudaMemcpyAsync(jp,djp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[6]) );
-		checkCuda( cudaMemcpyAsync(km,dkm,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[7]) );
-		checkCuda( cudaMemcpyAsync(kp,dkp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[8]) );
+		checkCuda( cudaMemcpyAsync(jm,djm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[4]) );
+		checkCuda( cudaMemcpyAsync(jp,djp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[5]) );
+		checkCuda( cudaMemcpyAsync(km,dkm,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[6]) );
+		checkCuda( cudaMemcpyAsync(kp,dkp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyDeviceToHost,s[7]) );
+		cudaStreamSynchronize(s[4]);
 		cudaStreamSynchronize(s[5]);
 		cudaStreamSynchronize(s[6]);
 		cudaStreamSynchronize(s[7]);
-		cudaStreamSynchronize(s[8]);
 	} else {
-		checkCuda( cudaMemcpyAsync(djm,jm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[5]) );
-		checkCuda( cudaMemcpyAsync(djp,jp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[6]) );
-		checkCuda( cudaMemcpyAsync(dkm,km,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[7]) );
-		checkCuda( cudaMemcpyAsync(dkp,kp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[8]) );
+		checkCuda( cudaMemcpyAsync(djm,jm,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[4]) );
+		checkCuda( cudaMemcpyAsync(djp,jp,mz*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[5]) );
+		checkCuda( cudaMemcpyAsync(dkm,km,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[6]) );
+		checkCuda( cudaMemcpyAsync(dkp,kp,my*mx*stencilSize*sizeof(myprec),cudaMemcpyHostToDevice,s[7]) );
+		cudaStreamSynchronize(s[4]);
 		cudaStreamSynchronize(s[5]);
 		cudaStreamSynchronize(s[6]);
 		cudaStreamSynchronize(s[7]);
-		cudaStreamSynchronize(s[8]);
-		fillBCValuesY<<<gridY,block,0,s[5]>>>(djm,djp,var,1);
-		fillBCValuesZ<<<gridZ,block,0,s[6]>>>(dkm,dkp,var,1);
+		fillBCValuesY<<<gridY,block,0,s[4]>>>(djm,djp,var,1);
+		fillBCValuesZ<<<gridZ,block,0,s[5]>>>(dkm,dkp,var,1);
+		cudaStreamSynchronize(s[4]);
 		cudaStreamSynchronize(s[5]);
-		cudaStreamSynchronize(s[6]);
 	}
 }
 

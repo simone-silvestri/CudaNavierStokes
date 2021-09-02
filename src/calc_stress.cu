@@ -53,13 +53,13 @@ __global__ void derVelY(myprec *u, myprec *v, myprec *w) {
 	derDevV1yL(gij[5],w,id);
 }
 
-__global__ void derVelZ(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w, int kNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDevV1zL(gij[6],u,uInit,id);
-	derDevV1zL(gij[7],v,vInit,id);
-	derDevV1zL(gij[8],w,wInit,id);
+	derDevV1zL(gij[6],u,uInit,id,kNum);
+	derDevV1zL(gij[7],v,vInit,id,kNum);
+	derDevV1zL(gij[8],w,wInit,id,kNum);
 }
 
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction) {

@@ -41,20 +41,20 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 #if mx==1 || my==1 
 const int sPencils = 1;
 #else
-#if mx+2*stencilSize > 279 ||  my+2*stencilSize>600 || mz+2*stencilSize>600
+#if mx+2*stencilSize > 279 ||  my+2*stencilSize>600 || mz/nDivZ+2*stencilSize>600
 const int sPencils = 1;  // small # pencils
 #else
 const int sPencils = 2;
 #endif
 #endif
-#if mx<=16 || my<=16 || mz<=16
+#if mx<=32 || my<=32 || mz<=32
 const int lPencils = 1;  
 #else
-#if mz > 512 || my > 512
+#if mz/nDivZ > 512 || my > 512
 const int lPencils = 4;  // large # pencils
-#elif mz > 256 || my > 256
+#elif mz/nDivZ > 256 || my > 256
 const int lPencils = 8;  // large # pencils
-#elif mz > 128 || my > 128
+#elif mz/nDivZ > 128 || my > 128
 const int lPencils = 16;  // large # pencils
 #else
 const int lPencils = 32;
@@ -82,7 +82,7 @@ extern __device__ Communicator rkGPU;
 extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
 extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
 
-extern cudaStream_t s[9];
+extern cudaStream_t s[16];
 
 extern myprec *d_r;
 extern myprec *d_u;

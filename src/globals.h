@@ -21,11 +21,11 @@
 #define Lx       (20.0)
 #define Ly       (7.0)
 #define Lz       (400.0)
-#define mx_tot   220
-#define my_tot   40
+#define mx_tot   224
+#define my_tot   64
 #define mz_tot   1024
-#define nsteps   1001
-#define nfiles   500
+#define nsteps   2001
+#define nfiles	 300
 #define CFL      0.75f
 #define restartFile  -1
 
@@ -46,13 +46,15 @@
 #define Ec       ((gam - 1.f)*Ma*Ma)
 #define Rgas     (1.f/(gam*Ma*Ma))
 
-const double stretch = 5.0;
+const double stretch  = 5.0;
 const myprec TwallTop = 1.0;
 const myprec TwallBot = 1.0;
 
 #define mx (mx_tot)
 #define my (my_tot/pRow)
 #define mz (mz_tot/pCol)
+
+#define nDivZ 8 // (mz-1)/1024 + 1;   (maximum 8 otherwise there are not enough streams to fit the computation)
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); })

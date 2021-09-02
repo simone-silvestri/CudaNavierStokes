@@ -6,11 +6,10 @@
 #include "boundary_condition_y.h"
 #include "boundary_condition_z.h"
 
-#if mx<=558  //difference is only the fact that dil is calculated based on g11, g22 and g33 (where g11 is mirrored and g22 and g33 extrapolated)
 __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz) {
+		myprec *dil, myprec *dpdz, int iNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
@@ -126,161 +125,11 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	wX[id.g] = wXtmp;
 	eX[id.g] = eXtmp;
 }
-#else
-__global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
-		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
-		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz) {
-
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-
-	int si = id.i + stencilSize;       // local i for shared memory access + halo offset
-	int sj = id.tiy;                   // local j for shared memory access
-
-	myprec rXtmp=0;
-	myprec uXtmp=0;
-	myprec vXtmp=0;
-	myprec wXtmp=0;
-	myprec eXtmp=0;
-
-	myprec wrk1=0;
-	myprec wrk2=0;
-
-	__shared__ myprec s_u[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_v[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_w[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_t[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_p[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_prop1[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_prop2[sPencils][mx+stencilSize*2];
-#if !periodicX
-	__shared__ myprec s_s0[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_s4[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_s8[sPencils][mx+stencilSize*2];
-#endif
-	__shared__ myprec s_dil[sPencils][mx+stencilSize*2];
-
-	s_u[sj][si] = u[id.g];
-	s_v[sj][si] = v[id.g];
-	s_w[sj][si] = w[id.g];
-	s_t[sj][si] = t[id.g];
-	s_p[sj][si] = p[id.g];
-	s_prop1[sj][si] = mu[id.g];
-	s_prop2[sj][si] = lam[id.g];
-#if !periodicX
-	s_s0[sj][si]= gij[0][id.g];
-	s_s4[sj][si]= gij[4][id.g];
-	s_s8[sj][si]= gij[8][id.g];
-#endif
-	s_dil[sj][si] = dil[id.g];
-	__syncthreads();
-
-	// fill in periodic images in shared memory array
-	if (id.i < stencilSize) {
-#if periodicX
-		perBCx(s_u[sj],si); perBCx(s_v[sj],si); perBCx(s_w[sj],si);
-		perBCx(s_t[sj],si); perBCx(s_p[sj],si); perBCx(s_prop1[sj],si);
-		perBCx(s_prop2[sj],si);
-#else
-		wallBCxMir(s_p[sj],si);
-		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
-		wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
-		mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
-		wallBCxMir(s_s0[sj],si); wallBCxVel(s_s4[sj],si);  wallBCxVel(s_s8[sj],si);
-#endif
-	}
-
-	__syncthreads();
-
-	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uXtmp = ( 2 * gij[0][id.g] - 2./3.*s_dil[sj][si] );
-	vXtmp = (     gij[1][id.g] + gij[3][id.g]  );
-	wXtmp = (     gij[2][id.g] + gij[6][id.g]  );
-
-	//adding the viscous dissipation part duidx*mu*six
-	eXtmp = s_prop1[sj][si]*(uXtmp*gij[0][id.g] + vXtmp*gij[1][id.g] + wXtmp*gij[2][id.g]);
-
-	//Adding here the terms d (mu) dx * sxj; (lambda in case of h in rhse);
-	derDevSharedV1x(&wrk2,s_prop1[sj],si); //wrk2 = d (mu) dx
-    uXtmp *= wrk2;
-	vXtmp *= wrk2;
-	wXtmp *= wrk2;
-
-	// viscous fluxes derivative mu*d^2ui dx^2
-	derDevSharedV2x(&wrk1,s_u[sj],si);
-	uXtmp = uXtmp + wrk1*s_prop1[sj][si];
-	derDevSharedV2x(&wrk1,s_v[sj],si);
-	vXtmp = vXtmp + wrk1*s_prop1[sj][si];
-	derDevSharedV2x(&wrk1,s_w[sj],si);
-	wXtmp = wXtmp + wrk1*s_prop1[sj][si];
-
-	//adding the viscous dissipation part ui*(mu * d2duidx2 + dmudx * six)
-	eXtmp = eXtmp + s_u[sj][si]*uXtmp + s_v[sj][si]*vXtmp + s_w[sj][si]*wXtmp;
-
-	//adding the molecular conduction part (d2 temp dx2*lambda + dlambda dx * d temp dx)
-	derDevSharedV2x(&wrk1,s_t[sj],si);
-	eXtmp = eXtmp + wrk1*s_prop2[sj][si];
-	derDevSharedV1x(&wrk2,s_prop2[sj],si); //wrk2 = d (lam) dx
-	derDevSharedV1x(&wrk1,s_t[sj],si); //wrk1 = d (t) dx
-	eXtmp = eXtmp + wrk1*wrk2;
-
-	// pressure and dilation derivatives
-	if (id.i < stencilSize) {
-#if periodicX
-		perBCx(s_dil[sj],si);
-#else
-		wallBCxDil(s_dil[sj],s_s0[sj],s_s4[sj],s_s8[sj],si);
-#endif
-	}
-	__syncthreads();
-
-	derDevSharedV1x(&wrk2,s_dil[sj],si);
-	derDevShared1x(&wrk1 ,s_p[sj],si);
-	uXtmp = uXtmp + s_prop1[sj][si]*wrk2/3.0     - wrk1 ;
-	eXtmp = eXtmp + s_prop1[sj][si]*wrk2/3.0*s_u[sj][si];
-
-	//Adding here the terms - d (ru phi) dx;
-	s_prop1[sj][si] = r[id.g];
-	s_prop2[sj][si] = h[id.g];
-	__syncthreads();
-	// fill in periodic images in shared memory array
-	if (id.i < stencilSize) {
-#if periodicX
-		perBCx(s_prop1[sj],si); perBCx(s_prop2[sj],si);
-#else
-		rhBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
-#endif
-	}
-
-	fluxQuadSharedx(&wrk1,s_prop1[sj],s_u[sj],si);
-	rXtmp = wrk1;
-	__syncthreads();
-	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_u[sj],si);
-	uXtmp = uXtmp + wrk1;
-	__syncthreads();
-	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_v[sj],si);
-	vXtmp = vXtmp + wrk1;
-	__syncthreads();
-	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_w[sj],si);
-	wXtmp = wXtmp + wrk1;
-	__syncthreads();
-	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_prop2[sj],si);
-	eXtmp = eXtmp + wrk1;
-	__syncthreads();
-
-	rX[id.g] = rXtmp;
-	uX[id.g] = uXtmp;
-	vX[id.g] = vXtmp;
-	wX[id.g] = wXtmp;
-	eX[id.g] = eXtmp;
-}
-#endif
 
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz) {
+		myprec *dil, myprec *dpdz, int jNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidYFlx();
@@ -413,12 +262,12 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz) {
+		myprec *dil, myprec *dpdz, int kNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidZFlx();
+	id.mkidZFlx(kNum);
 
-	int si = id.k + stencilSize;       // local i for shared memory access + halo offset
+	int si = id.tix + stencilSize;       // local i for shared memory access + halo offset
 	int sj = id.tiy;                   // local j for shared memory access
 
 	myprec rZtmp=0;
@@ -430,11 +279,11 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	myprec wrk1=0;
 	myprec wrk2=0;
 
-	__shared__ myprec s_u[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_v[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_w[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_prop[sPencils][mz+stencilSize*2];
-	__shared__ myprec s_dil[sPencils][mz+stencilSize*2];
+	__shared__ myprec s_u[sPencils][mz/nDivZ+stencilSize*2];
+	__shared__ myprec s_v[sPencils][mz/nDivZ+stencilSize*2];
+	__shared__ myprec s_w[sPencils][mz/nDivZ+stencilSize*2];
+	__shared__ myprec s_prop[sPencils][mz/nDivZ+stencilSize*2];
+	__shared__ myprec s_dil[sPencils][mz/nDivZ+stencilSize*2];
 
 	s_u[sj][si] = u[id.g];
 	s_v[sj][si] = v[id.g];
@@ -445,7 +294,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 
 	// fill in periodic images in shared memory array
 	// these are boundary conditions for u,v,w,mu and dilatation
-	BCzNumber1(s_u[sj],s_v[sj],s_w[sj],s_prop[sj],s_dil[sj],u,v,w,mu,dil,id,si,mz);
+	BCzNumber1(s_u[sj],s_v[sj],s_w[sj],s_prop[sj],s_dil[sj],u,v,w,mu,dil,id,si,mz,kNum);
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
@@ -481,7 +330,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	// pressure derivatives
 	s_dil[sj][si] = p[id.g];
 	__syncthreads();
-	BCzNumber2(s_dil[sj],p,id,si,mz);
+	BCzNumber2(s_dil[sj],p,id,si,mz,kNum);
 
 	__syncthreads();
 	derDevShared1z(&wrk1,s_dil[sj],si);
@@ -493,7 +342,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	__syncthreads();
 
 	// Boundary conditions for thermal conductivity and temperature
-	BCzNumber3(s_prop[sj],s_dil[sj],lam,t,id,si,mz);
+	BCzNumber3(s_prop[sj],s_dil[sj],lam,t,id,si,mz,kNum);
 	__syncthreads();
 
 	derDevSharedV2z(&wrk1,s_dil[sj],si);
@@ -508,7 +357,7 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	__syncthreads();
 
 	// Boundary conditions for denisty and enthalpy
-	BCzNumber4(s_prop[sj],s_dil[sj],r,h,id,si,mz);
+	BCzNumber4(s_prop[sj],s_dil[sj],r,h,id,si,mz,kNum);
 	__syncthreads();
 
 	fluxQuadSharedz(&wrk1,s_prop[sj],s_w[sj],si);
@@ -542,3 +391,152 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 #endif
 	__syncthreads();
 }
+
+//__global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
+//		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
+//		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+//		myprec *dil, myprec *dpdz) {
+//
+//	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+//	id.mkidX();
+//
+//	int si = id.i + stencilSize;       // local i for shared memory access + halo offset
+//	int sj = id.tiy;                   // local j for shared memory access
+//
+//	myprec rXtmp=0;
+//	myprec uXtmp=0;
+//	myprec vXtmp=0;
+//	myprec wXtmp=0;
+//	myprec eXtmp=0;
+//
+//	myprec wrk1=0;
+//	myprec wrk2=0;
+//
+//	__shared__ myprec s_u[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_v[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_w[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_t[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_p[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_prop1[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_prop2[sPencils][mx+stencilSize*2];
+//#if !periodicX
+//	__shared__ myprec s_s0[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_s4[sPencils][mx+stencilSize*2];
+//	__shared__ myprec s_s8[sPencils][mx+stencilSize*2];
+//#endif
+//	__shared__ myprec s_dil[sPencils][mx+stencilSize*2];
+//
+//	s_u[sj][si] = u[id.g];
+//	s_v[sj][si] = v[id.g];
+//	s_w[sj][si] = w[id.g];
+//	s_t[sj][si] = t[id.g];
+//	s_p[sj][si] = p[id.g];
+//	s_prop1[sj][si] = mu[id.g];
+//	s_prop2[sj][si] = lam[id.g];
+//#if !periodicX
+//	s_s0[sj][si]= gij[0][id.g];
+//	s_s4[sj][si]= gij[4][id.g];
+//	s_s8[sj][si]= gij[8][id.g];
+//#endif
+//	s_dil[sj][si] = dil[id.g];
+//	__syncthreads();
+//
+//	// fill in periodic images in shared memory array
+//	if (id.i < stencilSize) {
+//#if periodicX
+//		perBCx(s_u[sj],si); perBCx(s_v[sj],si); perBCx(s_w[sj],si);
+//		perBCx(s_t[sj],si); perBCx(s_p[sj],si); perBCx(s_prop1[sj],si);
+//		perBCx(s_prop2[sj],si);
+//#else
+//		wallBCxMir(s_p[sj],si);
+//		wallBCxVel(s_u[sj],si); wallBCxVel(s_v[sj],si); wallBCxVel(s_w[sj],si);
+//		wallBCxExt(s_t[sj],si,TwallTop,TwallBot);
+//		mlBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
+//		wallBCxMir(s_s0[sj],si); wallBCxVel(s_s4[sj],si);  wallBCxVel(s_s8[sj],si);
+//#endif
+//	}
+//
+//	__syncthreads();
+//
+//	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
+//	uXtmp = ( 2 * gij[0][id.g] - 2./3.*s_dil[sj][si] );
+//	vXtmp = (     gij[1][id.g] + gij[3][id.g]  );
+//	wXtmp = (     gij[2][id.g] + gij[6][id.g]  );
+//
+//	//adding the viscous dissipation part duidx*mu*six
+//	eXtmp = s_prop1[sj][si]*(uXtmp*gij[0][id.g] + vXtmp*gij[1][id.g] + wXtmp*gij[2][id.g]);
+//
+//	//Adding here the terms d (mu) dx * sxj; (lambda in case of h in rhse);
+//	derDevSharedV1x(&wrk2,s_prop1[sj],si); //wrk2 = d (mu) dx
+//    uXtmp *= wrk2;
+//	vXtmp *= wrk2;
+//	wXtmp *= wrk2;
+//
+//	// viscous fluxes derivative mu*d^2ui dx^2
+//	derDevSharedV2x(&wrk1,s_u[sj],si);
+//	uXtmp = uXtmp + wrk1*s_prop1[sj][si];
+//	derDevSharedV2x(&wrk1,s_v[sj],si);
+//	vXtmp = vXtmp + wrk1*s_prop1[sj][si];
+//	derDevSharedV2x(&wrk1,s_w[sj],si);
+//	wXtmp = wXtmp + wrk1*s_prop1[sj][si];
+//
+//	//adding the viscous dissipation part ui*(mu * d2duidx2 + dmudx * six)
+//	eXtmp = eXtmp + s_u[sj][si]*uXtmp + s_v[sj][si]*vXtmp + s_w[sj][si]*wXtmp;
+//
+//	//adding the molecular conduction part (d2 temp dx2*lambda + dlambda dx * d temp dx)
+//	derDevSharedV2x(&wrk1,s_t[sj],si);
+//	eXtmp = eXtmp + wrk1*s_prop2[sj][si];
+//	derDevSharedV1x(&wrk2,s_prop2[sj],si); //wrk2 = d (lam) dx
+//	derDevSharedV1x(&wrk1,s_t[sj],si); //wrk1 = d (t) dx
+//	eXtmp = eXtmp + wrk1*wrk2;
+//
+//	// pressure and dilation derivatives
+//	if (id.i < stencilSize) {
+//#if periodicX
+//		perBCx(s_dil[sj],si);
+//#else
+//		wallBCxDil(s_dil[sj],s_s0[sj],s_s4[sj],s_s8[sj],si);
+//#endif
+//	}
+//	__syncthreads();
+//
+//	derDevSharedV1x(&wrk2,s_dil[sj],si);
+//	derDevShared1x(&wrk1 ,s_p[sj],si);
+//	uXtmp = uXtmp + s_prop1[sj][si]*wrk2/3.0     - wrk1 ;
+//	eXtmp = eXtmp + s_prop1[sj][si]*wrk2/3.0*s_u[sj][si];
+//
+//	//Adding here the terms - d (ru phi) dx;
+//	s_prop1[sj][si] = r[id.g];
+//	s_prop2[sj][si] = h[id.g];
+//	__syncthreads();
+//	// fill in periodic images in shared memory array
+//	if (id.i < stencilSize) {
+//#if periodicX
+//		perBCx(s_prop1[sj],si); perBCx(s_prop2[sj],si);
+//#else
+//		rhBoundPT(s_prop1[sj], s_prop2[sj],  s_p[sj], s_t[sj], s_u[sj], s_v[sj], s_w[sj], si);
+//#endif
+//	}
+//
+//	fluxQuadSharedx(&wrk1,s_prop1[sj],s_u[sj],si);
+//	rXtmp = wrk1;
+//	__syncthreads();
+//	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_u[sj],si);
+//	uXtmp = uXtmp + wrk1;
+//	__syncthreads();
+//	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_v[sj],si);
+//	vXtmp = vXtmp + wrk1;
+//	__syncthreads();
+//	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_w[sj],si);
+//	wXtmp = wXtmp + wrk1;
+//	__syncthreads();
+//	fluxCubeSharedx(&wrk1,s_prop1[sj],s_u[sj],s_prop2[sj],si);
+//	eXtmp = eXtmp + wrk1;
+//	__syncthreads();
+//
+//	rX[id.g] = rXtmp;
+//	uX[id.g] = uXtmp;
+//	vX[id.g] = vXtmp;
+//	wX[id.g] = wXtmp;
+//	eX[id.g] = eXtmp;
+//}

@@ -46,10 +46,10 @@ class Indices {
         g = i + j*mx + k*mx*my;
      }
 
-    __device__ __host__ void mkidZFlx() {
+    __device__ __host__ void mkidZFlx(int kNum) {
         i  = bix*bdy + tiy;
         j  = biy;
-        k  = tix;
+        k  = tix + kNum*mz/nDivZ;
         g = i + j*mx + k*mx*my;
      }
 
@@ -84,19 +84,19 @@ void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, mypre
 __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz);
+		myprec *dil, myprec *dpdz, int iNum);
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz);
+		myprec *dil, myprec *dpdz, int jNum);
 __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
-		myprec *dil, myprec *dpdz);
+		myprec *dil, myprec *dpdz, int kNum);
 
 __global__ void derVelX(myprec *u, myprec *v, myprec *w);
 __global__ void derVelY(myprec *u, myprec *v, myprec *w);
-__global__ void derVelZ(myprec *u, myprec *v, myprec *w);
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w, int kNum);
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction);
 __global__ void derVelZBC(myprec *u, myprec *v, myprec *w, int direction);
 __global__ void calcDil(myprec *dil);
@@ -118,9 +118,7 @@ __device__ void derDev2xL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2yL(myprec *d2f, myprec *f, Indices id);
 __device__ void derDev2zL(myprec *d2f, myprec *f, Indices id);
 extern __device__ __forceinline__ void derDevV1yL(myprec *df , myprec *f, Indices id);
-extern __device__ __forceinline__ void derDevV1zL(myprec *d2f, myprec *f, Indices id);
-extern __device__ __forceinline__ void derDev1yL(myprec *df , myprec *f, Indices id);
-extern __device__ __forceinline__ void derDev1zL(myprec *d2f, myprec *f, Indices id);
+extern __device__ __forceinline__ void derDevV1zL(myprec *d2f, myprec *f, Indices id, int kNum);
 extern __device__ __forceinline__ void derDevShared1x(myprec *df , myprec *s_f, int si);
 extern __device__ __forceinline__ void derDevShared2x(myprec *d2f, myprec *s_f, int si);
 extern __device__ __forceinline__ void derDevSharedV1x(myprec *df , myprec *s_f, int si);
@@ -424,95 +422,6 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevSharedV2z(m
 
 }
 
-__device__ __forceinline__ __attribute__((always_inline)) void derDev1yL(myprec *df, myprec *f, Indices id)
-{
-  __shared__ myprec s_f[my+stencilSize*2][lPencils];
-
-  int i  = id.bix*id.bdx + id.tix;
-  int k  = id.biy;
-  int si = id.tix;
-
-  for (int j = id.tiy; j < my; j += id.bdy) {
-    int globalIdx = k * mx * my + j * mx + i;
-    int sj = j + stencilSize;
-    s_f[sj][si] = f[globalIdx];
-  }
-
-  __syncthreads();
-
-  int sj = id.tiy + stencilSize;
-  if (sj < stencilSize*2) {
-	  if(multiGPU) {
-		  int j = sj - stencilSize;
-		  s_f[sj-stencilSize][si]  = f[mx*my*mz + j + i*stencilSize + k*mx*stencilSize];
-		  s_f[sj+my][si]           = f[mx*my*mz + stencilSize*mx*mz + j + i*stencilSize + k*mx*stencilSize];
-	  } else {
-		  s_f[sj-stencilSize][si]  = s_f[sj+my-stencilSize][si];
-		  s_f[sj+my][si] 		   = s_f[sj][si];
-	  }
-  }
-  __syncthreads();
-
-  for (int j = id.tiy; j < my; j += id.bdy) {
-    int globalIdx = k * mx * my + j * mx + i;
-    int sj = j + stencilSize;
-	myprec dftemp = 0.0;
-	for (int jt=0; jt<stencilSize; jt++)  {
-		dftemp += dcoeffF[jt]*(s_f[sj+jt-stencilSize][si]-s_f[sj+stencilSize-jt][si])*d_dy;
-	}
-	df[globalIdx] = dftemp;
-  }
-  __syncthreads();
-}
-
-__device__ __forceinline__ __attribute__((always_inline)) void derDev1zL(myprec *df, myprec *f, Indices id)
-{
-  __shared__ myprec s_f[mz+stencilSize*2][lPencils];
-
-  int i  = id.bix*id.bdx + id.tix;
-  int j  = id.biy;
-  int si = id.tix;
-
-  for (int k = id.tiy; k < mz; k += id.bdy) {
-    int globalIdx = k * mx * my + j * mx + i;
-    int sk = k + stencilSize;
-    s_f[sk][si] = f[globalIdx];
-  }
-
-  __syncthreads();
-
-  int sk = id.tiy + stencilSize;
-  if (sk < stencilSize*2) {
-	  if(multiGPU) {
-		  int k = sk - stencilSize;
-		  s_f[sk-stencilSize][si]  = f[mx*my*mz + 2*stencilSize*mx*mz + k + i*stencilSize + j*mx*stencilSize];
-		  s_f[sk+mz][si]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + k + i*stencilSize + j*mx*stencilSize];
-	  } else {
-		  if(boundaryLayer) {
-			  s_f[sk+mz][si]           = 2.0*s_f[mz+stencilSize-1][si] - s_f[mz+2*stencilSize-sk-2][si];
-			  s_f[sk-stencilSize][si]  = 2.0*s_f[stencilSize][si]      - s_f[3*stencilSize-sk][si]; //here we assume that the boundary is at stencilSize (at the node not at the face)
-		  } else {
-			  s_f[sk-stencilSize][si]  = s_f[sk+mz-stencilSize][si];
-			  s_f[sk+mz][si]           = s_f[sk][si];
-		  }
-	  }
-  }
-
-  __syncthreads();
-
-  for (int k = id.tiy; k < mz; k += id.bdy) {
-    int globalIdx = k * mx * my + j * mx + i;
-    int sk = k + stencilSize;
-	myprec dftemp = 0.0;
-	for (int kt=0; kt<stencilSize; kt++)  {
-		dftemp += dcoeffF[kt]*(s_f[sk+kt-stencilSize][si]-s_f[sk+stencilSize-kt][si])*d_dz;
-	}
-	df[globalIdx] = dftemp;
-  }
-  __syncthreads();
-
-}
-
 __device__ __forceinline__ __attribute__((always_inline)) void derDevV1yL(myprec *df, myprec *f, Indices id)
 {
   __shared__ myprec s_f[my+stencilVisc*2][lPencils];
@@ -555,28 +464,28 @@ __device__ __forceinline__ __attribute__((always_inline)) void derDevV1yL(myprec
 
 }
 
-__device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec *df, myprec *f, myprec *fref, Indices id)
+__device__ __forceinline__ __attribute__((always_inline)) void derDevV1zL(myprec *df, myprec *f, myprec *fref, Indices id, int kNum)
 {
-  __shared__ myprec s_f[mz+stencilVisc*2][lPencils];
+  __shared__ myprec s_f[mz/nDivZ+stencilVisc*2][lPencils];
 
   int i  = id.bix*id.bdx + id.tix;
   int j  = id.biy;
   int si = id.tix;
 
-  for (int k = id.tiy; k < mz; k += id.bdy) {
+  for (int k = id.tiy+kNum*mz/nDivZ; k < (kNum+1)*mz/nDivZ; k += id.bdy) {
     int globalIdx = k * mx * my + j * mx + i;
-    int sk = k + stencilVisc;
+    int sk = k + stencilVisc - kNum*mz/nDivZ;
     s_f[sk][si] = f[globalIdx];
   }
 
   __syncthreads();
 
-  BCzderVel(s_f,f,fref,id,si,i,j);
+  BCzderVel(s_f,f,fref,id,si,i,j,kNum);
   __syncthreads();
 
-  for (int k = id.tiy; k < mz; k += id.bdy) {
+  for (int k = id.tiy+kNum*mz/nDivZ; k < (kNum+1)*mz/nDivZ; k += id.bdy) {
     int globalIdx = k * mx * my + j * mx + i;
-    int sk = k + stencilVisc;
+    int sk = k + stencilVisc - kNum*mz/nDivZ;
 	myprec dftemp = 0.0;
 	for (int kt=0; kt<stencilVisc; kt++)  {
 		dftemp += dcoeffVF[kt]*(s_f[sk+kt-stencilVisc][si]-s_f[sk+stencilVisc-kt][si])*d_dz;
