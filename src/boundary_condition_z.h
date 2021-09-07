@@ -54,7 +54,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzderVel(myprec 
 					if(boundaryLayer) {
 						s_f[sk-stencilVisc][si]  = 2.0*s_f[stencilVisc][si] - s_f[3*stencilVisc-sk][si];
 					} else {
-						s_f[sk-stencilVisc][si]  = f[idx(i,j,k+mz-1)];
+						s_f[sk-stencilVisc][si]  = f[idx(i,j,k+mz-stencilVisc)];
 					}
 				}
 			} else if (kNum==nDivZ-1) {

@@ -8,6 +8,9 @@
 #ifndef RHS_H_
 #define RHS_H_
 
+
+/////////////////////////////////////// variables that fill up the memory (each pointer is mx*my*mz large)
+
 myprec *d_r;
 myprec *d_u;
 myprec *d_v;
@@ -46,6 +49,10 @@ myprec *d_rhsv3;
 myprec *d_rhsw3;
 myprec *d_rhse3;
 
+myprec *gij[9];
+
+///////////////////////////////////////////////////////////////////////
+
 myprec *dtC,*dpdz;
 
 myprec *djm, *djp, *dkm, *dkp;
@@ -53,7 +60,6 @@ myprec *djm5,*djp5,*dkm5,*dkp5;
 
 void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk);
 
-__device__ myprec gij[9][mx*my*mz];
 __device__ myprec time_on_GPU;
 __device__ Communicator rkGPU;
 

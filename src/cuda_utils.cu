@@ -438,6 +438,8 @@ void initSolver(Communicator rk) {
 	checkCuda( cudaMalloc((void**)&d_rhsw3,mx*my*mz*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&d_rhse3,mx*my*mz*sizeof(myprec)) );
 
+	for (int i=0; i<9; i++)
+		checkCuda( cudaMalloc((void**)&gij[i],mx*my*mz*sizeof(myprec)) );
 
 	//Boundary condition pointer to pass from GPU to CPU
 	if(multiGPU) {
@@ -486,7 +488,7 @@ void initSolver(Communicator rk) {
 
 	checkCuda( cudaMalloc((void**)&d_dil, bytes) );
 
-    for (int i=0; i<16; i++) {
+    for (int i=0; i<8+nDivZ; i++) {
     	checkCuda( cudaStreamCreateWithFlags(&s[i], cudaStreamNonBlocking) );
     }
 
@@ -559,6 +561,9 @@ void clearSolver(Communicator rk) {
 
 	checkCuda( cudaFree(d_dil) );
 
+	for (int i=0; i<9; i++)
+		checkCuda( cudaFree(gij[i]) );
+
 	checkCuda( cudaFreeHost(senYm)  );
 	checkCuda( cudaFreeHost(senYp)  );
 	checkCuda( cudaFreeHost(senZm)  );
@@ -576,7 +581,7 @@ void clearSolver(Communicator rk) {
 	checkCuda( cudaFreeHost(rcvZm5) );
 	checkCuda( cudaFreeHost(rcvZp5) );
 
-	for (int i=0; i<16; i++) {
+	for (int i=0; i<8+nDivZ; i++) {
 		checkCuda( cudaStreamDestroy(s[i]) );
 	}
 }

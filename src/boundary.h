@@ -51,7 +51,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void perBCz(myprec *s_
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void perBCzBot(myprec *s_f, myprec *f, int si, Indices id) {
-	s_f[si-stencilSize]  = f[idx(id.i,id.j,id.k+mz-1)];
+	s_f[si-stencilSize]  = f[idx(id.i,id.j,id.k+mz-stencilSize)];
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void perBCzTop(myprec *s_f, myprec *f, int si, Indices id) {
@@ -73,7 +73,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void haloBCzBot(myprec
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void haloBCzTop(myprec *s_f, myprec *f, int si, Indices id) {
-	s_f[si+mz/nDivZ]     = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+	s_f[si+mz/nDivZ]     = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + (si-stencilSize) + id.i*stencilSize + id.j*mx*stencilSize];
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void wallBCxExt(myprec *s_f, int si, myprec Bctop, myprec Bcbot) {

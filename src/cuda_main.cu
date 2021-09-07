@@ -6,32 +6,32 @@
 #include "comm.h"
 #include "sponge.h"
 
-cudaStream_t s[16];
+cudaStream_t s[8+nDivZ];
 
 inline void rkSubStep(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse, Communicator rk) {
 	calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0); //here 0 means interior points
-	derVelX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w);
-	derVelY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w);
+	derVelX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w,gij[0],gij[1],gij[2]);
+	derVelY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w,gij[3],gij[4],gij[5]);
 	for (int kNum=0; kNum<nDivZ; kNum++)
-		derVelZ<<<d_grid[4],d_block[4],0,s[8+kNum]>>>(d_u,d_v,d_w,kNum);
+		derVelZ<<<d_grid[4],d_block[4],0,s[8+kNum]>>>(d_u,d_v,d_w,gij[6],gij[7],gij[8],kNum);
 	if(multiGPU) {
 		updateHaloFive(d_r,d_u,d_v,d_w,d_e,rk); cudaDeviceSynchronize();
 		calcState<<<gridHalo,blockHalo,0,s[4]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,1); //here 1 means halo points
-		derVelYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,0);  //here 0 means lower boundary (0-index)
-		derVelZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,0);	//here 0 means lower boundary (0-index)
-		derVelYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,1);	//here 1 means upper boundary (my-index)
-		derVelZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,1);	//here 1 means upper boundary (mz-index)
+		derVelYBC<<<gridHaloY,blockHaloY,0,s[0]>>>(d_u,d_v,d_w,gij[3],gij[4],gij[5],0);  //here 0 means lower boundary (0-index)
+		derVelZBC<<<gridHaloZ,blockHaloZ,0,s[1]>>>(d_u,d_v,d_w,gij[6],gij[7],gij[8],0);	//here 0 means lower boundary (0-index)
+		derVelYBC<<<gridHaloY,blockHaloY,0,s[2]>>>(d_u,d_v,d_w,gij[3],gij[4],gij[5],1);	//here 1 means upper boundary (my-index)
+		derVelZBC<<<gridHaloZ,blockHaloZ,0,s[3]>>>(d_u,d_v,d_w,gij[6],gij[7],gij[8],1);	//here 1 means upper boundary (mz-index)
 	}
 	cudaDeviceSynchronize();
-	calcDil<<<grid0,block0>>>(d_dil);
+	calcDil<<<grid0,block0>>>(d_dil,gij[0],gij[4],gij[8]);
 	cudaDeviceSynchronize();
-	if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();
-	deviceRHSX<<<d_grid[0],d_block[0],0,s[0]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz,0);
+	if(multiGPU) deviceBlocker<<<grid0,block0,0,s[0]>>>();   //in order to hide the halo update with deviceRHSX (on stream s[0])
+	deviceRHSX<<<d_grid[0],d_block[0],0,s[0]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij[0],gij[1],gij[2],gij[3],gij[6],d_dil,dpdz,0);
 	if(multiGPU) updateHalo(d_dil,rk);
 	cudaDeviceSynchronize();
-	deviceRHSY<<<d_grid[1],d_block[1]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz,0);
+	deviceRHSY<<<d_grid[1],d_block[1]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij[1],gij[3],gij[4],gij[5],gij[7],d_dil,dpdz,0);
 	for (int kNum=0; kNum<nDivZ; kNum++)
-		deviceRHSZ<<<d_grid[2],d_block[2],0,s[kNum]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,d_dil,dpdz,kNum);
+		deviceRHSZ<<<d_grid[2],d_block[2],0,s[kNum]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij[2],gij[5],gij[6],gij[7],gij[8],d_dil,dpdz,kNum);
 	cudaDeviceSynchronize();
 	if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_e);
 }
@@ -41,15 +41,6 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 	cudaSetDevice(rk.nodeRank);
 
 	myprec h_dt,h_dpdz;
-
-	/* allocating temporary arrays and streams
-	void (*RHSDeviceDir[3])(myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*,
-							myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, myprec*, int);
-
-	RHSDeviceDir[0] = deviceRHSX;
-	RHSDeviceDir[1] = deviceRHSY;
-	RHSDeviceDir[2] = deviceRHSZ;
-	 */
 
 	for (int istep = 0; istep < nsteps; istep++) {
 		if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);

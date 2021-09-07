@@ -9,6 +9,7 @@
 __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, myprec *eX,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dudx, myprec *dvdx, myprec *dwdx, myprec *dudy, myprec *dudz,
 		myprec *dil, myprec *dpdz, int iNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
@@ -49,12 +50,12 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uXtmp = ( 2 * gij[0][id.g] - 2./3.*dil[id.g] );
-	vXtmp = (     gij[1][id.g] + gij[3][id.g]  );
-	wXtmp = (     gij[2][id.g] + gij[6][id.g]  );
+	uXtmp = ( 2 * dudx[id.g] - 2./3.*dil[id.g] );
+	vXtmp = (     dvdx[id.g] + dudy[id.g]  );
+	wXtmp = (     dwdx[id.g] + dudz[id.g]  );
 
 	//adding the viscous dissipation part duidx*mu*six
-	eXtmp = s_prop1[sj][si]*(uXtmp*gij[0][id.g] + vXtmp*gij[1][id.g] + wXtmp*gij[2][id.g]);
+	eXtmp = s_prop1[sj][si]*(uXtmp*dudx[id.g] + vXtmp*dvdx[id.g] + wXtmp*dwdx[id.g]);
 
 	//Adding here the terms d (mu) dx * sxj; (lambda in case of h in rhse);
 	derDevSharedV1x(&wrk2,s_prop1[sj],si); //wrk2 = d (mu) dx
@@ -129,6 +130,7 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dvdx, myprec *dudy, myprec *dvdy, myprec *dwdy, myprec *dvdz,
 		myprec *dil, myprec *dpdz, int jNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
@@ -165,12 +167,12 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uYtmp = (    gij[3][id.g] + gij[1][id.g]        );
-	vYtmp = (2 * gij[4][id.g] - 2./3.*s_dil[sj][si] );
-	wYtmp = (    gij[5][id.g] + gij[7][id.g]        );
+	uYtmp = (    dudy[id.g] + dvdx[id.g]        );
+	vYtmp = (2 * dvdy[id.g] - 2./3.*s_dil[sj][si] );
+	wYtmp = (    dwdy[id.g] + dvdz[id.g]        );
 
 	//adding the viscous dissipation part duidy*mu*siy
-	eYtmp = s_prop[sj][si]*(uYtmp*gij[3][id.g] + vYtmp*gij[4][id.g] + wYtmp*gij[5][id.g]);
+	eYtmp = s_prop[sj][si]*(uYtmp*dudy[id.g] + vYtmp*dvdy[id.g] + wYtmp*dvdz[id.g]);
 
 	//Adding here the terms d (mu) dy * syj;
 	derDevSharedV1y(&wrk2,s_prop[sj],si); //wrk2 = d (mu) dy
@@ -262,6 +264,7 @@ __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, mypre
 __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
+		myprec *dwdx, myprec *dwdy, myprec *dudz, myprec *dvdz, myprec *dwdz,
 		myprec *dil, myprec *dpdz, int kNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
@@ -298,12 +301,12 @@ __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, mypre
 	__syncthreads();
 
 	//initialize momentum RHS with stresses so that they can be added for both viscous terms and viscous heating without having to load additional terms
-	uZtmp = (    gij[6][id.g] + gij[2][id.g]        );
-	vZtmp = (    gij[7][id.g] + gij[5][id.g]        );
-	wZtmp = (2 * gij[8][id.g] - 2./3.*s_dil[sj][si] );
+	uZtmp = (    dudz[id.g] + dwdx[id.g]        );
+	vZtmp = (    dvdz[id.g] + dwdy[id.g]        );
+	wZtmp = (2 * dwdz[id.g] - 2./3.*s_dil[sj][si] );
 
 	//adding the viscous dissipation part duidz*mu*siz
-	eZtmp = s_prop[sj][si]*(uZtmp*gij[6][id.g] + vZtmp*gij[7][id.g] + wZtmp*gij[8][id.g]);
+	eZtmp = s_prop[sj][si]*(uZtmp*dudz[id.g] + vZtmp*dvdz[id.g] + wZtmp*dwdz[id.g]);
 
 	//Adding here the terms d (mu) dz * szj;
 	derDevSharedV1z(&wrk2,s_prop[sj],si); //wrk2 = d (mu) dz
