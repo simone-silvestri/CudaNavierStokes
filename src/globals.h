@@ -24,7 +24,7 @@
 #define mx_tot   256
 #define my_tot   64
 #define mz_tot   2048
-#define nsteps   101
+#define nsteps   1001
 #define nfiles   1
 #define CFL      0.75f
 #define restartFile  -1
@@ -55,9 +55,6 @@ const myprec TwallBot = 1.0;
 #define mz (mz_tot/pCol)
 
 #define nDivZ 	(8) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
-#define nDivX   (1)
-
-
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); })

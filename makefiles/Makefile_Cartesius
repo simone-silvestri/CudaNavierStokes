@@ -55,7 +55,7 @@ endif
 
 # List of objects
 OBJ_SRC = $(OBJ)main.o $(OBJ)comm.o $(OBJ)init.o 
-OBJ_CUDA= $(OBJ)cuda_utils.o $(OBJ)cuda_math.o $(OBJ)cuda_main.o $(OBJ)cuda_derivs.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o 
+OBJ_CUDA= $(OBJ)cuda_utils.o $(OBJ)cuda_math.o $(OBJ)cuda_main.o $(OBJ)cuda_rhs.o $(OBJ)calc_stress.o 
 OBJ_LINK= $(OBJ)cuda_link.o 
 OBJECTS =  $(OBJ_SRC) $(OBJ_CUDA) $(OBJ_LINK)
 
@@ -93,9 +93,6 @@ $(OBJ)cuda_math.o: $(SRC)cuda_math.cu
 $(OBJ)cuda_utils.o: $(SRC)cuda_utils.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_utils.cu $(FLAG2) -o $(OBJ)cuda_utils.o
 	
-$(OBJ)cuda_derivs.o: $(SRC)cuda_derivs.cu
-	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)cuda_derivs.cu $(FLAG2) -o $(OBJ)cuda_derivs.o
-
 $(OBJ)sponge.o: $(SRC)sponge.cu
 	$(NVCC) -c $(FLAG1) $(FLAG_ARCH) $(CFLAGS) $(SRC)sponge.cu $(FLAG2) -o $(OBJ)sponge.o
 
