@@ -72,4 +72,16 @@ __global__ void eulerSum3R(myprec *a, myprec *b, myprec *c1, myprec *c2, myprec 
 __global__ void rk3final(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *dt);
 __global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *d, myprec *r, myprec *dt);
 
+__global__ void sumLowStorageRK3(myprec *var, myprec *rhs1, myprec *rhs2, myprec *dt, int step);
+
 #endif /* RHS_H_ */
+
+
+
+
+
+
+
+
+
+

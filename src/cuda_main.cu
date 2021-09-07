@@ -6,9 +6,14 @@
 #include "comm.h"
 #include "sponge.h"
 
+
+__device__ const myprec alpha[] = {0.    , 17./60., -5./12.};
+__device__ const myprec beta[]  = {8./15., 5./12. ,  3./4.};
+
+
 cudaStream_t s[8+nDivZ];
 
-inline void rkSubStep(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse, Communicator rk) {
+inline void calcRHS(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse, Communicator rk) {
 	calcState<<<grid0,block0,0,s[0]>>>(d_r,d_u,d_v,d_w,d_e,d_h,d_t,d_p,d_m,d_l,0); //here 0 means interior points
 	derVelX<<<d_grid[0],d_block[0],0,s[1]>>>(d_u,d_v,d_w,gij[0],gij[1],gij[2]);
 	derVelY<<<d_grid[3],d_block[3],0,s[2]>>>(d_u,d_v,d_w,gij[3],gij[4],gij[5]);
@@ -34,6 +39,7 @@ inline void rkSubStep(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, my
 		deviceRHSZ<<<d_grid[2],d_block[2],0,s[kNum]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_h,d_t,d_p,d_m,d_l,gij[2],gij[5],gij[6],gij[7],gij[8],d_dil,dpdz,kNum);
 	cudaDeviceSynchronize();
 	if(boundaryLayer) addSponge<<<d_grid[0],d_block[0]>>>(rhsr,rhsu,rhsv,rhsw,rhse,d_r,d_u,d_v,d_w,d_e);
+	cudaDeviceSynchronize();
 }
 
 void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
@@ -58,7 +64,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		//Starting the Runge-Kutta Steps
 
 		//runge kutta step 1
-		rkSubStep(d_rhsr1,d_rhsu1,d_rhsv1,d_rhsw1,d_rhse1,rk);
+		calcRHS(d_rhsr1,d_rhsu1,d_rhsv1,d_rhsw1,d_rhse1,rk);
 		eulerSum<<<grid0,block0>>>(d_r,d_rO,d_rhsr1,dtC);
 		eulerSum<<<grid0,block0>>>(d_e,d_eO,d_rhse1,dtC);
 		cudaDeviceSynchronize();
@@ -74,7 +80,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 			deviceCpy<<<grid0,block0,0,s[3]>>>(d_w,d_w); }
 
 		//runge kutta step 2
-		rkSubStep(d_rhsr2,d_rhsu2,d_rhsv2,d_rhsw2,d_rhse2,rk);
+		calcRHS(d_rhsr2,d_rhsu2,d_rhsv2,d_rhsw2,d_rhse2,rk);
 		eulerSum3<<<grid0,block0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,dtC);
 		eulerSum3<<<grid0,block0>>>(d_e,d_eO,d_rhse1,d_rhse2,dtC);
 		cudaDeviceSynchronize();
@@ -90,7 +96,7 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 			deviceCpy<<<grid0,block0,0,s[3]>>>(d_w,d_w); }
 
 		//runge kutta step 3
-		rkSubStep(d_rhsr3,d_rhsu3,d_rhsv3,d_rhsw3,d_rhse3,rk);
+		calcRHS(d_rhsr3,d_rhsu3,d_rhsv3,d_rhsw3,d_rhse3,rk);
 		rk3final<<<grid0,block0>>>(d_r,d_rO,d_rhsr1,d_rhsr2,d_rhsr3,dtC);
 		rk3final<<<grid0,block0>>>(d_e,d_eO,d_rhse1,d_rhse2,d_rhse3,dtC);
 		cudaDeviceSynchronize();
@@ -100,6 +106,87 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 		cudaDeviceSynchronize();
 	}
 }
+
+
+void runSimulationLowStorage(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
+
+	cudaSetDevice(rk.nodeRank);
+
+	myprec h_dt,h_dpdz;
+
+	for (int istep = 0; istep < nsteps; istep++) {
+		if(istep%checkCFLcondition==0) calcTimeStepPressGrad(istep,dtC,dpdz,&h_dt,&h_dpdz,rk);
+		if(istep>0)  deviceSumOne<<<1,1>>>(&time[istep],&time[istep-1] ,dtC);
+		if(istep==0) deviceSumOne<<<1,1>>>(&time[istep],&time[nsteps-1],dtC);
+		deviceAdvanceTime<<<1,1>>>(dtC);
+		if(istep%checkBulk==0) calcBulk(&par1[istep],&par2[istep],d_r,d_u,d_v,d_w,d_e,rk);
+
+
+		//Starting the Runge-Kutta Steps
+
+		//runge kutta step 1
+		calcRHS(d_rhsr1,d_rhsu1,d_rhsv1,d_rhsw1,d_rhse1,rk);
+		deviceMul<<<grid0,block0,0,s[1]>>>(d_u,d_u,d_r);
+		deviceMul<<<grid0,block0,0,s[2]>>>(d_v,d_v,d_r);
+		deviceMul<<<grid0,block0,0,s[3]>>>(d_w,d_w,d_r);
+		sumLowStorageRK3<<<grid0,block0,0,s[0]>>>(d_r, d_rhsr1, d_rhsr1, dtC, 0);
+		sumLowStorageRK3<<<grid0,block0,0,s[1]>>>(d_u, d_rhsu1, d_rhsu1, dtC, 0);
+		sumLowStorageRK3<<<grid0,block0,0,s[2]>>>(d_v, d_rhsv1, d_rhsv1, dtC, 0);
+		sumLowStorageRK3<<<grid0,block0,0,s[3]>>>(d_w, d_rhsw1, d_rhsw1, dtC, 0);
+		sumLowStorageRK3<<<grid0,block0,0,s[4]>>>(d_e, d_rhse1, d_rhse1, dtC, 0);
+		cudaStreamSynchronize(s[0]);
+		deviceDiv<<<grid0,block0,0,s[1]>>>(d_u,d_u,d_r);
+		deviceDiv<<<grid0,block0,0,s[2]>>>(d_v,d_v,d_r);
+		deviceDiv<<<grid0,block0,0,s[3]>>>(d_w,d_w,d_r);
+		cudaDeviceSynchronize();
+
+		if(multiGPU) {  //To initiate slowly the routines so that we have time to initiate the memory transfer
+			deviceCpy<<<grid0,block0,0,s[0]>>>(d_r,d_r);
+			deviceCpy<<<grid0,block0,0,s[1]>>>(d_u,d_u);
+			deviceCpy<<<grid0,block0,0,s[2]>>>(d_v,d_v);
+			deviceCpy<<<grid0,block0,0,s[3]>>>(d_w,d_w); }
+
+
+		//runge kutta step 2
+		calcRHS(d_rhsr2,d_rhsu2,d_rhsv2,d_rhsw2,d_rhse2,rk);
+		deviceMul<<<grid0,block0,0,s[1]>>>(d_u,d_u,d_r);
+		deviceMul<<<grid0,block0,0,s[2]>>>(d_v,d_v,d_r);
+		deviceMul<<<grid0,block0,0,s[3]>>>(d_w,d_w,d_r);
+		sumLowStorageRK3<<<grid0,block0,0,s[0]>>>(d_r, d_rhsr1, d_rhsr2, dtC, 1);
+		sumLowStorageRK3<<<grid0,block0,0,s[1]>>>(d_u, d_rhsu1, d_rhsu2, dtC, 1);
+		sumLowStorageRK3<<<grid0,block0,0,s[2]>>>(d_v, d_rhsv1, d_rhsv2, dtC, 1);
+		sumLowStorageRK3<<<grid0,block0,0,s[3]>>>(d_w, d_rhsw1, d_rhsw2, dtC, 1);
+		sumLowStorageRK3<<<grid0,block0,0,s[4]>>>(d_e, d_rhse1, d_rhse2, dtC, 1);
+		cudaStreamSynchronize(s[0]);
+		deviceDiv<<<grid0,block0,0,s[1]>>>(d_u,d_u,d_r);
+		deviceDiv<<<grid0,block0,0,s[2]>>>(d_v,d_v,d_r);
+		deviceDiv<<<grid0,block0,0,s[3]>>>(d_w,d_w,d_r);
+		cudaDeviceSynchronize();
+
+		if(multiGPU) {  //To initiate slowly the routines so that we have time to initiate the memory transfer
+			deviceCpy<<<grid0,block0,0,s[0]>>>(d_r,d_r);
+			deviceCpy<<<grid0,block0,0,s[1]>>>(d_u,d_u);
+			deviceCpy<<<grid0,block0,0,s[2]>>>(d_v,d_v);
+			deviceCpy<<<grid0,block0,0,s[3]>>>(d_w,d_w); }
+
+		//runge kutta step 3
+		calcRHS(d_rhsr1,d_rhsu1,d_rhsv1,d_rhsw1,d_rhse1,rk);
+		deviceMul<<<grid0,block0,0,s[1]>>>(d_u,d_u,d_r);
+		deviceMul<<<grid0,block0,0,s[2]>>>(d_v,d_v,d_r);
+		deviceMul<<<grid0,block0,0,s[3]>>>(d_w,d_w,d_r);
+		sumLowStorageRK3<<<grid0,block0,0,s[0]>>>(d_r, d_rhsr2, d_rhsr1, dtC, 2);
+		sumLowStorageRK3<<<grid0,block0,0,s[1]>>>(d_u, d_rhsu2, d_rhsu1, dtC, 2);
+		sumLowStorageRK3<<<grid0,block0,0,s[2]>>>(d_v, d_rhsv2, d_rhsv1, dtC, 2);
+		sumLowStorageRK3<<<grid0,block0,0,s[3]>>>(d_w, d_rhsw2, d_rhsw1, dtC, 2);
+		sumLowStorageRK3<<<grid0,block0,0,s[4]>>>(d_e, d_rhse2, d_rhse1, dtC, 2);
+		cudaStreamSynchronize(s[0]);
+		deviceDiv<<<grid0,block0,0,s[1]>>>(d_u,d_u,d_r);
+		deviceDiv<<<grid0,block0,0,s[2]>>>(d_v,d_v,d_r);
+		deviceDiv<<<grid0,block0,0,s[3]>>>(d_w,d_w,d_r);
+		cudaDeviceSynchronize();
+	}
+}
+
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
@@ -157,6 +244,11 @@ __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel,
 
 }
 
+__global__ void sumLowStorageRK3(myprec *var, myprec *rhs1, myprec *rhs2, myprec *dt, int step) {
+	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
+	var[id.g] = var[id.g] + (*dt)*(alpha[step]*rhs1[id.g] + beta[step]*rhs2[id.g]);
+}
+
 void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, myprec *h_dpdz, Communicator rk) {
 
 	cudaSetDevice(rk.nodeRank);
@@ -204,6 +296,7 @@ void solverWrapper(Communicator rk) {
     for(int file = start+1; file<nfiles+start+1; file++) {
 
     	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
+//    	runSimulationLowStorage(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
     	copyField(1,rk);					  //copying back partial results to CPU
 
     	writeField(file,rk);
