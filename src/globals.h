@@ -25,10 +25,11 @@
 #define my_tot   192
 #define mz_tot   192
 #define nsteps   1001
-#define nfiles   1
+#define nfiles   100
 #define CFL      0.75f
 #define restartFile  -1
 
+#define lowStorage 	  (true)
 #define boundaryLayer (false)
 #define perturbed	  (false)
 #define forcing       (true)

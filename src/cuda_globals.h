@@ -81,6 +81,7 @@ extern __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[
 extern __device__ myprec time_on_GPU;
 extern __device__ Communicator rkGPU;
 
+
 extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
 extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
 

@@ -432,11 +432,13 @@ void initSolver(Communicator rk) {
 	checkCuda( cudaMalloc((void**)&d_rhsw2,mx*my*mz*sizeof(myprec)) );
 	checkCuda( cudaMalloc((void**)&d_rhse2,mx*my*mz*sizeof(myprec)) );
 
-	checkCuda( cudaMalloc((void**)&d_rhsr3,mx*my*mz*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_rhsu3,mx*my*mz*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_rhsv3,mx*my*mz*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_rhsw3,mx*my*mz*sizeof(myprec)) );
-	checkCuda( cudaMalloc((void**)&d_rhse3,mx*my*mz*sizeof(myprec)) );
+	if(!lowStorage) {
+		checkCuda( cudaMalloc((void**)&d_rhsr3,mx*my*mz*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&d_rhsu3,mx*my*mz*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&d_rhsv3,mx*my*mz*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&d_rhsw3,mx*my*mz*sizeof(myprec)) );
+		checkCuda( cudaMalloc((void**)&d_rhse3,mx*my*mz*sizeof(myprec)) );
+	}
 
 	for (int i=0; i<9; i++)
 		checkCuda( cudaMalloc((void**)&gij[i],mx*my*mz*sizeof(myprec)) );
@@ -480,11 +482,13 @@ void initSolver(Communicator rk) {
 	checkCuda( cudaMalloc((void**)&d_m,  bytes) );
 	checkCuda( cudaMalloc((void**)&d_l,  bytes) );
 
-	checkCuda( cudaMalloc((void**)&d_rO, bytes) );
-	checkCuda( cudaMalloc((void**)&d_eO, bytes) );
-	checkCuda( cudaMalloc((void**)&d_uO, bytes) );
-	checkCuda( cudaMalloc((void**)&d_vO, bytes) );
-	checkCuda( cudaMalloc((void**)&d_wO, bytes) );
+	if(!lowStorage) {
+		checkCuda( cudaMalloc((void**)&d_rO, bytes) );
+		checkCuda( cudaMalloc((void**)&d_eO, bytes) );
+		checkCuda( cudaMalloc((void**)&d_uO, bytes) );
+		checkCuda( cudaMalloc((void**)&d_vO, bytes) );
+		checkCuda( cudaMalloc((void**)&d_wO, bytes) );
+	}
 
 	checkCuda( cudaMalloc((void**)&d_dil, bytes) );
 
@@ -530,11 +534,13 @@ void clearSolver(Communicator rk) {
 	checkCuda( cudaFree(d_rhsw2) );
 	checkCuda( cudaFree(d_rhse2) );
 
-	checkCuda( cudaFree(d_rhsr3) );
-	checkCuda( cudaFree(d_rhsu3) );
-	checkCuda( cudaFree(d_rhsv3) );
-	checkCuda( cudaFree(d_rhsw3) );
-	checkCuda( cudaFree(d_rhse3) );
+	if(!lowStorage) {
+		checkCuda( cudaFree(d_rhsr3) );
+		checkCuda( cudaFree(d_rhsu3) );
+		checkCuda( cudaFree(d_rhsv3) );
+		checkCuda( cudaFree(d_rhsw3) );
+		checkCuda( cudaFree(d_rhse3) );
+	}
 
 	checkCuda( cudaFree(djm) );
 	checkCuda( cudaFree(djp) );
@@ -553,16 +559,18 @@ void clearSolver(Communicator rk) {
 	checkCuda( cudaFree(d_m) );
 	checkCuda( cudaFree(d_l) );
 
-	checkCuda( cudaFree(d_rO) );
-	checkCuda( cudaFree(d_eO) );
-	checkCuda( cudaFree(d_uO) );
-	checkCuda( cudaFree(d_vO) );
-	checkCuda( cudaFree(d_wO) );
+	if(!lowStorage) {
+		checkCuda( cudaFree(d_rO) );
+		checkCuda( cudaFree(d_eO) );
+		checkCuda( cudaFree(d_uO) );
+		checkCuda( cudaFree(d_vO) );
+		checkCuda( cudaFree(d_wO) );
+	}
 
 	checkCuda( cudaFree(d_dil) );
 
 	for (int i=0; i<9; i++)
-		checkCuda( cudaFree(gij[i]) );
+		checkCuda( cudaFree( gij[i]) );
 
 	checkCuda( cudaFreeHost(senYm)  );
 	checkCuda( cudaFreeHost(senYp)  );
