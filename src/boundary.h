@@ -11,8 +11,12 @@
 extern __device__ __forceinline__ void perBCx(myprec *s_f, int si);
 extern __device__ __forceinline__ void perBCy(myprec *s_f, int si);
 extern __device__ __forceinline__ void perBCz(myprec *s_f, int si);
+extern __device__ __forceinline__ void perBCzBot(myprec *s_f, myprec *f, int si, Indices id);
+extern __device__ __forceinline__ void perBCzTop(myprec *s_f, myprec *f, int si, Indices id);
 extern __device__ __forceinline__ void haloBCy(myprec *s_f, myprec *f, int si, Indices id);
 extern __device__ __forceinline__ void haloBCz(myprec *s_f, myprec *f, int si, Indices id);
+extern __device__ __forceinline__ void haloBCzBot(myprec *s_f, myprec *f, int si, Indices id);
+extern __device__ __forceinline__ void haloBCzTop(myprec *s_f, myprec *f, int si, Indices id);
 extern __device__ __forceinline__ void wallBCxExt(myprec *s_f, int si, const myprec Bctop, const myprec Bcbot);
 extern __device__ __forceinline__ void wallBCxMir(myprec *s_f, int si);
 extern __device__ __forceinline__ void wallBCxVel(myprec *s_f, int si);
@@ -28,6 +32,8 @@ extern __device__ __forceinline__ void botBCzVal(myprec *s_f, int si, myprec val
 extern __device__ __forceinline__ void botBCxExt(myprec *s_f, int si, myprec Bcbot);
 extern __device__ __forceinline__ void topBCzExt(myprec *s_f, int si);
 extern __device__ __forceinline__ void botBCzExt(myprec *s_f, int si);
+extern __device__ __forceinline__ void botBCzCpy(myprec *s_f, myprec *f, int si, Indices id);
+extern __device__ __forceinline__ void topBCzCpy(myprec *s_f, myprec *f, int si, Indices id);
 
 __device__ __forceinline__ __attribute__((always_inline)) void perBCx(myprec *s_f, int si) {
 	s_f[si-stencilSize]  = s_f[si+mx-stencilSize];
@@ -44,6 +50,14 @@ __device__ __forceinline__ __attribute__((always_inline)) void perBCz(myprec *s_
 	s_f[si+mz]           = s_f[si];
 }
 
+__device__ __forceinline__ __attribute__((always_inline)) void perBCzBot(myprec *s_f, myprec *f, int si, Indices id) {
+	s_f[si-stencilSize]  = f[idx(id.i,id.j,id.k+mz-stencilSize)];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void perBCzTop(myprec *s_f, myprec *f, int si, Indices id) {
+	s_f[si+mz/nDivZ]     = f[idx(id.i,id.j,si-stencilSize)];
+}
+
 __device__ __forceinline__ __attribute__((always_inline)) void haloBCy(myprec *s_f, myprec *f, int si, Indices id) {
 	s_f[si-stencilSize]  = f[mx*my*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
 	s_f[si+my]           = f[mx*my*mz + stencilSize*mx*mz + id.j + id.i*stencilSize + id.k*mx*stencilSize];
@@ -52,6 +66,14 @@ __device__ __forceinline__ __attribute__((always_inline)) void haloBCy(myprec *s
 __device__ __forceinline__ __attribute__((always_inline)) void haloBCz(myprec *s_f, myprec *f, int si, Indices id) {
 	s_f[si-stencilSize]  = f[mx*my*mz + 2*stencilSize*mx*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
 	s_f[si+mz]           = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void haloBCzBot(myprec *s_f, myprec *f, int si, Indices id) {
+	s_f[si-stencilSize]  = f[mx*my*mz + 2*stencilSize*mx*mz + id.k + id.i*stencilSize + id.j*mx*stencilSize];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void haloBCzTop(myprec *s_f, myprec *f, int si, Indices id) {
+	s_f[si+mz/nDivZ]     = f[mx*my*mz + 2*stencilSize*mx*mz + stencilSize*mx*my + (si-stencilSize) + id.i*stencilSize + id.j*mx*stencilSize];
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void wallBCxExt(myprec *s_f, int si, myprec Bctop, myprec Bcbot) {
@@ -130,7 +152,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void topBCxExt(myprec 
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void topBCzExt(myprec *s_f, int si) {
-	s_f[si+mz]           = 2.0*s_f[mz+stencilSize-1] - s_f[mz+2*stencilSize-si-2];
+	s_f[si+mz/nDivZ]           = 2.0*s_f[mz/nDivZ+stencilSize-1] - s_f[mz/nDivZ+2*stencilSize-si-2];
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void botBCzExt(myprec *s_f, int si) {
@@ -155,6 +177,14 @@ __device__ __forceinline__ __attribute__((always_inline)) void botBCzVal(myprec 
 
 __device__ __forceinline__ __attribute__((always_inline)) void botBCxMir(myprec *s_f, int si) {
 	s_f[si-stencilSize]  = s_f[3*stencilSize-si-1];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void botBCzCpy(myprec *s_f, myprec *f, int si, Indices id) {
+s_f[si-stencilSize] = f[idx(id.i,id.j,id.k-stencilSize)];
+}
+
+__device__ __forceinline__ __attribute__((always_inline)) void topBCzCpy(myprec *s_f, myprec *f, int si, Indices id) {
+s_f[si+mz/nDivZ] = f[idx(id.i,id.j,id.k+mz/nDivZ)];
 }
 
 

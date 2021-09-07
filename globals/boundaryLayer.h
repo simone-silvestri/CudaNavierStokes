@@ -21,7 +21,7 @@
 #define Lx       (20.0)
 #define Ly       (7.0)
 #define Lz       (400.0)
-#define mx_tot   256
+#define mx_tot   240
 #define my_tot   64
 #define mz_tot   2048
 #define nsteps   101
@@ -54,10 +54,7 @@ const myprec TwallBot = 1.0;
 #define my (my_tot/pRow)
 #define mz (mz_tot/pCol)
 
-#define nDivZ 	(8) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
-#define nDivX   (1)
-
-
+#define nDivZ 	(1) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); })

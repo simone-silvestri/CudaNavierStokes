@@ -34,27 +34,30 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 }
 
 // shared memory tiles will be m*-by-*Pencils
-// sPencils is used when each thread calculates the derivative at one point
-// lPencils is used for coalescing in y and z where each thread has to 
+// sPencils (small # pencils) is used when each thread calculates the derivative at one point
+// sPencils is used for deviceRHSX, deviceRHSY, deviceRHSZ, derVelX
+
+// lPencils (large # pencils) is used for coalescing in y and z where each thread has to
 //   				    calculate the derivative at multiple points
+// lPencils is used only for derVelY and derVelZ
 
 #if mx==1 || my==1 
 const int sPencils = 1;
 #else
-#if mx+2*stencilSize > 279 ||  my+2*stencilSize>600 || mz+2*stencilSize>600
-const int sPencils = 1;  // small # pencils
+#if mx+2*stencilSize > 279 ||  my+2*stencilSize>600 || mz/nDivZ+2*stencilSize>600
+const int sPencils = 1;
 #else
 const int sPencils = 2;
 #endif
 #endif
-#if mx<=16 || my<=16 || mz<=16
+#if mx<=32 || my<=32 || mz<=32
 const int lPencils = 1;  
 #else
-#if mz > 512 || my > 512
+#if mz/nDivZ > 512 || my > 512
 const int lPencils = 4;  // large # pencils
-#elif mz > 256 || my > 256
+#elif mz/nDivZ > 256 || my > 256
 const int lPencils = 8;  // large # pencils
-#elif mz > 128 || my > 128
+#elif mz/nDivZ > 128 || my > 128
 const int lPencils = 16;  // large # pencils
 #else
 const int lPencils = 32;
@@ -75,14 +78,13 @@ extern __device__ myprec dcoeffVSx[mx*(2*stencilVisc+1)];
 #endif
 extern __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
-extern __device__ myprec gij[9][mx*my*mz];
 extern __device__ myprec time_on_GPU;
 extern __device__ Communicator rkGPU;
 
 extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
 extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
 
-extern cudaStream_t s[9];
+extern cudaStream_t s[8+nDivZ];
 
 extern myprec *d_r;
 extern myprec *d_u;
@@ -121,6 +123,8 @@ extern myprec *d_rhsu3;
 extern myprec *d_rhsv3;
 extern myprec *d_rhsw3;
 extern myprec *d_rhse3;
+
+extern myprec *gij[9];
 
 extern myprec *dtC,*dpdz;
 

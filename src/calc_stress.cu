@@ -17,7 +17,7 @@ __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
 	*a = 0.99*(*b) - 0.5*(*a/(*c)-1);
 }
 
-__global__ void derVelX(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelX(myprec *u, myprec *v, myprec *w, myprec *dudx, myprec *dvdx, myprec *dwdx) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
@@ -38,60 +38,60 @@ __global__ void derVelX(myprec *u, myprec *v, myprec *w) {
 	__syncthreads();
 
 	myprec wrk1;
-	derDevSharedV1x(&wrk1,s_u[sj],si); gij[0][id.g] = wrk1;
-	derDevSharedV1x(&wrk1,s_v[sj],si); gij[1][id.g] = wrk1;
-	derDevSharedV1x(&wrk1,s_w[sj],si); gij[2][id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_u[sj],si); dudx[id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_v[sj],si); dvdx[id.g] = wrk1;
+	derDevSharedV1x(&wrk1,s_w[sj],si); dwdx[id.g] = wrk1;
 
 }
 
-__global__ void derVelY(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelY(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDevV1yL(gij[3],u,id);
-	derDevV1yL(gij[4],v,id);
-	derDevV1yL(gij[5],w,id);
+	derDevV1yL(dudy,u,id);
+	derDevV1yL(dvdy,v,id);
+	derDevV1yL(dwdy,w,id);
 }
 
-__global__ void derVelZ(myprec *u, myprec *v, myprec *w) {
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, int kNum) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
-	derDevV1zL(gij[6],u,uInit,id);
-	derDevV1zL(gij[7],v,vInit,id);
-	derDevV1zL(gij[8],w,wInit,id);
+	derDevV1zL(dudz,u,uInit,id,kNum);
+	derDevV1zL(dvdz,v,vInit,id,kNum);
+	derDevV1zL(dwdz,w,wInit,id,kNum);
 }
 
-__global__ void derVelYBC(myprec *u, myprec *v, myprec *w, int direction) {
+__global__ void derVelYBC(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy, int direction) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
 	id.mkidYBC(direction);
 
-	derDev1yBC(gij[3],u,id,direction);
-	derDev1yBC(gij[4],v,id,direction);
-	derDev1yBC(gij[5],w,id,direction);
+	derDev1yBC(dudy,u,id,direction);
+	derDev1yBC(dvdy,v,id,direction);
+	derDev1yBC(dwdy,w,id,direction);
 }
 
-__global__ void derVelZBC(myprec *u, myprec *v, myprec *w, int direction) {
+__global__ void derVelZBC(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, int direction) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 
 	id.mkidZBC(direction);
 
-	derDev1zBC(gij[6],u,id,direction);
-	derDev1zBC(gij[7],v,id,direction);
-	derDev1zBC(gij[8],w,id,direction);
+	derDev1zBC(dudz,u,id,direction);
+	derDev1zBC(dvdz,v,id,direction);
+	derDev1zBC(dwdz,w,id,direction);
 }
 
-__global__ void calcDil(myprec *dil) {
+__global__ void calcDil(myprec *dil, myprec *dudx, myprec *dvdy, myprec *dwdz) {
 
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
 	id.mkidX();
 
 	//Stress goes with RHS old
 
-	dil[id.g] = gij[0][id.g] + gij[4][id.g] + gij[8][id.g];
+	dil[id.g] = dudx[id.g] + dvdy[id.g] + dwdz[id.g];
 
 }
 

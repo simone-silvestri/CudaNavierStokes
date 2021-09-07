@@ -41,7 +41,7 @@ LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda -lcudart -lcudadevrt
 NVCC = nvcc $(DBG) $(CPPFLAGS) -lineinfo -rdc=true # 
 MAXREG = # --maxrregcount=82 --ptxas-options=-v
 ifeq ($(DBG),)
-NVCC += -O5  
+NVCC += -O5 -mcmodel=large -forward-unknown-to-host-compiler -mcmodel=large
 endif
 
 CC = $(NVCC)
