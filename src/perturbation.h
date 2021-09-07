@@ -11,8 +11,8 @@
 
 //const int kC = (int) (mz/Lz*(spInlLen + Lz/20.0));
 //const int LP = 2*(kC - (int) (mz/Lz*spInlLen) - 5);
-const int kC = 75;
-const int LP = 24;
+const int kC = 110;
+const int LP =  40;
 
 const myprec lambda = Ly/(2.0*M_PI);
 const myprec amp1   = 2e-4;

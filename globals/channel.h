@@ -29,6 +29,7 @@
 #define CFL      0.75f
 #define restartFile  -1
 
+#define lowStorage    (true)
 #define boundaryLayer (false)
 #define perturbed	  (false)
 #define forcing       (true)

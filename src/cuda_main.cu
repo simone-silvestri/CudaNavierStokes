@@ -10,7 +10,6 @@
 __device__ __constant__ myprec alpha[] = {0.    , -17./60., -5./12.};
 __device__ __constant__ myprec beta[]  = {8./15.,   5./12.,  3./4. };
 
-
 cudaStream_t s[8+nDivZ];
 
 inline void calcRHS(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse, Communicator rk) {
@@ -107,7 +106,6 @@ void runSimulation(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 	}
 }
 
-
 void runSimulationLowStorage(myprec *par1, myprec *par2, myprec *time, Communicator rk) {
 
 	cudaSetDevice(rk.nodeRank);
@@ -186,7 +184,6 @@ void runSimulationLowStorage(myprec *par1, myprec *par2, myprec *time, Communica
 		cudaDeviceSynchronize();
 	}
 }
-
 
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt) {
 	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
