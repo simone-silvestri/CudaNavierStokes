@@ -7,8 +7,8 @@
 #include "sponge.h"
 
 
-__device__ const myprec alpha[] = {0.    , 17./60., -5./12.};
-__device__ const myprec beta[]  = {8./15., 5./12. ,  3./4.};
+__device__ __constant__ myprec alpha[] = {0.    , -17./60., -5./12.};
+__device__ __constant__ myprec beta[]  = {8./15.,   5./12.,  3./4. };
 
 
 cudaStream_t s[8+nDivZ];
@@ -295,8 +295,12 @@ void solverWrapper(Communicator rk) {
     if(rk.rank==0) fp = fopen("solution.txt","w+");
     for(int file = start+1; file<nfiles+start+1; file++) {
 
-    	runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
-//    	runSimulationLowStorage(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
+    	if(lowStorage) {
+        	runSimulationLowStorage(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
+    	} else {
+    		runSimulation(dpar1,dpar2,dtime,rk);  //running the simulation on the GPU
+    	}
+
     	copyField(1,rk);					  //copying back partial results to CPU
 
     	writeField(file,rk);
