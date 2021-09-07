@@ -186,14 +186,14 @@ void copyThreadGridsToDevice(Communicator rk) {
 	d_grid[0]  = dim3(my / sPencils, mz, 1);
 	d_block[0] = dim3(mx, sPencils, 1);
 
-	// Y-grid (1) for viscous fluxes and (3) for advective fluxes
+	// Y-grid (1) for RHS calculation and (3) for velocity derivative
 	d_grid[3]  = dim3(mx / lPencils, mz, 1);
 	d_block[3] = dim3(lPencils, (my * sPencils) / lPencils, 1);
 
 	d_grid[1]  = dim3(mx / sPencils, mz, 1);
-	d_block[1] = dim3(my , sPencils, 1); //if not using shared change!!
+	d_block[1] = dim3(my , sPencils, 1);
 
-	// Z-grid (2) for viscous fluxes and (4) for advective fluxes
+	// Y-grid (2) for RHS calculation and (4) for velocity derivative
 	d_grid[4]  = dim3(mx / lPencils, my, 1);
 	d_block[4] = dim3(lPencils, (mz / nDivZ * sPencils) / lPencils, 1);
 
