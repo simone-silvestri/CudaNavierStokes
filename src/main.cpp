@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     setGPUParameters(rk);
     initSolver(rk);
     copyField(0,rk);
-	writeField(0,rk);
+	if(restartFile<0) writeField(0,rk);
 
     //Run the solver
     solverWrapper(rk);

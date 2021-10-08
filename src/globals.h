@@ -25,7 +25,7 @@
 #define my_tot   64
 #define mz_tot   2048
 #define nsteps   1001
-#define nfiles   1
+#define nfiles   100
 #define CFL      0.75f
 #define restartFile  -1
 

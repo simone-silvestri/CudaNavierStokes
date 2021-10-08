@@ -35,7 +35,7 @@ extern __device__ myprec mInit[mx];
 extern __device__ myprec lInit[mx];
 
 #define idx2(i,k) \
-		({ ( k )*mx + ( i ); })
+		({ ( i ) + ( k )*mx; })
 
 __global__ void addSponge(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw, myprec *rhse,
 						  myprec *r, myprec *u, myprec *v, myprec *w, myprec *e);

@@ -40,30 +40,6 @@ __global__ void addSponge(myprec *rhsr, myprec *rhsu, myprec *rhsv, myprec *rhsw
 	rhse[id.g] += (spongeX[id.i] + spongeZ[id.k]) * (eref[idx2(id.i,id.k)] - e[id.g]);
 }
 
-//__global__ void initSpongeInDevice() {
-//
-//	spongeX = (myprec*)malloc(mx*sizeof(myprec));
-//	spongeZ = (myprec*)malloc(mz*sizeof(myprec));
-//
-//	rref = (myprec*)malloc(mx*mz*sizeof(myprec));
-//	uref = (myprec*)malloc(mx*mz*sizeof(myprec));
-//	vref = (myprec*)malloc(mx*mz*sizeof(myprec));
-//	wref = (myprec*)malloc(mx*mz*sizeof(myprec));
-//	eref = (myprec*)malloc(mx*mz*sizeof(myprec));
-//
-//	rInit = (myprec*)malloc(mx*sizeof(myprec));
-//	uInit = (myprec*)malloc(mx*sizeof(myprec));
-//	vInit = (myprec*)malloc(mx*sizeof(myprec));
-//	wInit = (myprec*)malloc(mx*sizeof(myprec));
-//	eInit = (myprec*)malloc(mx*sizeof(myprec));
-//	pInit = (myprec*)malloc(mx*sizeof(myprec));
-//	tInit = (myprec*)malloc(mx*sizeof(myprec));
-//	hInit = (myprec*)malloc(mx*sizeof(myprec));
-//	mInit = (myprec*)malloc(mx*sizeof(myprec));
-//	lInit = (myprec*)malloc(mx*sizeof(myprec));
-//
-//}
-
 __global__ void copySpongeToDevice(myprec *d_spongeX, myprec *d_spongeZ, myprec *d_rref, myprec *d_uref, myprec *d_wref, myprec *d_eref,
 																		 myprec *d_rIn, myprec *d_uIn, myprec *d_wIn, myprec *d_eIn) {
 
@@ -249,7 +225,6 @@ void calculateSponge(Communicator rk) {
     delete [] h_wIn;
     delete [] h_eIn;
 
-//    initSpongeInDevice<<<  1,  1 >>>();
     copySpongeToDevice<<< mz, mx >>>(d_spongeX,d_spongeZ,d_rref,d_uref,d_wref,d_eref,d_rIn,d_uIn,d_wIn,d_eIn);
 
     checkCuda( cudaFree(d_spongeX) );
