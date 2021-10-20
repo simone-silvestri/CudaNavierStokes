@@ -133,13 +133,13 @@ void updateHaloFive(myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Commu
 	fillBoundariesFive(rcvYm5,rcvYp5,rcvZm5,rcvZp5,r,u,v,w,e,1,rk);
 }
 
-long int nameToHash(char *name, int length) {
-	long int hash = 0;
-	for (int i=0; i<length; i++) {
-		hash += (atoi(&name[i])+1)*pow(10,i);
-	}
-	return hash;
-}
+//long int nameToHash(char *name, int length) {
+//	long int hash = 0;
+//	for (int i=0; i<length; i++) {
+//		hash += (atoi(&name[i])+1)*pow(10,i);
+//	}
+//	return hash;
+//}
 
 void splitComm(Communicator *rk, int myRank) {
 
@@ -186,14 +186,14 @@ void splitComm(Communicator *rk, int myRank) {
 	rk->kstart = coord[1]*mz;
 	rk->kend   = rk->kstart + mz;
 
-	long int hash;
+	int hash;
 	MPI_Comm comm_node;
 	int procnamesize;
 	char procname[MPI_MAX_PROCESSOR_NAME];
 
 	ierr = MPI_Get_processor_name(procname, &procnamesize);
 
-	hash = nameToHash(procname, procnamesize);
+	hash = 1; // nameToHash(procname, procnamesize);
 
 	ierr = MPI_Comm_split(MPI_COMM_WORLD, hash, rk->rank, &comm_node);
 	ierr = MPI_Comm_rank(comm_node , &rk->nodeRank);
