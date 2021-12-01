@@ -183,22 +183,22 @@ void copyThreadGridsToDevice(Communicator rk) {
 	sanityCheckThreadGrids(rk);
 
 	// X-grid
-	d_grid[0]  = dim3(my / sPencils, mz, 1);
-	d_block[0] = dim3(mx, sPencils, 1);
+	d_grid[0]  = dim3(2*my / sPencils, mz, 1);
+	d_block[0] = dim3(mx, sPencils/2, 1);
 
 	// Y-grid (1) for RHS calculation and (3) for velocity derivative
-	d_grid[3]  = dim3(mx / lPencils, mz, 1);
-	d_block[3] = dim3(lPencils, (my * sPencils) / lPencils, 1);
+	d_grid[3]  = dim3(nDivX, mz, nDivY);
+	d_block[3] = dim3(mx/nDivX, my/nDivY , 1);
 
-	d_grid[1]  = dim3(mx / sPencils, mz, 1);
-	d_block[1] = dim3(my , sPencils, 1);
+	d_grid[1]  = dim3(nDivX, mz, nDivY);
+	d_block[1] = dim3(mx/nDivX, my/nDivY , 1);
 
 	// Y-grid (2) for RHS calculation and (4) for velocity derivative
-	d_grid[4]  = dim3(mx / lPencils, my, 1);
-	d_block[4] = dim3(lPencils, (mz / nDivZ * sPencils) / lPencils, 1);
+	d_grid[4]  = dim3(nDivX, my, nDivZ);
+	d_block[4] = dim3(mx/nDivX, (mz / nDivZ) , 1);
 
-	d_grid[2]  = dim3(mx / sPencils, my, 1);
-	d_block[2] = dim3(mz / nDivZ , sPencils, 1); //if not using shared change!!
+	d_grid[2]  = dim3(nDivX, my, nDivZ);
+	d_block[2] = dim3(mx/nDivX, mz / nDivZ, 1); //if not using shared change!!
 
 	grid0 = d_grid[0];
 	block0= d_block[0];
@@ -231,7 +231,7 @@ void copyThreadGridsToDevice(Communicator rk) {
 }
 
 void sanityCheckThreadGrids(Communicator rk) {
-	if(mx%sPencils!=0) {
+/*	if(mx%sPencils!=0) {
 		if(rk.rank==0) {
 			printf("Error! -> mx mod sPencils!=0\n");
 		}
@@ -293,7 +293,7 @@ void sanityCheckThreadGrids(Communicator rk) {
 		}
 		mpiBarrier();
 		exit(1);
-	}
+	}*/
 }
 
 void copyField(int direction, Communicator rk) {

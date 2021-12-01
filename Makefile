@@ -6,7 +6,7 @@ GEN = /usr
 
 #MPI = /usr/local/openmpi-4.1.1
 
-CUDA = /usr/local/cuda-11.2
+CUDA = /usr/local/cuda-11.4
 
 GPU_ARCHITECTURE = 70
 
@@ -38,6 +38,7 @@ INC = -I$(CUDA)/include -I$(GEN)/include $(GLB)
 #INC += -I$(MPI)/include
 LIB = -L$(CUDA)/lib64 -L$(GEN)/lib -lc -lstdc++ -lcuda -lcudart -lcudadevrt 
 #LIB += -L$(MPI)/lib
+#NVCC = $(CUDA)/bin/nvcc $(DBG) $(CPPFLAGS) -lineinfo -rdc=true # 
 NVCC = nvcc $(DBG) $(CPPFLAGS) -lineinfo -rdc=true # 
 MAXREG = # --maxrregcount=82 --ptxas-options=-v
 ifeq ($(DBG),)
@@ -104,3 +105,6 @@ $(OBJ)cuda_link.o: $(OBJ_CUDA)
 
 clean:
 		rm -rf $(TARGET) $(OBJ)*.o
+
+
+

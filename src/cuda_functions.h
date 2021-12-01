@@ -39,18 +39,21 @@ class Indices {
        g = i + j*mx + k*mx*my;
     }
 
-    __device__ __host__ void mkidYFlx() {
-        i  = bix*bdy + tiy;
-        j  = tix;
+    __device__ __host__ void mkidYFlx(int jNum) {
+        //CHANGED
+        i  = bix*bdx + tix;
+        j  = tiy + jNum*my/nDivY;
         k  = biy;
         g = i + j*mx + k*mx*my;
      }
 
     __device__ __host__ void mkidZFlx(int kNum) {
-        i  = bix*bdy + tiy;
+  //changed
+        i  = bix*bdx + tix;
         j  = biy;
-        k  = tix + kNum*mz/nDivZ;
+        k  = tiy + kNum*mz/nDivZ;
         g = i + j*mx + k*mx*my;
+
      }
 
     __device__ __host__ void mkidYBC(int dir) {
@@ -76,7 +79,7 @@ class Indices {
 
 void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu, Communicator rk);
 void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w, Communicator rk);
-void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk);
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *dtC , myprec *dpdz ,int file, int istep , Communicator rk);
 
 #include "boundary_condition_z.h"
 #include "cuda_derivs.h"
@@ -86,21 +89,21 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dudx, myprec *dvdx, myprec *dwdx, myprec *dudy, myprec *dudz,
-		myprec *dil, myprec *dpdz, int iNum);
+		myprec *dvdy, myprec *dwdz, myprec *dil, myprec *dpdz, int iNum);
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dvdx, myprec *dudy, myprec *dvdy, myprec *dwdy, myprec *dvdz,
-		myprec *dil, myprec *dpdz, int jNum);
+		myprec *dil, myprec *dpdz);
 __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dwdx, myprec *dwdy, myprec *dudz, myprec *dvdz, myprec *dwdz,
-		myprec *dil, myprec *dpdz, int kNum);
+		myprec *dil, myprec *dpdz);
 
 __global__ void derVelX(myprec *u, myprec *v, myprec *w, myprec *dudx, myprec *dvdx, myprec *dwdx);
 __global__ void derVelY(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy);
-__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, int kNum);
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz);
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy, int direction);
 __global__ void derVelZBC(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, int direction);
 __global__ void calcDil(myprec *dil, myprec *dudx, myprec *dvdy, myprec *dwdz);

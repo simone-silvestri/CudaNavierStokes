@@ -63,6 +63,19 @@ void calcTimeStepPressGrad(int istep, myprec *dtC, myprec *dpdz, myprec *h_dt, m
 __device__ myprec time_on_GPU;
 __device__ Communicator rkGPU;
 
+__global__ void eulerSumAll(myprec *r, myprec *r0,myprec *u, myprec *u0, myprec *v, myprec *v0,myprec *w, 
+                            myprec *w0, myprec *e, myprec *e0, myprec *rhsr1, myprec *rhsu1, myprec *rhsv1, myprec *rhsw1, myprec *rhse1,
+                            myprec *dt);
+
+__global__ void eulerSumAll2(myprec *r, myprec *r0,myprec *u, myprec *u0, myprec *v, myprec *v0,myprec *w, 
+                            myprec *w0, myprec *e, myprec *e0, myprec *rhsr1, myprec *rhsu1, myprec *rhsv1, myprec *rhsw1, myprec *rhse1,
+                            myprec *rhsr2, myprec *rhsu2, myprec *rhsv2, myprec *rhsw2, myprec *rhse2, myprec *dt);
+
+__global__ void eulerSumAll3(myprec *r, myprec *r0,myprec *u, myprec *u0, myprec *v, myprec *v0,myprec *w, 
+                            myprec *w0, myprec *e, myprec *e0, myprec *rhsr1, myprec *rhsu1, myprec *rhsv1, myprec *rhsw1, myprec *rhse1,
+                            myprec *rhsr2, myprec *rhsu2, myprec *rhsv2, myprec *rhsw2, myprec *rhse2,
+                            myprec *rhsr3, myprec *rhsu3, myprec *rhsv3, myprec *rhsw3, myprec *rhse3, myprec *dt);
+
 __global__ void eulerSum(myprec *a, myprec *b, myprec *c, myprec *dt);
 __global__ void eulerSumR(myprec *a, myprec *b, myprec *c, myprec *r, myprec *dt);
 

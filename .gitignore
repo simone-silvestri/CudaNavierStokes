@@ -1,3 +1,4 @@
+*.ncu-rep
 *.bin
 *.txt
 *.o
@@ -6,3 +7,4 @@ logfile
 *.xmf
 *.mp4
 ns
+tmp

@@ -83,7 +83,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber1(myprec
 																		  myprec *m, myprec *dil,
 																		  Indices id, int si, int n, int kNum) {
 
-	if (id.tix < stencilSize) {
+	if (id.tiy < stencilSize) {
 		if(nDivZ==1) {
 			if(multiGPU) {
 				haloBCz(s_u,u,si,id); haloBCz(s_v,v,si,id); haloBCz(s_w,w,si,id);
@@ -164,7 +164,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber1(myprec
 }
 
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber2(myprec *s_p, myprec *p, Indices id, int si, int n, int kNum) {
-	if (id.tix < stencilSize) {
+	if (id.tiy < stencilSize) {
 		if(nDivZ==1) {
 			if(multiGPU) {
 				haloBCz(s_p,p,si,id);
@@ -212,7 +212,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber2(myprec
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber3(myprec *s_l, myprec *s_t,
 																		  myprec *l,   myprec *t,
 																		  Indices id, int si, int n, int kNum) {
-	if (id.tix < stencilSize) {
+	if (id.tiy < stencilSize) {
 		if(nDivZ==1) {
 			if(multiGPU) {
 				haloBCz(s_l,l,si,id); haloBCz(s_t,t,si,id);
@@ -273,7 +273,7 @@ __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber3(myprec
 __device__ __forceinline__ __attribute__((always_inline)) void BCzNumber4(myprec *s_r, myprec *s_h,
 																		  myprec *r,   myprec *h,
 																		  Indices id, int si, int n, int kNum) {
-	if (id.tix < stencilSize) {
+	if (id.tiy < stencilSize) {
 		if(nDivZ==1) {
 			if(multiGPU) {
 				haloBCz(s_h,h,si,id); haloBCz(s_r,r,si,id);
