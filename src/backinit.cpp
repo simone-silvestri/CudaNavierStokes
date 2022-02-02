@@ -16,9 +16,9 @@ void initField(int timestep, Communicator rk) {
 	readFileMPI('v',timestep,v,rk);
 	readFileMPI('w',timestep,w,rk);
 	readFileMPI('e',timestep,e,rk);
-	if(rk.rank==0) {
-		printf("finished initializing field\n");
-	}
+    if(rk.rank==0) {
+    	printf("finished initializing field\n");
+    }
 }
 
 void writeField(int timestep, Communicator rk) {
@@ -33,100 +33,68 @@ void initGrid(Communicator rk) {
 
 	//constant grid in y and z and stretched in x
 
-	if (gridtype ==0) {
-
-		dx = Lx*(1.0)/(mx_tot-1);// because we have points at the domain boundaries.mx_tot is the total points and mx_tot-1 is the number of parts in which domain is divided
-		//dy = Ly*(1.0)/(my_tot);// Periodic direction
-		//dz = Lz*(1.0)/(mz_tot-1);// because we have points at the domain boundaries.
-
-		// y mesh - uniform
-		for(int j=0;j<my_tot;j++) {
-			y[j]=Ly*(0.5+j*1.0)/(my_tot);  } //staggered
-
-		// z mesh - uniform
-		for(int k=0;k<mz_tot;k++) {
-			z[k]=Lz*(k*1.0)/(mz_tot-1);  }
-
-
-		//stretching for wall-normal direction.
-
-		myprec tanhyp = 0.5; // for boundary layers. For channel tanhyp is 1
-		for(int i=0;i<mx_tot;i++) {
-			myprec fact    =  tanhyp*(i)/(mx_tot-1.0) - 0.5 ;
-			x[i]    =  0.5/tanhyp*(1.0+tanh(stretch*fact)/tanh(stretch*0.5))*(Lx) ;
-			xp[i]   =  0.5*stretch/tanh(stretch*0.5)/pow(cosh(stretch*fact), 2.0) ; // dx/dx_uni = dx/di * di/dx_uni = (dx/di) / dx_uni
-			xpp[i]  =  -tanhyp*pow(stretch,2.0)*tanh(stretch*fact)/tanh(stretch*0.5)/pow(cosh(stretch*fact),2.0) ; //d2x/dx2_uni
-
-			xp[i] = 1/xp[i]; // taking inverse because everywhere dx/dx_uni will come in the denominator. Thus doing this, we can just multiply by xp to save computation effort in division.
+	if (boundaryLayer) {
+        myprec tmp = 1/( (mxwr-1.0) - 1.0);
+		for (int i=0; i<mxwr; i++){
+			fact = (i)*tmp;
+		    x[i] = Lxwr*( sinh(stretch * fact)/sinh(stretch));
 		}
+		myprec dx1 = x[mxwr-1]-x[mxwr-2] ;
+		myprec Lxgp = Lx     - Lxwr;
+		int    mxgp = mx_tot - mxwr ;
+        myprec rgp  = 1.01;
+        myprec rgpold = 0;
+        while (abs(rgp-rgpold) < 1e-3) {
+        	rgpold = rgp;
+        	rgp = 1.0 - (1.0 - rgp)/dx1*Lxgp;
+        	rgp = pow(rgp, 1.0/mxgp);
+        }
+        for (int i = mxwr; i < mx_tot + stencilSize ; i++) {
+        	x[i] = x[i-1] + dx1*pow(rgp, i-mxwr);
+        }
+//what is the grid dimension in the halo points? Simone did not have in the channel grid I think because of the fact that Grid dimensions in the halo were never needed
+        // eqyations were never solved on the haldo points. The fact that we put BC as u[-1] = - u [0]; u[-2] = - u[1] and also for temperature automatically imples
+        //that the distance between the halo points is mirrored. x[-1] is as far ffrom the wall as x[0].   -2  -1 | 0 1 2 ....
+        //But now we will also need a halo grid as we will be solving for the cells (nrbc)
 
-	} else if (gridtype == 1) {
-
-		dx = Lx*(1.0)/(mx_tot-1);// because we have points at the domain boundaries.mx_tot is the total points and mx_tot-1 is the number of parts in which domain is divided
-		//dy = Ly*(1.0)/(my_tot);// Periodic direction
-		//dz = Lz*(1.0)/(mz_tot-1);// because we have points at the domain boundaries.
-
-		// y mesh - uniform
-		for(int j=0;j<my_tot;j++) {
-			y[j]=Ly*(0.5+j*1.0)/(my_tot);  } //staggered
-
-		// z mesh - uniform
-		for(int k=0;k<mz_tot;k++) {
-			z[k]=Lz*(0.5+k*1.0)/(mz_tot);  }
-
-
-		//stretching for wall-normal direction.
-
-		myprec tanhyp = 1; // for boundary layers. For channel tanhyp is 1
-		for(int i=0;i<mx_tot;i++) {
-			myprec fact    =  tanhyp*(i)/(mx_tot-1.0) - 0.5 ;
-			x[i]    =  0.5/tanhyp*(1.0+tanh(stretch*fact)/tanh(stretch*0.5))*(Lx) ;
-			xp[i]   =  0.5*stretch/tanh(stretch*0.5)/pow(cosh(stretch*fact), 2.0) ; // dx/dx_uni = dx/di * di/dx_uni = (dx/di) / dx_uni
-			xpp[i]  =  -tanhyp*pow(stretch,2.0)*tanh(stretch*fact)/tanh(stretch*0.5)/pow(cosh(stretch*fact),2.0) ; //d2x/dx2_uni
-
-			xp[i] = 1/xp[i]; // taking inverse because everywhere dx/dx_uni will come in the denominator. Thus doing this, we can just multiply by xp to save computation effort in division.
-
-		}
-
-	}else if (gridtype == 2){
-
-		dx = Lx*(1.0)/(mx_tot);
-
-		double xn[mx_tot+1];
-		int denom = mx_tot;
-		myprec denom2 = 2.0;
-		/*if(boundaryLayer) {
-		denom *= 2;
-		denom2/= 2;
-	}*/
-
-		for (int i=0; i<mx_tot+1; i++)
-			xn[i] = tanh(stretch*((i*1.0)/denom-0.5))/tanh(stretch*0.5)	;
-
-		for (int i=0; i<mx_tot; i++)
-			x[i] = Lx * (1.0 + (xn[i] + xn[i+1])/2.0)/denom2;
-
-		derivGrid(xpp,xp,x,dx);
-
-		for (int i=0; i<mx_tot; i++)
-			xp[i] = 1.0/xp[i];
-
-#if !nonUniformX
-		for(int i=0;i<mx_tot;i++) {
-			x[i]=Lx*(0.5+i*1.0)/(mx_tot);  }
-
-		dx = x[1] - x[0];
-
-#endif
-
-		for(int j=0;j<my_tot;j++) {
-			y[j]=Ly*(0.5+j*1.0)/(my_tot);  }
-
-		for(int k=0;k<mz_tot;k++) {
-			z[k]=Lz*(0.5+k*1.0)/(mz_tot);  }
 
 	}
 
+
+	dx = Lx*(1.0)/(mx_tot);
+
+	double xn[mx_tot+1];
+	int denom = mx_tot;
+	myprec denom2 = 2.0;
+	if(boundaryLayer) {
+		denom *= 2;
+		denom2/= 2;
+	}
+
+	for (int i=0; i<mx_tot+1; i++)
+		xn[i] = tanh(stretch*((i*1.0)/denom-0.5))/tanh(stretch*0.5)	;
+
+	for (int i=0; i<mx_tot; i++)
+		x[i] = Lx * (1.0 + (xn[i] + xn[i+1])/2.0)/denom2;
+
+	derivGrid(xpp,xp,x,dx);
+
+	for (int i=0; i<mx_tot; i++)
+		xp[i] = 1.0/xp[i];
+
+#if !nonUniformX
+	for(int i=0;i<mx_tot;i++) {
+			x[i]=Lx*(0.5+i*1.0)/(mx_tot);  }
+
+	dx = x[1] - x[0];
+
+#endif
+
+	for(int j=0;j<my_tot;j++) {
+		y[j]=Ly*(0.5+j*1.0)/(my_tot);  }
+
+	for(int k=0;k<mz_tot;k++) {
+		z[k]=Lz*(0.5+k*1.0)/(mz_tot);  }
 
 	if(rk.rank==0) {
 
@@ -182,59 +150,6 @@ void initChannel(Communicator rk) {
 				e[idx(i,j,k)] = P0/(gam-1.0) + 0.5 * r[idx(i,j,k)] * (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2));
 			} } }
 }
-
-void initBL(Communicator rk) {
-
-	readFileMPI('r',0,r,rk);
-	readFileMPI('u',0,u,rk);
-	readFileMPI('v',0,v,rk);
-	readFileMPI('w',0,w,rk);
-	readFileMPI('e',0,e,rk);
-	if(rk.rank==0) {
-		printf("finished Reading Streams outputted initial file\n");
-	}
-/*	double cv = Rgas/(gam-1.0);
-	myprec *t       = (myprec*)malloc(mx*my*mz*sizeof(myprec));
-	myprec *idx     = (myprec*)malloc(mz*sizeof(myprec));
-	myprec *delta99 = (myprec*)malloc(mz*sizeof(myprec));
-
-	readFileInitBL('r',r,rk); //all the variables are initialized with the mean
-	readFileInitBL('u',u,rk);
-	readFileInitBL('w',w,rk);
-	readFileInitBL('t',t,rk);
-	readFileInitBL1D('i',idx,rk); //idx indicates cell location corresponding to the BL thickness.         
-	readFileInitBL1D('d',delta99,rk);
-
-
-	for (int i=0; i<mx; i++) {
-		for (int j=0; j<my; j++) {
-			for (int k=0; k<mz; k++) {  
-				double rr1 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double rr2 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double rr3 = rand()*1.0/(RAND_MAX*1.0) - 0.5;
-				double ufluc  =  0.02*rr1;
-				double vfluc  =  0.02*rr2;
-				double wfluc  =  0.02*rr3;
-
-				//double wmean  = 1.5*U0*R0*x[i]*(1.0-x[i]/Lx);
-				/*if (i<=idx[k]) {
-				ufluc          = ufluc + 0.05*sin(0.5*M_PI*x[i]/delta99[k])*cos(2*M_PI*y[j+rk.jstart]);
-				vfluc          = vfluc + 0.05*sin(0.5*M_PI*x[i]/delta99[k])*sin(2*M_PI*y[j+rk.jstart]);
-				}
-
-				u[idx(i,j,k)] += ufluc;
-				v[idx(i,j,k)]  = vfluc;
-				w[idx(i,j,k)] += wfluc;
-				r[idx(i,j,k)] += 0    ; // only mean
-				e[idx(i,j,k)]  = r[idx(i,j,k)] *(cv*t[idx(i,j,k)] + 0.5 *  (pow(u[idx(i,j,k)],2) + pow(v[idx(i,j,k)],2) + pow(w[idx(i,j,k)],2)) );
-			} } }
-	free(t);
-	free(idx);
-	free(delta99);*/
-}
-
-
-
 
 void initCHIT(Communicator rk) {
 
@@ -329,24 +244,24 @@ void printRes(Communicator rk) {
 
 	for (int k=0; k<mz; k++)
 		for (int j=0; j<my; j++) {
-			temw   = 1.0;
-			double suth = pow(temw,viscexp);
-			muw      = suth/Re;
+			    temw   = 1.0;
+			    double suth = pow(temw,viscexp);
+			    muw      = suth/Re;
 
-			double ub[stencilSize*2+1];
-			for (int i=stencilSize; i<stencilSize*2+1; i++)
-				ub[i] = w[i-stencilSize + j*mx + k*my*mx];
-			for (int i=0; i<stencilSize; i++)
-				ub[i] = w[stencilSize-i-1 + j*mx + k*my*mx];
+			    double ub[stencilSize*2+1];
+			    for (int i=stencilSize; i<stencilSize*2+1; i++)
+			    	ub[i] = w[i-stencilSize + j*mx + k*my*mx];
+			    for (int i=0; i<stencilSize; i++)
+			    	ub[i] = w[stencilSize-i-1 + j*mx + k*my*mx];
 
-			double dudx = 0;
-			for (int i=0; i<stencilSize; i++)
-				dudx += coeffF[i]*(ub[i]-ub[stencilSize*2-i])/dx;
+			    double dudx = 0;
+			    for (int i=0; i<stencilSize; i++)
+			    	dudx += coeffF[i]*(ub[i]-ub[stencilSize*2-i])/dx;
 
-			dudx *= xp[0];
+			    dudx *= xp[0];
 
-			ut  = sqrt(muw*abs(dudx)/r[idx(0,j,k)]);
-			Ret += ut*r[idx(0,j,k)]/muw;
+			    ut  = sqrt(muw*abs(dudx)/r[idx(0,j,k)]);
+			    Ret += ut*r[idx(0,j,k)]/muw;
 		}
 
 	Ret = Ret/my/mz;
@@ -404,20 +319,20 @@ void calcdt(Communicator rk) {
 
 		int i = gt%my;
 
-		if(i==0) {
-			dx = (x[i+1] + x[i])/2.0;
-		} else if (i==mx-1) {
-			dx = Lx - (x[i] + x[i-1])/2.0;
-		} else {
-			dx = (x[i+1] - x[i-1])/2.0;
-		}
+	    if(i==0) {
+	    	dx = (x[i+1] + x[i])/2.0;
+	    } else if (i==mx-1) {
+	    	dx = Lx - (x[i] + x[i-1])/2.0;
+	    } else {
+	    	dx = (x[i+1] - x[i-1])/2.0;
+	    }
 
-		dx2 = dx*dx;
+	    dx2 = dx*dx;
 
-		double dtc1, dtv1;
+	    double dtc1, dtv1;
 
-		dtc1      =  MAX( (abs(u[gt]) + sos)/dx, MAX( (abs(v[gt]) + sos)/dy, (abs(w[gt]) + sos)/dz) );
-		dtv1      =  MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) );
+	    dtc1      =  MAX( (abs(u[gt]) + sos)/dx, MAX( (abs(v[gt]) + sos)/dy, (abs(w[gt]) + sos)/dz) );
+	    dtv1      =  MAX( 1.0/Re/dx2, MAX( 1.0/Re/dy2, 1.0/Re/dz2) );
 		dtConvInv =  MAX( dtConvInv, dtc1 );
 		dtViscInv =  MAX( dtViscInv, dtv1 );
 	}
@@ -428,14 +343,12 @@ void calcdt(Communicator rk) {
 }
 
 void restartWrapper(Communicator rk) {
-	if(restartFile<0) {
-		if(forcing) {
-			initChannel(rk);
-		}else if(boundaryLayer){
-			initBL(rk);
-		} else {
-			initCHIT(rk);
-		}
-	} else {
-		initField(restartFile,rk); }
+    if(restartFile<0) {
+    	if(forcing) {
+    		initChannel(rk);
+    	} else {
+    		if(!boundaryLayer) initCHIT(rk);
+    	}
+    } else {
+    	initField(restartFile,rk); }
 }

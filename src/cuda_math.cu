@@ -152,7 +152,7 @@ __global__ void integrateThreads(myprec *gOut, myprec *gArr, int arraySize) {
 	myprec sum = 0;
 	for (int it = glb; it < arraySize; it += gdim) {
 		int i = it % mx;
-		sum += gArr[it]*d_dxv[i]/d_dy/d_dz;
+		sum += gArr[it]*d_dxv[i]/d_dy/d_dz /(Lx*Ly*Lz);
 	}
 	extern __shared__ myprec shArr[];
 	shArr[tix] = sum;
@@ -296,6 +296,19 @@ __device__ unsigned int findPreviousPowerOf2(unsigned int n)
     return n;
 }
 
+__device__ unsigned int findNextPowerOf2(unsigned int n)
+{
+    unsigned count = 0;
+    while(n != 0)
+    {
+        n >>= 1;
+        count += 1;
+    }
+    
+    n = 1 << count;
+    return n;
+}
+
 unsigned int hostFindPreviousPowerOf2(unsigned int n)
 {
     while (n & n - 1) {
@@ -304,6 +317,20 @@ unsigned int hostFindPreviousPowerOf2(unsigned int n)
 
     return n;
 }
+
+unsigned int hostfindNextPowerOf2(unsigned int n)
+{
+    unsigned count = 0;
+    while(n != 0)
+    {
+        n >>= 1;
+        count += 1;
+    }
+
+    n = 1 << count;
+    return n;
+}
+
 
 void hostReduceToMin(myprec *gOut, myprec *var, Communicator rk) {
 
@@ -341,13 +368,12 @@ void hostVolumeIntegral(myprec *gOut, myprec *var, Communicator rk) {
 	int tot = mx*my*mz;
 
 	int gr  = my *  mz;
-	int bl = mx ;
-
-	checkCuda( cudaMalloc((void**)&dwrkM ,gr*sizeof(myprec)) );
-	cudaDeviceSynchronize();
+	int bl  = mx ;
 
 	bl = hostFindPreviousPowerOf2(bl);
 
+	checkCuda( cudaMalloc((void**)&dwrkM ,gr*sizeof(myprec)) );
+	cudaDeviceSynchronize();
 	integrateThreads<<<gr, bl, bl*sizeof(myprec)>>>(dwrkM, var , tot);
 	cudaDeviceSynchronize();
 	reduceThreads<<<   1 , bl, bl*sizeof(myprec)>>>(dwrkM, dwrkM, gr);

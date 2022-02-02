@@ -49,6 +49,13 @@ myprec *d_rhsv3;
 myprec *d_rhsw3;
 myprec *d_rhse3;
 
+
+myprec *rm, *um, *wm, *tm;
+myprec *rm_in, *um_in, *wm_in, *tm_in;
+myprec *a_inpl, *b_inpl;
+int    *idxm, *idxp;
+myprec *delta_rec, *delta_in ;
+myprec *recy_r, *recy_u, *recy_v, *recy_w, *recy_e, *recy_h, *recy_p, *recy_t, *recy_m, *recy_l;
 myprec *gij[9];
 
 ///////////////////////////////////////////////////////////////////////
@@ -87,6 +94,28 @@ __global__ void rk3finalR(myprec *a1, myprec *a2, myprec *b, myprec *c, myprec *
 
 __global__ void sumLowStorageRK3(myprec *var, myprec *rhs1, myprec *rhs2, myprec *dt, int step);
 
+
+void calcMeanRec(myprec *r, myprec *u,myprec *w, myprec *t, myprec *rm, myprec *um, myprec *wm, myprec *tm, myprec *a, myprec *b, int *idxm, int *idxp, myprec *delta_rec, myprec *delta_in, Communicator rk);
+void Recycle_Rescale(myprec *r, myprec *u, myprec *v, myprec *w, myprec *t, myprec *rm, myprec *um, myprec *wm, myprec *tm,
+                     myprec *rm_in, myprec *um_in, myprec *wm_in, myprec *tm_in, myprec *recy_r, myprec *recy_u,
+                     myprec *recy_v, myprec *recy_w, myprec *recy_t,myprec *a, myprec *b, int *idxm, int *idxp, myprec *delta_rec, myprec *delta_in, Communicator rk) ;
+
+void InletMeanUpdate(myprec *rm_in, myprec *um_in, myprec *wm_in, myprec *tm_in, myprec *delta_in, Communicator rk);
+
+void Spanwiseshift(myprec *recy_r,myprec *recy_u,myprec *recy_v,myprec *recy_w,myprec *recy_t, Communicator rk);
+
+__global__ void Recy_Resc(myprec *r, myprec *u, myprec *v, myprec *w, myprec *t, myprec *rm, myprec *um, myprec *wm, myprec *tm,
+                          myprec *rm_in, myprec *um_in, myprec *wm_in, myprec *tm_in, myprec *recy_r, myprec *recy_u,
+                          myprec *recy_v, myprec *recy_w, myprec *recy_t,myprec *a, myprec *b, int *idxm, int *idxp, myprec *delta_rec, myprec *delta_in, Communicator rk) ;
+                          
+__global__ void YAvg(myprec *f, myprec *fm, int krec, int kRR);
+
+__global__ void deltaRR(myprec *wm, myprec *delta) ;
+
+__global__ void interpRR(myprec *a, myprec *b, int *idxm, int *idxp, myprec *delta_rec, myprec *delta_in);
+
+__global__ void spanshifting(myprec *var);
+                        
 #endif /* RHS_H_ */
 
 

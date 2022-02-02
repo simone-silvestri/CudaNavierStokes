@@ -34,8 +34,8 @@ __global__ void cpyCoefficients(myprec *tmpSx, myprec *tmpVSx) {
 
 __constant__ myprec d_dx, d_dy, d_dz, d_d2x, d_d2y, d_d2z, d_x[mx], d_xp[mx], d_dxv[mx];
 
-dim3 d_block[5], grid0, gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
-dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
+dim3  d_grid[5], grid0, gridBC,  gridHalo,  gridHaloY,  gridHaloZ, d_gridx, gridBCw;
+dim3  d_block[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ, d_blockx, blockBCw;
 
 void copyThreadGridsToDevice(Communicator rk);
 void sanityCheckThreadGrids(Communicator rk);
@@ -65,6 +65,8 @@ void setGPUParameters(Communicator rk)
 	myprec *h_xp  = new myprec[mx];
 	myprec *h_dxv = new myprec[mx];
 
+
+
 	myprec h_dpdz;
 	if(forcing)  h_dpdz = 0.00372;
 	if(!forcing) h_dpdz = 0.0;
@@ -79,11 +81,16 @@ void setGPUParameters(Communicator rk)
 		h_x[i]   = x[i];
 		h_xp[i]  = xp[i];
 	}
-	h_dxv[0] = (x[1]+x[0])/2.0;
+/*	h_dxv[0] = (x[1]+x[0])/2.0;
 	for (int i=1; i<mx-1; i++) {
 		h_dxv[i]   = (x[i+1]-x[i-1])/2.0;
 	}
-	h_dxv[mx-1] = Lx - (x[mx-1]+x[mx-2])/2.0;
+	h_dxv[mx-1] = Lx - (x[mx-1]+x[mx-2])/2.0; //SIMONE'S METHOD*/
+
+	// better way to compute dx_array
+	for (int i=0; i<mx; i++) {
+		h_dxv[i]   = dx/xp[i]; // dx_nu = dx_u * dx_nu/dx_u
+	}
 
 	myprec h_d2x = h_dx*h_dx;
 	myprec h_d2y = h_dy*h_dy;
@@ -186,6 +193,9 @@ void copyThreadGridsToDevice(Communicator rk) {
 	d_grid[0]  = dim3(2*my / sPencils, mz, 1);
 	d_block[0] = dim3(mx, sPencils/2, 1);
 
+	d_gridx  = dim3(2*my / sPencils, mz, nX);
+	d_blockx = dim3(mx/nX, sPencils/2, 1);
+
 	// Y-grid (1) for RHS calculation and (3) for velocity derivative
 	d_grid[3]  = dim3(nDivX, mz, nDivY);
 	d_block[3] = dim3(mx/nDivX, my/nDivY , 1);
@@ -215,6 +225,9 @@ void copyThreadGridsToDevice(Communicator rk) {
 	gridHaloZ  = dim3(mx / sPencils, my, 1);
 	blockHaloZ = dim3(stencilSize, sPencils, 1);
 
+	gridBCw = dim3(mz, 1 , 1);
+	blockBCw = dim3(my , 1 , 1);
+
 	if(rk.rank==0) {
 		printf("Grid configuration:\n");
 		printf("Grid 0:  {%d, %d, %d} blocks. Blocks 0:  {%d, %d, %d} threads.\n",d_grid[0].x, d_grid[0].y, d_grid[0].z, d_block[0].x, d_block[0].y, d_block[0].z);
@@ -226,6 +239,8 @@ void copyThreadGridsToDevice(Communicator rk) {
 		printf("Grid H:  {%d, %d, %d} blocks. Blocks H:  {%d, %d, %d} threads.\n",gridHalo.x, gridHalo.y, gridHalo.z, blockHalo.x, blockHalo.y, blockHalo.z);
 		printf("Grid HY: {%d, %d, %d} blocks. Blocks HY: {%d, %d, %d} threads.\n",gridHaloY.x, gridHaloY.y, gridHaloY.z, blockHaloY.x, blockHaloY.y, blockHaloY.z);
 		printf("Grid HZ: {%d, %d, %d} blocks. Blocks HZ: {%d, %d, %d} threads.\n",gridHaloZ.x, gridHaloZ.y, gridHaloZ.z, blockHaloZ.x, blockHaloZ.y, blockHaloZ.z);
+		printf("Grid X: {%d, %d, %d} blocks. Blocks X: {%d, %d, %d} threads.\n",d_gridx.x, d_gridx.y, d_gridx.z, d_blockx.x, d_blockx.y, d_blockx.z);
+
 		printf("\n");
 	}
 }
@@ -516,6 +531,35 @@ void initSolver(Communicator rk) {
 	checkCuda( cudaMallocHost(&rcvZm5, 5*bytesZ) );
 	checkCuda( cudaMallocHost(&rcvZp5, 5*bytesZ) );
 
+
+	checkCuda( cudaMalloc( (void**)&recy_r, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_u, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_v, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_w, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_e, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_h, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_p, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_t, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_m, stencilSize*mx_tot*my*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&recy_l, stencilSize*mx_tot*my*sizeof(myprec) ) );
+
+	checkCuda( cudaMalloc( (void**)&rm, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&um, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&wm, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&tm, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&rm_in, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&um_in, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&wm_in, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&tm_in, stencilSize*mx_tot*sizeof(myprec) ) );
+
+	checkCuda( cudaMalloc( (void**)&a_inpl, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&b_inpl, stencilSize*mx_tot*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&idxm, stencilSize*mx_tot*sizeof(int) ) );
+	checkCuda( cudaMalloc( (void**)&idxp, stencilSize*mx_tot*sizeof(int) ) );
+
+	checkCuda( cudaMalloc( (void**)&delta_rec, stencilSize*sizeof(myprec) ) );
+	checkCuda( cudaMalloc( (void**)&delta_in, stencilSize*sizeof(myprec) ) );
+
 }
 
 void clearSolver(Communicator rk) {
@@ -558,6 +602,35 @@ void clearSolver(Communicator rk) {
 	checkCuda( cudaFree(d_p) );
 	checkCuda( cudaFree(d_m) );
 	checkCuda( cudaFree(d_l) );
+
+
+	checkCuda( cudaFree( recy_r));
+	checkCuda( cudaFree( recy_u));
+	checkCuda( cudaFree( recy_v));
+	checkCuda( cudaFree( recy_w));
+	checkCuda( cudaFree( recy_e));
+	checkCuda( cudaFree( recy_h));
+	checkCuda( cudaFree( recy_p));
+	checkCuda( cudaFree( recy_t));
+	checkCuda( cudaFree( recy_m));
+	checkCuda( cudaFree( recy_l));
+
+	checkCuda( cudaFree( rm   ));
+	checkCuda( cudaFree( um   ));
+	checkCuda( cudaFree( wm   ));
+	checkCuda( cudaFree( tm   ));
+	checkCuda( cudaFree( rm_in));
+	checkCuda( cudaFree( um_in));
+	checkCuda( cudaFree( wm_in));
+	checkCuda( cudaFree( tm_in));
+
+	checkCuda( cudaFree( a_inpl));
+	checkCuda( cudaFree( b_inpl));
+	checkCuda( cudaFree( idxm  )); 
+	checkCuda( cudaFree( idxp  ));
+
+	checkCuda( cudaFree( delta_rec ));
+	checkCuda( cudaFree( delta_in  ));
 
 	if(!lowStorage) {
 		checkCuda( cudaFree(d_rO) );

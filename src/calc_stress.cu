@@ -19,32 +19,6 @@ __global__ void deviceCalcPress(myprec *a, myprec *b, myprec *c) {
 	*a = 0.99*(*b) - 0.5*( *a/(*c) - 1 ); //*a/(*c)-1 //a here is rw_bulk // changed from rw_bulk/r_bulk to rw_bulk
 }
 
-__global__ void derVelX(myprec *u, myprec *v, myprec *w, myprec *dudx, myprec *dvdx, myprec *dwdx) {
-
-	Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
-	id.mkidX();
-
-	__shared__ myprec s_u[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_v[sPencils][mx+stencilSize*2];
-	__shared__ myprec s_w[sPencils][mx+stencilSize*2];
-
-	int si = id.i + stencilSize;
-	int sj = id.tiy;
-
-	s_u[sj][si] = u[id.g];
-	s_v[sj][si] = v[id.g];
-	s_w[sj][si] = w[id.g];
-	__syncthreads();
-
-	BCxderVel(s_u[sj],s_v[sj],s_w[sj],id,si,mx);
-	__syncthreads();
-
-	myprec wrk1;
-	derDevSharedV1x(&wrk1,s_u[sj],si); dudx[id.g] = wrk1;
-	derDevSharedV1x(&wrk1,s_v[sj],si); dvdx[id.g] = wrk1;
-	derDevSharedV1x(&wrk1,s_w[sj],si); dwdx[id.g] = wrk1;
-
-}
 
 __global__ void derVelY(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy) {
 
@@ -65,18 +39,49 @@ __global__ void derVelY(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *d
 
        myprec wrk1=0;
        myprec wrk2=0;
-       //myprec wrk3=0;
 
       __shared__ myprec s_u[mx/nDivX][my/nDivY+stencilSize*2];
       __shared__ myprec s_v[mx/nDivX][my/nDivY+stencilSize*2];
-      //__shared__ myprec s_w[mx/nDivX][my/nDivY+stencilSize*2];
       s_u[sj][si] = u[id.g];
       s_v[sj][si] = v[id.g];
-      //s_w[sj][si] = w[id.g];
       __syncthreads();
-      BCyNumber2(s_u[sj],u,id,si,my,jNum);
-      BCyNumber2(s_v[sj],v,id,si,my,jNum);
-      //BCyNumber2(s_w[sj],w,id,si,my,jNum);
+
+
+	if (id.tiy < stencilSize){
+		if (nDivY ==1){
+			if(pRow>1) {
+				haloBCyTop(s_u[sj],u,si,id); haloBCyTop(s_v[sj],v,si,id);
+
+				haloBCyBot(s_u[sj],u,si,id); haloBCyBot(s_v[sj],v,si,id);
+			} else{
+  			TopBCyNumber2(s_u[sj],u,id,si,my); TopBCyNumber2(s_v[sj],v,id,si,my); 
+  			BotBCyNumber2(s_u[sj],u,id,si,my); BotBCyNumber2(s_v[sj],v,id,si,my); 
+			}
+		} else {
+			if (jNum ==0){
+				TopBCyCpy(s_u[sj],u,si,id); TopBCyCpy(s_v[sj],v,si,id); 
+
+				if(pRow>1) {
+
+					haloBCyBot(s_u[sj],u,si,id); haloBCyBot(s_v[sj],v,si,id);
+				} else{
+  			BotBCyNumber2(s_u[sj],u,id,si,my); BotBCyNumber2(s_v[sj],v,id,si,my); 
+				}
+			} else if (jNum == nDivY-1){
+				BotBCyCpy(s_u[sj],u,si,id); BotBCyCpy(s_v[sj],v,si,id); 
+				if(pRow>1) {
+					haloBCyTop(s_u[sj],u,si,id); haloBCyTop(s_v[sj],v,si,id); 
+
+				} else {
+  			TopBCyNumber2(s_u[sj],u,id,si,my); TopBCyNumber2(s_v[sj],v,id,si,my); 
+				}
+			} else {
+				TopBCyCpy(s_u[sj],u,si,id); TopBCyCpy(s_v[sj],v,si,id); 
+
+				BotBCyCpy(s_u[sj],u,si,id); BotBCyCpy(s_v[sj],v,si,id); 
+			}
+		}
+	}
       __syncthreads();
 // COMP Tile sj1 and si1
       derDevSharedV1y(&wrk1,s_u[sj1],si1);
@@ -98,7 +103,7 @@ __global__ void derVelY(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *d
 	//derDevV1yL(dwdy,w,id);*/
 }
 
-__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz) {
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, recycle rec, Communicator rk) {
 
        Indices id(threadIdx.x,threadIdx.y,blockIdx.x,blockIdx.y,blockDim.x,blockDim.y);
        int kNum = blockIdx.z;
@@ -126,10 +131,78 @@ __global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *d
       s_v[sj][si] = v[id.g];
       s_w[sj][si] = w[id.g];
       __syncthreads();
-      BCzNumber2(s_u[sj],u,id,si,mz,kNum);
-      BCzNumber2(s_v[sj],v,id,si,mz,kNum);
-      BCzNumber2(s_w[sj],w,id,si,mz,kNum);
+
+
+
+	if (id.tiy < stencilSize){
+		if (nDivZ ==1){
+			if(pCol > 1) { // because even if its multi gpu but pcol == 1 then we can use directly TopBCzNumber 1 and Bot..
+				if (inletbc == 1 || outletbc ==1 ){ // if periodic
+					haloBCzTop(s_u[sj],u,si,id); haloBCzTop(s_v[sj],v,si,id); haloBCzTop(s_w[sj],w,si,id);
+
+					haloBCzBot(s_u[sj],u,si,id); haloBCzBot(s_v[sj],v,si,id); haloBCzBot(s_w[sj],w,si,id);
+				} else { // bc is something else then periodic. Because periodic is taken care of by the halo exchange(neighbour of last is first)
+					if (rk.km == pCol-2){ // last block
+						haloBCzBot(s_u[sj],u,si,id); haloBCzBot(s_v[sj],v,si,id); haloBCzBot(s_w[sj],w,si,id);
+
+    		  TopBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,outletbc);
+					} else if (rk.kp == 1) {// first block
+						haloBCzTop(s_u[sj],u,si,id); haloBCzTop(s_v[sj],v,si,id); haloBCzTop(s_w[sj],w,si,id);
+
+    		  BotBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,inletbc, rec);
+					} else { // all internal blocks
+						haloBCzTop(s_u[sj],u,si,id); haloBCzTop(s_v[sj],v,si,id); haloBCzTop(s_w[sj],w,si,id);
+
+						haloBCzBot(s_u[sj],u,si,id); haloBCzBot(s_v[sj],v,si,id); haloBCzBot(s_w[sj],w,si,id);
+					}
+				}
+
+			} else{
+    		  TopBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,outletbc);
+    		  BotBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,inletbc, rec);
+			}
+		} else {
+			if (kNum ==0){
+				TopBCzCpy(s_u[sj],u,si,id); TopBCzCpy(s_v[sj],v,si,id); TopBCzCpy(s_w[sj],w,si,id);
+				if(pCol > 1) {
+					if (inletbc == 1 || outletbc ==1 ){ // if periodic
+						haloBCzBot(s_u[sj],u,si,id); haloBCzBot(s_v[sj],v,si,id); haloBCzBot(s_w[sj],w,si,id);
+					} else { // bc is something else then periodic. Because periodic is taken care of by the halo exchange(neighbour of last is first)
+						if (rk.kp == 1){ // first block
+    		  BotBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,inletbc, rec);
+						} else { // all other blocks
+							haloBCzBot(s_u[sj],u,si,id); haloBCzBot(s_v[sj],v,si,id); haloBCzBot(s_w[sj],w,si,id);
+						}
+					}
+
+				} else{
+    		  BotBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,inletbc, rec);
+				}
+			} else if (kNum == nDivZ-1){
+				BotBCzCpy(s_u[sj],u,si,id); BotBCzCpy(s_v[sj],v,si,id); BotBCzCpy(s_w[sj],w,si,id);
+				if(pCol > 1) {
+					if (inletbc == 1 || outletbc ==1 ){ // if periodic
+						haloBCzTop(s_u[sj],u,si,id); haloBCzTop(s_v[sj],v,si,id); haloBCzTop(s_w[sj],w,si,id);
+					} else { // bc is something else then periodic. Because periodic is taken care of by the halo exchange(neighbour of last is first)
+						if (rk.km == pCol -2 ){ // last block
+    		  TopBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,outletbc);
+						} else { // all other blocks
+							haloBCzTop(s_u[sj],u,si,id); haloBCzTop(s_v[sj],v,si,id); haloBCzTop(s_w[sj],w,si,id);
+						}
+					}
+				} else{
+    		  TopBCzderVel(s_u[sj],s_v[sj],s_w[sj],u,v,w,id,si,mx,outletbc);
+				}
+			} else {
+				TopBCzCpy(s_u[sj],u,si,id); TopBCzCpy(s_v[sj],v,si,id); TopBCzCpy(s_w[sj],w,si,id);
+
+				BotBCzCpy(s_u[sj],u,si,id); BotBCzCpy(s_v[sj],v,si,id); BotBCzCpy(s_w[sj],w,si,id);
+			}
+		}
+	}
+
       __syncthreads();
+
 // COMP Tile sj1 and si1
       derDevSharedV1z(&wrk1,s_u[sj1],si1);
       derDevSharedV1z(&wrk2,s_v[sj1],si1);
@@ -232,14 +305,16 @@ __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, 
     myprec dtViscInv = 0.0;
 
     myprec ien = e[id.g]/r[id.g] - 0.5*(u[id.g]*u[id.g] + v[id.g]*v[id.g] + w[id.g]*w[id.g]);
-    myprec sos = pow(gam*(gam-1)*ien,0.5);
+    myprec sos = pow(abs(gam*(gam-1)*ien),0.5);
 
     myprec dx,d2x;
     dx = d_dxv[id.i];
     d2x = dx*dx;
 
+    myprec nu = mu[id.g]/r[id.g];
+
     dtConvInv =  MAX( (abs(u[id.g]) + sos)/dx, MAX( (abs(v[id.g]) + sos)*d_dy, (abs(w[id.g]) + sos)*d_dz) );
-    dtViscInv =  MAX( mu[id.g]/d2x, MAX( mu[id.g]*d_d2y, mu[id.g]*d_d2z) );
+    dtViscInv =  MAX( nu/d2x, MAX( nu*d_d2y, nu*d_d2z) );
 
     wrkArray[id.g] = CFL/MAX(dtConvInv, dtViscInv);
     __syncthreads();
@@ -265,8 +340,6 @@ void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, mypre
 		checkCuda( cudaMemcpy(hostWork, rbulk, sizeof(myprec), cudaMemcpyDeviceToHost) );
 		allReduceSum(hostWork,1);
 		checkCuda( cudaMemcpy(rbulk, hostWork, sizeof(myprec), cudaMemcpyHostToDevice) );
-		if(rk.rank==0) printf("step number %d with %le %le %3.10le\n",nsteps*(file-1) + istep ,*dtC,*dpdz, *hostWork);
-
 
 		deviceMul<<<gr0,bl0>>>(workA,r,w);
 		hostVolumeIntegral(par1,workA,rk);
@@ -290,6 +363,7 @@ void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, mypre
 	checkCuda( cudaFree(workA) );
 	checkCuda( cudaFree(rbulk) );
 
+	if(rk.rank==0) printf("step number %d with %le %le\n",nsteps*(file-1) + istep ,*dtC,*dpdz);
 
 
 }
