@@ -1,8 +1,7 @@
-env:
-  GKSwstype: "100" # See: https://github.com/jheinen/GR.jl/issues/278
+
 
 steps:
-  - label: "🎪 initialize gpu environment"
+  - label: "initialize gpu environment"
     key: "init_gpu"
     commands:
       - "make"
