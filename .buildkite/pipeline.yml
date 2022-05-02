@@ -1,7 +1,10 @@
-
+agents:
+  queue: "something"
 
 steps:
-  - label: "initialize gpu environment"
-    key: "init_gpu"
-    commands:
-      - "make"
+  - command: "echo 'I am here'"
+  - label: "Yada"
+    command: "echo 'Yada'"
+    agents:
+      queue: "other"
+
