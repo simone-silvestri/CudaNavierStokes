@@ -1,0 +1,8 @@
+
+steps:
+  - command: "echo 'I am here'"
+  - label: "Yada"
+    command: "echo 'Yada'"
+    agents:
+      queue: "default"
+
