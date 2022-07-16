@@ -29,8 +29,11 @@ __global__ void reduceThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void minOfThreads (myprec *gOut, myprec *gArr, int arraySize);
 __global__ void maxOfThreads (myprec *gOut, myprec *gArr, int arraySize);
 __device__ unsigned int findPreviousPowerOf2(unsigned int n);
+__device__ unsigned int findNextPowerOf2(unsigned int n);
 void hostReduceToMin(myprec *gOut, myprec *var, Communicator rk);
 void hostVolumeIntegral(myprec *gOut, myprec *var, Communicator rk);
 void hostVolumeAverage(myprec *gOut, myprec *var, Communicator rk);
 
+unsigned int hostfindNextPowerOf2(unsigned int n);
+unsigned int hostFindPreviousPowerOf2(unsigned int n);
 #endif /* CUDA_MATH_H_ */

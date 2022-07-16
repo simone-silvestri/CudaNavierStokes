@@ -14,48 +14,98 @@
 #define pRow 1
 #define pCol 1
 
+#define GPUperNode 4
+
 //Remember : viscous stencil should ALWAYS be smaller than the advective stencil!!! (otherwise errors in how you load global into shared memory)
 #define stencilSize 3  // the order is double the stencilSize (advective fluxes stencil)
 #define stencilVisc 2  // the order is double the stencilVisc (viscous fluxes stencil)
 
-#define Lx       (20.0)
-#define Ly       (7.0)
-#define Lz       (500.0)
-#define mx_tot   240
-#define my_tot   64
-#define mz_tot   2048
-#define nsteps   1001
-#define nfiles   100
-#define CFL      0.75f
-#define restartFile  -1
-
-#define lowStorage    (true)
 #define boundaryLayer (true)
-#define perturbed	  (true)
+#define channel (false)
+#define misc (false)
+
+#define Lx       (12.0)
+#define Ly       (10.0)
+#define Lz       (52.0)
+#define mx_tot   240
+#define my_tot   60 // 246
+#define mz_tot   2048
+#define nsteps   10
+#define nfiles   1
+#define CFL      0.75f
+#define restartFile -1
+#define spanshift (true)
+
+#define recstn   1500  
+
+#define lowStorage    (false)
+#define perturbed     (false)
+
+#define checkCFLcondition 100
+#define checkBulk         100
+#define checkMeanRec      1
+
+#define Re       16609
+#define Pr       0.7
+#define Ma       1.9
+#define viscexp  0.75
+#define gam      1.4
+#define Ec       ((gam - 1.f)*Ma*Ma)
+#define Rgas     (1.f/(gam*Ma*Ma))
+#define pinf     (Rgas)
+#define rfac        0.89
+#define Trat     1
+#define Tr       (1 + 0.5*(gam-1)*rfac*Ma*Ma)
+
+#if boundaryLayer
+
 #define forcing       (false)
 #define periodicX     (false)
 #define nonUniformX   (true)
 
-#define checkCFLcondition 100
-#define checkBulk 100
+//1 = periodic ; 2 = wall_staggered; 3 = wall_centered; 4= 0th order extrapolation 5 = Inflow
+#define inletbc   (5)
+#define outletbc  (4)
+#define bottombc  (3)
+#define topbc     (4)
 
-#define Re       1500.0
-#define Pr       0.75
-#define Ma       0.35
-#define viscexp  1.5
-#define gam      1.4
-#define Ec       ((gam - 1.f)*Ma*Ma)
-#define Rgas     (1.f/(gam*Ma*Ma))
+#define gridtype  (0) // 0 = BL; 1 = channel_centered; 2 = channel staggered, no wall ,etc.
 
-const double stretch  = 5.0;
+const myprec TwallTop = 0.0; //Holds no relevance for BL
+const myprec TwallBot = Trat*Tr;
+
+#elif channel
+
+#define forcing       (true)
+#define periodicX     (false)
+#define nonUniformX   (true)
+
+//1 = periodic ; 2 = wall_staggered; 3 = wall_centered; 4= 0th order extrapolation 5 = Inflow
+#define inletbc   (1)
+#define outletbc  (1)
+#define bottombc  (2)
+#define topbc     (2)
+
+#define gridtype  (2) // 0 = BL; 1 = channel_centered; 2 = channel staggered, no wall ,etc.
+
 const myprec TwallTop = 1.0;
 const myprec TwallBot = 1.0;
+
+#elif misc
+
+#endif
+
+const double stretch  = 5.0;
 
 #define mx (mx_tot)
 #define my (my_tot/pRow)
 #define mz (mz_tot/pCol)
 
-#define nDivZ 	(8) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
+#define nX 	(1) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
+
+#define nDivX 	(15) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
+#define nDivY 	(16) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
+#define nDivZ 	(64) 	// never put larger than 8 as there will be no streams to accomodate the kernels (max 8) (actually check the machine limitations)
 
 #define idx(i,j,k) \
 		({ ( k )*mx*my +( j )*mx + ( i ); })

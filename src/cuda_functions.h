@@ -39,18 +39,28 @@ class Indices {
        g = i + j*mx + k*mx*my;
     }
 
-    __device__ __host__ void mkidYFlx() {
-        i  = bix*bdy + tiy;
-        j  = tix;
+    __device__ __host__ void mkidXFlx(int iNum) {
+       i  = tix + iNum*mx/nX;
+       j  = bix*bdy + tiy;
+       k  = biy;
+       g = i + j*mx + k*mx*my;
+    }
+
+    __device__ __host__ void mkidYFlx(int jNum) {
+        //CHANGED
+        i  = bix*bdx + tix;
+        j  = tiy + jNum*my/nDivY;
         k  = biy;
         g = i + j*mx + k*mx*my;
      }
 
     __device__ __host__ void mkidZFlx(int kNum) {
-        i  = bix*bdy + tiy;
+  //changed
+        i  = bix*bdx + tix;
         j  = biy;
-        k  = tix + kNum*mz/nDivZ;
+        k  = tiy + kNum*mz/nDivZ;
         g = i + j*mx + k*mx*my;
+
      }
 
     __device__ __host__ void mkidYBC(int dir) {
@@ -71,12 +81,61 @@ class Indices {
         } else {
         	k = tix; }
         g = i + j*mx + k*mx*my;
-     }
+    }
+    __device__ __host__ void mkidBCwallTop(){
+    	i  = mx_tot-1;
+    	j  = tix;
+    	k  = bix;
+    	g  = i + j*mx + k*mx*my;
+    }
+    __device__ __host__ void mkidBCwallBot(){
+    	i  = 0;
+    	j  = tix;
+    	k  = bix;
+    	g  = i + j*mx + k*mx*my;
+    }
+    __device__ __host__ void mkidBCRecycAvg(int krec){
+    	i  = bix;
+    	j  = tix;
+    	k  = krec;
+    	g  = i + j*mx + k*mx*my;
+    }
+    __device__ __host__ void mkidBCRR(int krec){
+    	i  = tix;
+    	j  = bix;
+    	k  = krec;
+    	g  = i + j*mx + k*mx*my;
+    }
+    __device__ __host__ void mkidSpanShift(int krec, int shift){
+    	i  = bix;
+    	j  = (tix + shift)%my;
+    	k  = krec;
+    	g  = i + j*mx + k*mx*my;
+    }
+
+
 };
 
+class recycle{
+  public:
+    myprec *RRr,*RRu,*RRv,*RRw,*RRe,*RRh,*RRp,*RRt,*RRm,*RRl;
+
+    __device__ __host__ recycle(myprec *r,myprec *u,myprec *v,myprec *w,myprec *e,myprec *h,myprec *t,myprec *p,myprec *m,myprec *l ) {   
+       RRr = r;
+       RRu = u;
+       RRv = v;
+       RRw = w;
+       RRe = e;
+       RRh = h;
+       RRp = p;
+       RRt = t;
+       RRm = m;
+       RRl = l;
+    }
+};
 void calcTimeStep(myprec *dt, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu, Communicator rk);
 void calcPressureGrad(myprec *dpdx, myprec *r, myprec *w, Communicator rk);
-void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, Communicator rk);
+void calcBulk(myprec *par1, myprec *par2, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *dtC , myprec *dpdz ,int file, int istep , Communicator rk);
 
 #include "boundary_condition_z.h"
 #include "cuda_derivs.h"
@@ -86,27 +145,33 @@ __global__ void deviceRHSX(myprec *rX, myprec *uX, myprec *vX, myprec *wX, mypre
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dudx, myprec *dvdx, myprec *dwdx, myprec *dudy, myprec *dudz,
-		myprec *dil, myprec *dpdz, int iNum);
+		myprec *dvdy, myprec *dwdz, myprec *dil, myprec *dpdz);
 __global__ void deviceRHSY(myprec *rY, myprec *uY, myprec *vY, myprec *wY, myprec *eY,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dvdx, myprec *dudy, myprec *dvdy, myprec *dwdy, myprec *dvdz,
-		myprec *dil, myprec *dpdz, int jNum);
+		myprec *dil, myprec *dpdz);
 __global__ void deviceRHSZ(myprec *rZ, myprec *uZ, myprec *vZ, myprec *wZ, myprec *eZ,
 		myprec *r,  myprec *u,  myprec *v,  myprec *w,  myprec *h ,
 		myprec *t,  myprec *p,  myprec *mu, myprec *lam,
 		myprec *dwdx, myprec *dwdy, myprec *dudz, myprec *dvdz, myprec *dwdz,
-		myprec *dil, myprec *dpdz, int kNum);
+		myprec *dil, myprec *dpdz, Communicator rk, recycle rec);
 
 __global__ void derVelX(myprec *u, myprec *v, myprec *w, myprec *dudx, myprec *dvdx, myprec *dwdx);
 __global__ void derVelY(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy);
-__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, int kNum);
+__global__ void derVelZ(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, recycle rec, Communicator rk);
 __global__ void derVelYBC(myprec *u, myprec *v, myprec *w, myprec *dudy, myprec *dvdy, myprec *dwdy, int direction);
 __global__ void derVelZBC(myprec *u, myprec *v, myprec *w, myprec *dudz, myprec *dvdz, myprec *dwdz, int direction);
 __global__ void calcDil(myprec *dil, myprec *dudx, myprec *dvdy, myprec *dwdz);
 __global__ void deviceCalcDt(myprec *wrkArray, myprec *r, myprec *u, myprec *v, myprec *w, myprec *e, myprec *mu);
 __global__ void calcState(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam, int bc);
 __global__ void deviceAdvanceTime(myprec *dt);
+
+__global__ void BCwallCenteredTop(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret);
+__global__ void BCwallCenteredBot(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret);
+
+__global__ void calcStateRR(myprec *rho, myprec *uvel, myprec *vvel, myprec *wvel, myprec *ret, myprec *ht, myprec *tem, myprec *pre, myprec *mu, myprec *lam);
+
 
 //derivatives
 __device__ void derDev1x(myprec *df , myprec *f, Indices id);

@@ -75,7 +75,6 @@ __device__ void derDev1y(myprec *df, myprec *f, Indices id)
 	__syncthreads();
 
 }
-
 __device__ void derDev1z(myprec *df, myprec *f, Indices id)
 {
 

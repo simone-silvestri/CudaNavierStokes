@@ -7,6 +7,7 @@
 #include "globals.h"
 #include "comm.h"
 
+
 using namespace std;
 
 double dt, h_dpdz;
@@ -48,9 +49,11 @@ int main(int argc, char** argv) {
     initGrid(rk);
 
     //If boundary layer set sponge on the GPU and initialize the solution field with references
-    if(boundaryLayer) calculateSponge(rk);
+    
+    //if(boundaryLayer) calculateSponge(rk);
 
     //Initialize the solution field
+
     restartWrapper(rk);
 
     //Output the initial field

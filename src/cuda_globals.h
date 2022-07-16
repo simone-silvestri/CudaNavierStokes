@@ -41,7 +41,7 @@ __device__ cudaError_t checkCudaDev(cudaError_t result)
 //   				    calculate the derivative at multiple points
 // lPencils is used only for derVelY and derVelZ
 
-#if mx==1 || my==1 
+#if mx==1 || my==1
 const int sPencils = 1;
 #else
 #if mx+2*stencilSize > 279 ||  my+2*stencilSize>600 || mz/nDivZ+2*stencilSize>600
@@ -64,10 +64,12 @@ const int lPencils = 32;
 #endif
 #endif
 
+
 extern __constant__ myprec dcoeffF[stencilSize];
 extern __constant__ myprec dcoeffS[stencilSize+1];
 extern __constant__ myprec dcoeffVF[stencilVisc];
 extern __constant__ myprec dcoeffVS[stencilVisc+1];
+
 
 #if mx<=546 //limit on the GPU constant memory usage (655356 bytes)
 extern __constant__ myprec dcoeffSx[mx*(2*stencilSize+1)];
@@ -82,8 +84,8 @@ extern __device__ myprec time_on_GPU;
 extern __device__ Communicator rkGPU;
 
 
-extern dim3 d_block[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ;
-extern dim3 d_grid[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ;
+extern dim3 d_grid[5], grid0,  gridBC,  gridHalo,  gridHaloY,  gridHaloZ, d_gridx, gridBCw;
+extern dim3 d_block[5], block0, blockBC, blockHalo, blockHaloY, blockHaloZ, d_blockx, blockBCw;
 
 extern cudaStream_t s[8+nDivZ];
 
@@ -137,5 +139,13 @@ extern myprec *rcvYp,*rcvYm,*rcvZp,*rcvZm;
 
 extern myprec *senYp5,*senYm5,*senZp5,*senZm5;
 extern myprec *rcvYp5,*rcvYm5,*rcvZp5,*rcvZm5;
+
+extern myprec *rm, *um, *wm, *tm;
+extern myprec *rm_in, *um_in, *wm_in, *tm_in;
+extern myprec *a_inpl, *b_inpl;
+extern int    *idxm, *idxp;
+extern myprec *delta_rec, *delta_in ;
+extern myprec *recy_r, *recy_u, *recy_v, *recy_w, *recy_e, *recy_h, *recy_p, *recy_t, *recy_m, *recy_l;
+
 
 #endif
